@@ -1,0 +1,16 @@
+services:
+
+  bumpr:
+    build: ./
+    container_name: bumpr
+    volumes:
+      - ./:/usr/src/app
+      - bumpr_node_modules:/usr/src/app/node_modules
+
+volumes:
+  bumpr_node_modules:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${PWD}/node_modules

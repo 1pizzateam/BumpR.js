@@ -1,0 +1,387 @@
+lockfile_version: '1'
+generated_at: '2026-09-12T20:40:01.582635+00:00'
+apm_version: 0.29.0
+dependencies:
+- repo_url: alten-group/coding-pal
+  materialization_repo_url: ALTEN-group/coding-pal
+  name: coding-pal
+  host: github.com
+  resolved_commit: a005b7bc07c750c6a71776515f9772cd02ca7851
+  version: 0.0.0
+  package_type: skill_bundle
+  deployed_files:
+  - .agents/skills/vitepress-docs-examples
+  - .agents/skills/vitepress-docs-examples/SKILL.md
+  - .agents/skills/vitepress-docs-examples/references/examples.md
+  - .claude/skills/vitepress-docs-examples
+  - .claude/skills/vitepress-docs-examples/SKILL.md
+  - .claude/skills/vitepress-docs-examples/references/examples.md
+  deployed_file_hashes:
+    .agents/skills/vitepress-docs-examples/SKILL.md: sha256:a7f933fdd89b82ea23221da846c713594a074b18ddf6fb1ea38ec4be21a0d92c
+    .agents/skills/vitepress-docs-examples/references/examples.md: sha256:c0b4048ace5e7b1423c0d34f1233e09004bfc39cad09b6c59820de83efcc7684
+    .claude/skills/vitepress-docs-examples/SKILL.md: sha256:a7f933fdd89b82ea23221da846c713594a074b18ddf6fb1ea38ec4be21a0d92c
+    .claude/skills/vitepress-docs-examples/references/examples.md: sha256:c0b4048ace5e7b1423c0d34f1233e09004bfc39cad09b6c59820de83efcc7684
+  content_hash: sha256:e4e3564ee95a4d26769fd99313997bc6d2561b9926c06a3aa4122b4ce3a92eda
+  skill_subset:
+  - vitepress-docs-examples
+- repo_url: alten-group/coding-pal
+  materialization_repo_url: ALTEN-group/coding-pal
+  name: coding-pal-unit-test
+  host: github.com
+  resolved_commit: a005b7bc07c750c6a71776515f9772cd02ca7851
+  version: 1.0.0
+  virtual_path: agents/unit-test.agent.md
+  is_virtual: true
+  deployed_files:
+  - .claude/agents/unit-test.md
+  - .cursor/agents/unit-test.md
+  - .github/agents/unit-test.agent.md
+  deployed_file_hashes:
+    .claude/agents/unit-test.md: sha256:f1cf5b864be25bfe1b26d5d22b99ae7a3bc4b0404bfb8a9bc0ff3a7b3e5f7631
+    .cursor/agents/unit-test.md: sha256:f1cf5b864be25bfe1b26d5d22b99ae7a3bc4b0404bfb8a9bc0ff3a7b3e5f7631
+    .github/agents/unit-test.agent.md: sha256:f1cf5b864be25bfe1b26d5d22b99ae7a3bc4b0404bfb8a9bc0ff3a7b3e5f7631
+  content_hash: sha256:911a8761bcff78c4847b2af9a2dbe1be275970a80234afa97b1c6da466ee5496
+- repo_url: alten-group/coding-pal
+  materialization_repo_url: ALTEN-group/coding-pal
+  name: coding-pal-vitepress-docs
+  host: github.com
+  resolved_commit: a005b7bc07c750c6a71776515f9772cd02ca7851
+  version: 1.0.0
+  virtual_path: agents/vitepress-docs.agent.md
+  is_virtual: true
+  deployed_files:
+  - .claude/commands/vitepress-docs.md
+  - .cursor/commands/vitepress-docs.md
+  deployed_file_hashes:
+    .claude/commands/vitepress-docs.md: sha256:5e17daa7738c4344cb7eb5dd92445c6902a2022fecf812bf44b27de572584794
+    .cursor/commands/vitepress-docs.md: sha256:5e17daa7738c4344cb7eb5dd92445c6902a2022fecf812bf44b27de572584794
+  content_hash: sha256:25a7ac0bfcceb1ea774d37aa21d1145fc1745c7787956981320d0707df719f57
+- repo_url: alten-group/coding-pal
+  materialization_repo_url: ALTEN-group/coding-pal
+  name: coding-pal-node-unit-tests
+  host: github.com
+  resolved_commit: a005b7bc07c750c6a71776515f9772cd02ca7851
+  version: 1.0.0
+  virtual_path: instructions/node-unit-tests.instructions.md
+  is_virtual: true
+  deployed_files:
+  - .claude/commands/node-unit-tests.md
+  - .cursor/commands/node-unit-tests.md
+  deployed_file_hashes:
+    .claude/commands/node-unit-tests.md: sha256:4407068a470a0f46804d83e5764d63a49e9c9c7ce5d287a895f69a6ea48a2f90
+    .cursor/commands/node-unit-tests.md: sha256:4407068a470a0f46804d83e5764d63a49e9c9c7ce5d287a895f69a6ea48a2f90
+  content_hash: sha256:be91b41506694c48f43b7862b5f2133ee4b81b7d63541485175acc856e1ec652
+- repo_url: alten-group/coding-pal
+  materialization_repo_url: ALTEN-group/coding-pal
+  name: coding-pal-sharp-agent
+  host: github.com
+  resolved_commit: a005b7bc07c750c6a71776515f9772cd02ca7851
+  version: 1.0.0
+  virtual_path: instructions/sharp-agent.instructions.md
+  is_virtual: true
+  deployed_files:
+  - .claude/rules/sharp-agent.md
+  - .cursor/rules/sharp-agent.mdc
+  - .github/instructions/sharp-agent.instructions.md
+  deployed_file_hashes:
+    .claude/rules/sharp-agent.md: sha256:1539f2ce78ab01c0723b7a88e8de7cb21a57b13e2bfe64072ab46fe8769645bc
+    .cursor/rules/sharp-agent.mdc: sha256:95cf8602076c7826995a24366bad63c15d566c54187403625d1e95f117272654
+    .github/instructions/sharp-agent.instructions.md: sha256:93d883b43984a04bf5eab5b9de1272ea7ba31d3f0998ffe95c6167774f3cec13
+  content_hash: sha256:48b607ac0f3e8dee51dbb60e930a76f2b3cb2a1c7445471d248e607c8a7de14b
+- repo_url: alten-group/coding-pal
+  materialization_repo_url: ALTEN-group/coding-pal
+  name: coding-pal-vitepress-docs
+  host: github.com
+  resolved_commit: a005b7bc07c750c6a71776515f9772cd02ca7851
+  version: 1.0.0
+  virtual_path: instructions/vitepress-docs.instructions.md
+  is_virtual: true
+  content_hash: sha256:7b92ac6b36c714ed8e78a141102221ea58166a159e5a6db4473ca1ba88773714
+- repo_url: alten-group/coding-pal
+  materialization_repo_url: ALTEN-group/coding-pal
+  name: coding-pal-node-unit-tests
+  host: github.com
+  resolved_commit: a005b7bc07c750c6a71776515f9772cd02ca7851
+  version: 1.0.0
+  virtual_path: prompts/node-unit-tests.prompt.md
+  is_virtual: true
+  deployed_files:
+  - .claude/rules/node-unit-tests.md
+  - .cursor/rules/node-unit-tests.mdc
+  - .github/instructions/node-unit-tests.instructions.md
+  - .github/prompts/node-unit-tests.prompt.md
+  deployed_file_hashes:
+    .claude/rules/node-unit-tests.md: sha256:b6df1a85b164b48690c6e278711c8c992fa12f2ffb0e1fa3e8904142b0e80b5c
+    .cursor/rules/node-unit-tests.mdc: sha256:768c9fc97253b6bbf4fc534f5e1b086bb869734d02a596de1cc076e75ee31de0
+    .github/instructions/node-unit-tests.instructions.md: sha256:2368ac02cbcc0a09e8f8e8e85d39fb48d6b866eaac8d3576ed79503c657b30b2
+    .github/prompts/node-unit-tests.prompt.md: sha256:574a5b81510487b41c86d06b7e5b15b654399b2159274dc3e924ed0dbdc67ab6
+  content_hash: sha256:43abdd3836794c63e8862bfb846d197116755968f259b1ae3d380bb3012617a6
+- repo_url: alten-group/coding-pal
+  materialization_repo_url: ALTEN-group/coding-pal
+  name: coding-pal-vitepress-docs
+  host: github.com
+  resolved_commit: a005b7bc07c750c6a71776515f9772cd02ca7851
+  version: 1.0.0
+  virtual_path: prompts/vitepress-docs.prompt.md
+  is_virtual: true
+  deployed_files:
+  - .claude/agents/vitepress-docs.md
+  - .claude/rules/vitepress-docs.md
+  - .cursor/agents/vitepress-docs.md
+  - .cursor/rules/vitepress-docs.mdc
+  - .github/agents/vitepress-docs.agent.md
+  - .github/instructions/vitepress-docs.instructions.md
+  - .github/prompts/vitepress-docs.prompt.md
+  deployed_file_hashes:
+    .claude/agents/vitepress-docs.md: sha256:c8147b95adec4e35a7f916109aaef8b9c2c8c4fe8755a9894a1a6a18bc6b3e5e
+    .claude/rules/vitepress-docs.md: sha256:cea52272ce3ce15f399483a9337fef50ab43c1d7f6566ccb65d1836789b14df7
+    .cursor/agents/vitepress-docs.md: sha256:c8147b95adec4e35a7f916109aaef8b9c2c8c4fe8755a9894a1a6a18bc6b3e5e
+    .cursor/rules/vitepress-docs.mdc: sha256:8ab734222ebc1e8d537bacfcf61b8a39a1fc0493fd9602a38927ac26af21a871
+    .github/agents/vitepress-docs.agent.md: sha256:c8147b95adec4e35a7f916109aaef8b9c2c8c4fe8755a9894a1a6a18bc6b3e5e
+    .github/instructions/vitepress-docs.instructions.md: sha256:c7c720a2481658ce3a34f82f7b968560bd5394c94c9766ccfac3f9b271c671bd
+    .github/prompts/vitepress-docs.prompt.md: sha256:1d62acfe74572506e9d612e17d2c4f591ca7c764f6c9c631b7fcaa7b0cec581e
+  content_hash: sha256:c2b3159924d956fabfdd82046d5b5d135e67c0453b3ae19bafd0ab21df40a7b5
+deployments:
+- kind: project-relative
+  target: claude
+  value: .claude/agents/unit-test.md
+  runtime: null
+  scope: project
+  owners:
+  - alten-group/coding-pal/agents/unit-test.agent.md
+  active_owner: alten-group/coding-pal/agents/unit-test.agent.md
+  content_hash: sha256:f1cf5b864be25bfe1b26d5d22b99ae7a3bc4b0404bfb8a9bc0ff3a7b3e5f7631
+- kind: project-relative
+  target: claude
+  value: .claude/agents/vitepress-docs.md
+  runtime: null
+  scope: project
+  owners:
+  - alten-group/coding-pal/prompts/vitepress-docs.prompt.md
+  active_owner: alten-group/coding-pal/prompts/vitepress-docs.prompt.md
+  content_hash: sha256:c8147b95adec4e35a7f916109aaef8b9c2c8c4fe8755a9894a1a6a18bc6b3e5e
+- kind: project-relative
+  target: claude
+  value: .claude/commands/node-unit-tests.md
+  runtime: null
+  scope: project
+  owners:
+  - alten-group/coding-pal/instructions/node-unit-tests.instructions.md
+  active_owner: alten-group/coding-pal/instructions/node-unit-tests.instructions.md
+  content_hash: sha256:4407068a470a0f46804d83e5764d63a49e9c9c7ce5d287a895f69a6ea48a2f90
+- kind: project-relative
+  target: claude
+  value: .claude/commands/vitepress-docs.md
+  runtime: null
+  scope: project
+  owners:
+  - alten-group/coding-pal/agents/vitepress-docs.agent.md
+  active_owner: alten-group/coding-pal/agents/vitepress-docs.agent.md
+  content_hash: sha256:5e17daa7738c4344cb7eb5dd92445c6902a2022fecf812bf44b27de572584794
+- kind: project-relative
+  target: claude
+  value: .claude/rules/node-unit-tests.md
+  runtime: null
+  scope: project
+  owners:
+  - alten-group/coding-pal/prompts/node-unit-tests.prompt.md
+  active_owner: alten-group/coding-pal/prompts/node-unit-tests.prompt.md
+  content_hash: sha256:b6df1a85b164b48690c6e278711c8c992fa12f2ffb0e1fa3e8904142b0e80b5c
+- kind: project-relative
+  target: claude
+  value: .claude/rules/sharp-agent.md
+  runtime: null
+  scope: project
+  owners:
+  - alten-group/coding-pal/instructions/sharp-agent.instructions.md
+  active_owner: alten-group/coding-pal/instructions/sharp-agent.instructions.md
+  content_hash: sha256:1539f2ce78ab01c0723b7a88e8de7cb21a57b13e2bfe64072ab46fe8769645bc
+- kind: project-relative
+  target: claude
+  value: .claude/rules/vitepress-docs.md
+  runtime: null
+  scope: project
+  owners:
+  - alten-group/coding-pal/prompts/vitepress-docs.prompt.md
+  active_owner: alten-group/coding-pal/prompts/vitepress-docs.prompt.md
+  content_hash: sha256:cea52272ce3ce15f399483a9337fef50ab43c1d7f6566ccb65d1836789b14df7
+- kind: project-relative
+  target: claude
+  value: .claude/skills/vitepress-docs-examples
+  runtime: null
+  scope: project
+  owners:
+  - alten-group/coding-pal
+  active_owner: alten-group/coding-pal
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/vitepress-docs-examples/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - alten-group/coding-pal
+  active_owner: alten-group/coding-pal
+  content_hash: sha256:a7f933fdd89b82ea23221da846c713594a074b18ddf6fb1ea38ec4be21a0d92c
+- kind: project-relative
+  target: claude
+  value: .claude/skills/vitepress-docs-examples/references/examples.md
+  runtime: null
+  scope: project
+  owners:
+  - alten-group/coding-pal
+  active_owner: alten-group/coding-pal
+  content_hash: sha256:c0b4048ace5e7b1423c0d34f1233e09004bfc39cad09b6c59820de83efcc7684
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/vitepress-docs-examples
+  runtime: null
+  scope: project
+  owners:
+  - alten-group/coding-pal
+  active_owner: alten-group/coding-pal
+  content_hash: null
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/vitepress-docs-examples/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - alten-group/coding-pal
+  active_owner: alten-group/coding-pal
+  content_hash: sha256:a7f933fdd89b82ea23221da846c713594a074b18ddf6fb1ea38ec4be21a0d92c
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/vitepress-docs-examples/references/examples.md
+  runtime: null
+  scope: project
+  owners:
+  - alten-group/coding-pal
+  active_owner: alten-group/coding-pal
+  content_hash: sha256:c0b4048ace5e7b1423c0d34f1233e09004bfc39cad09b6c59820de83efcc7684
+- kind: project-relative
+  target: copilot
+  value: .github/agents/unit-test.agent.md
+  runtime: null
+  scope: project
+  owners:
+  - alten-group/coding-pal/agents/unit-test.agent.md
+  active_owner: alten-group/coding-pal/agents/unit-test.agent.md
+  content_hash: sha256:f1cf5b864be25bfe1b26d5d22b99ae7a3bc4b0404bfb8a9bc0ff3a7b3e5f7631
+- kind: project-relative
+  target: copilot
+  value: .github/agents/vitepress-docs.agent.md
+  runtime: null
+  scope: project
+  owners:
+  - alten-group/coding-pal/prompts/vitepress-docs.prompt.md
+  active_owner: alten-group/coding-pal/prompts/vitepress-docs.prompt.md
+  content_hash: sha256:c8147b95adec4e35a7f916109aaef8b9c2c8c4fe8755a9894a1a6a18bc6b3e5e
+- kind: project-relative
+  target: copilot
+  value: .github/instructions/node-unit-tests.instructions.md
+  runtime: null
+  scope: project
+  owners:
+  - alten-group/coding-pal/prompts/node-unit-tests.prompt.md
+  active_owner: alten-group/coding-pal/prompts/node-unit-tests.prompt.md
+  content_hash: sha256:2368ac02cbcc0a09e8f8e8e85d39fb48d6b866eaac8d3576ed79503c657b30b2
+- kind: project-relative
+  target: copilot
+  value: .github/instructions/sharp-agent.instructions.md
+  runtime: null
+  scope: project
+  owners:
+  - alten-group/coding-pal/instructions/sharp-agent.instructions.md
+  active_owner: alten-group/coding-pal/instructions/sharp-agent.instructions.md
+  content_hash: sha256:93d883b43984a04bf5eab5b9de1272ea7ba31d3f0998ffe95c6167774f3cec13
+- kind: project-relative
+  target: copilot
+  value: .github/instructions/vitepress-docs.instructions.md
+  runtime: null
+  scope: project
+  owners:
+  - alten-group/coding-pal/prompts/vitepress-docs.prompt.md
+  active_owner: alten-group/coding-pal/prompts/vitepress-docs.prompt.md
+  content_hash: sha256:c7c720a2481658ce3a34f82f7b968560bd5394c94c9766ccfac3f9b271c671bd
+- kind: project-relative
+  target: copilot
+  value: .github/prompts/node-unit-tests.prompt.md
+  runtime: null
+  scope: project
+  owners:
+  - alten-group/coding-pal/prompts/node-unit-tests.prompt.md
+  active_owner: alten-group/coding-pal/prompts/node-unit-tests.prompt.md
+  content_hash: sha256:574a5b81510487b41c86d06b7e5b15b654399b2159274dc3e924ed0dbdc67ab6
+- kind: project-relative
+  target: copilot
+  value: .github/prompts/vitepress-docs.prompt.md
+  runtime: null
+  scope: project
+  owners:
+  - alten-group/coding-pal/prompts/vitepress-docs.prompt.md
+  active_owner: alten-group/coding-pal/prompts/vitepress-docs.prompt.md
+  content_hash: sha256:1d62acfe74572506e9d612e17d2c4f591ca7c764f6c9c631b7fcaa7b0cec581e
+- kind: project-relative
+  target: cursor
+  value: .cursor/agents/unit-test.md
+  runtime: null
+  scope: project
+  owners:
+  - alten-group/coding-pal/agents/unit-test.agent.md
+  active_owner: alten-group/coding-pal/agents/unit-test.agent.md
+  content_hash: sha256:f1cf5b864be25bfe1b26d5d22b99ae7a3bc4b0404bfb8a9bc0ff3a7b3e5f7631
+- kind: project-relative
+  target: cursor
+  value: .cursor/agents/vitepress-docs.md
+  runtime: null
+  scope: project
+  owners:
+  - alten-group/coding-pal/prompts/vitepress-docs.prompt.md
+  active_owner: alten-group/coding-pal/prompts/vitepress-docs.prompt.md
+  content_hash: sha256:c8147b95adec4e35a7f916109aaef8b9c2c8c4fe8755a9894a1a6a18bc6b3e5e
+- kind: project-relative
+  target: cursor
+  value: .cursor/commands/node-unit-tests.md
+  runtime: null
+  scope: project
+  owners:
+  - alten-group/coding-pal/instructions/node-unit-tests.instructions.md
+  active_owner: alten-group/coding-pal/instructions/node-unit-tests.instructions.md
+  content_hash: sha256:4407068a470a0f46804d83e5764d63a49e9c9c7ce5d287a895f69a6ea48a2f90
+- kind: project-relative
+  target: cursor
+  value: .cursor/commands/vitepress-docs.md
+  runtime: null
+  scope: project
+  owners:
+  - alten-group/coding-pal/agents/vitepress-docs.agent.md
+  active_owner: alten-group/coding-pal/agents/vitepress-docs.agent.md
+  content_hash: sha256:5e17daa7738c4344cb7eb5dd92445c6902a2022fecf812bf44b27de572584794
+- kind: project-relative
+  target: cursor
+  value: .cursor/rules/node-unit-tests.mdc
+  runtime: null
+  scope: project
+  owners:
+  - alten-group/coding-pal/prompts/node-unit-tests.prompt.md
+  active_owner: alten-group/coding-pal/prompts/node-unit-tests.prompt.md
+  content_hash: sha256:768c9fc97253b6bbf4fc534f5e1b086bb869734d02a596de1cc076e75ee31de0
+- kind: project-relative
+  target: cursor
+  value: .cursor/rules/sharp-agent.mdc
+  runtime: null
+  scope: project
+  owners:
+  - alten-group/coding-pal/instructions/sharp-agent.instructions.md
+  active_owner: alten-group/coding-pal/instructions/sharp-agent.instructions.md
+  content_hash: sha256:95cf8602076c7826995a24366bad63c15d566c54187403625d1e95f117272654
+- kind: project-relative
+  target: cursor
+  value: .cursor/rules/vitepress-docs.mdc
+  runtime: null
+  scope: project
+  owners:
+  - alten-group/coding-pal/prompts/vitepress-docs.prompt.md
+  active_owner: alten-group/coding-pal/prompts/vitepress-docs.prompt.md
+  content_hash: sha256:8ab734222ebc1e8d537bacfcf61b8a39a1fc0493fd9602a38927ac26af21a871

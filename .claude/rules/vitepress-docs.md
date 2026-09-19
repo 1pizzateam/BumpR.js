@@ -1,0 +1,61 @@
+---
+paths:
+  - "**/.vitepress/**"
+  - "**/docs/guide/**/*.md"
+  - "**/docs/index.md"
+  - "**/docs/public/**"
+---
+
+# VitePress Documentation Site
+
+When scaffolding or matching full files, follow the installed `vitepress-docs-examples` skill (read its `references/examples.md`).
+
+## Docs root
+
+The site root is the folder named in the request. It is not fixed to `website/`. Every file below lives under that root; docs never spread outside it.
+
+```
+<docs-root>/
+  package.json
+  package-lock.json
+  dockerfile                 # development image only
+  docs/
+    index.md
+    guide/*.md
+    public/logo.svg
+    public/favicon.svg
+    .vitepress/config.mjs
+```
+
+## Stack
+
+- VitePress `1.6.x` (`vitepress dev|build|preview docs`). Dev script: `vitepress dev docs --host`.
+- Mermaid via `vitepress-plugin-mermaid` + `mermaid`. Pre-bundle `fastdom` and `fastdom/extensions/fastdom-promised.js` in `vite.optimizeDeps.include`.
+- Package is `private`, MIT, author ALTEN. `repository.directory` is the docs-root folder name the user gave.
+- Dev: Compose service behind Traefik at `/docs`, port `5173`. Bind-mount `docs/` (and `package.json` / lockfile); named volume for `node_modules`; reinstall on start so lockfile edits apply. Container naming, secrets, and label syntax are owned by the Docker instruction.
+- Prod: GitHub Pages from `docs/.vitepress/dist`. **No documentation Docker image in prod.**
+
+## Branding
+
+Use the default VitePress theme. Nav branding is `themeConfig.logo: '/logo.svg'` plus `siteTitle: false`, and the home hero image is that same static SVG. Ask the user for `logo.svg` and `favicon.svg`.
+
+## `config.mjs`
+
+- Wrap `defineConfig` with `withMermaid`.
+- `base` = `process.env.VITEPRESS_BASE` or `'/'` in production and `'/docs/'` otherwise. Favicon `href` must use that `base`.
+- `themeConfig.socialLinks: []`. Footer message: `Published and maintained by ALTEN`.
+- Sidebar is the source of truth for IA. Every `docs/guide/*.md` page is listed. Typical groups: Overview; Deployment (Compose, env, integration, troubleshooting); API Reference; domain-specific sections; Architecture.
+- Nested sidebar groups use `collapsed: false`.
+
+## Pages
+
+- Home (`docs/index.md`): `layout: home`. Hero `text` + `tagline` describe the product; actions: Get Started → `/guide/overview`, Enterprise Support → `https://www.alten.com/`. Feature cards map to **real** capabilities, not slogans.
+- Guide pages: one H1, then sections. Document only what the code and config do. Prefer tables, request/response fences, ASCII pipelines, and Mermaid sequence diagrams. Cross-link related pages.
+- API pages: method + path, representative bodies, status tables, then behavior. Do not invent endpoints or fields.
+- Register a new page in `sidebar` in the same change that adds the Markdown file.
+
+## Ignore / CI
+
+- Gitignore: `<docs-root>/node_modules/`, `docs/.vitepress/cache`, `docs/.vitepress/dist`.
+- Pages workflow: path filter on the docs root; `working-directory` that root; upload `docs/.vitepress/dist`.
+- Optional `docs/public/CNAME` only when the user names a custom domain.

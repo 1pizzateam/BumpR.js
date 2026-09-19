@@ -1,0 +1,27 @@
+name: BumpR.js
+version: 1.0.0
+author: LCluber
+targets:
+  - copilot
+  - cursor
+  - claude
+dependencies:
+  apm:
+    # Generic coding guardrails
+    - ALTEN-group/coding-pal/instructions/sharp-agent.instructions.md
+
+    # Library test workflow for this Jest-based package
+    - ALTEN-group/coding-pal/agents/unit-test.agent.md
+    - ALTEN-group/coding-pal/prompts/node-unit-tests.prompt.md
+    - ALTEN-group/coding-pal/instructions/node-unit-tests.instructions.md
+
+    # Documentation site for the package website
+    - ALTEN-group/coding-pal/agents/vitepress-docs.agent.md
+    - ALTEN-group/coding-pal/prompts/vitepress-docs.prompt.md
+    - ALTEN-group/coding-pal/instructions/vitepress-docs.instructions.md
+
+    # Optional docs guidance for the package website
+    - git: ALTEN-group/coding-pal
+      skills:
+        - vitepress-docs-examples
+  mcp: {}

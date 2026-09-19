@@ -1,8 +1,15 @@
-
 node_modules/
-website/sass/build/
-website/js/build/
 build/
-.sass-cache/
+dist/
 .tscache/
 npm-debug.log
+tests/coverage/
+website/node_modules/
+website/docs/.vitepress/cache/
+website/docs/.vitepress/dist/
+.size-snapshot.json
+.npmrc
+
+
+# APM dependencies
+apm_modules/
