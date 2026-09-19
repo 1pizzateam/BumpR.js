@@ -21,7 +21,7 @@ export const AabbVSAabb = {
   },
 
   getPenetration(): Vec2 {
-    //pick the projection axis
+    // pick the shallowest projection axis
     const minAxis = this.penetration.getMinAxis();
     this.penetration.setOppositeAxis(minAxis, 0.0);
     if(this.penetration[minAxis] && this.ab[minAxis] < 0)

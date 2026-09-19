@@ -1,0 +1,131 @@
+.bumpr-demo,
+.loopr-demo,
+.spock-demo {
+  margin: 24px 0;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--vp-c-bg-soft);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+}
+
+.bumpr-demo-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--vp-c-bg-alt);
+  border-bottom: 1px solid var(--vp-c-divider);
+}
+
+.bumpr-btn-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.bumpr-btn {
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 6px;
+  border: 1px solid var(--vp-c-divider);
+  background: var(--vp-c-bg);
+  color: var(--vp-c-text-1);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.bumpr-btn:hover:not(:disabled):not(.active) {
+  border-color: var(--vp-c-brand-1);
+  color: var(--vp-c-brand-1);
+  background: var(--vp-c-bg-mute);
+}
+
+.bumpr-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.bumpr-btn.active {
+  background: var(--vp-button-brand-bg, var(--vp-c-brand-3));
+  border-color: var(--vp-button-brand-border, var(--vp-c-brand-3));
+  color: var(--vp-button-brand-text, #ffffff) !important;
+}
+
+.bumpr-btn.active:hover:not(:disabled) {
+  background: var(--vp-button-brand-hover-bg, var(--vp-c-brand-2));
+  border-color: var(--vp-button-brand-hover-border, var(--vp-c-brand-2));
+  color: var(--vp-button-brand-hover-text, #ffffff) !important;
+}
+
+.bumpr-stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.bumpr-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  font-size: 12px;
+  font-family: var(--vp-font-family-mono);
+  border-radius: 4px;
+  background: var(--vp-c-bg-mute);
+  color: var(--vp-c-text-2);
+  border: 1px solid var(--vp-c-divider);
+}
+
+.bumpr-badge strong {
+  color: var(--vp-c-text-1);
+}
+
+.bumpr-badge.status-active {
+  background: rgba(56, 199, 147, 0.15);
+  border-color: rgba(56, 199, 147, 0.3);
+  color: #38c793;
+}
+
+.bumpr-badge.status-collision {
+  background: rgba(255, 107, 107, 0.15);
+  border-color: rgba(255, 107, 107, 0.3);
+  color: #ff6b6b;
+}
+
+.bumpr-badge.status-info {
+  background: rgba(91, 140, 255, 0.15);
+  border-color: rgba(91, 140, 255, 0.3);
+  color: #5b8cff;
+}
+
+.bumpr-demo canvas {
+  display: block;
+  width: 100%;
+  height: 280px;
+  touch-action: none;
+}
+
+.bumpr-demo figcaption {
+  padding: 10px 16px;
+  border-top: 1px solid var(--vp-c-divider);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--vp-c-text-2);
+}
+
+.bumpr-demo figcaption code {
+  font-size: 12px;
+}
+
+.bumpr-logo {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 1;
+  margin: 0 auto;
+}

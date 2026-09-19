@@ -173,7 +173,7 @@ describe('Physics Engine', () => {
   test('Draw forwards call to body.draw', () => {
     const body = new Physics(0, 0, 0, 0, 10, 10, 1.0, 0.8, 0.5, 'circle');
     let called = false;
-    body.body.draw = (ctx, fill, stroke, width) => {
+    body.body.draw = (_ctx, _fill, _stroke, _width) => {
       called = true;
     };
     body.draw({}, '#ff0000', '#000000', 1);
@@ -249,6 +249,23 @@ describe('Physics Engine', () => {
     body.damageTaken = 10;
     body.setInactive();
     expect(body.applyDamage()).toBe(false);
+  });
+
+  test('Velocity damping caches factor across consistent and varied timesteps', () => {
+    const body = new Physics(0, 0, 100, 0, 10, 10, 1.0, 0.5, 0.5, 'circle');
+    body.setGravity(0, 0);
+
+    // Frame 1 with dt = 0.5
+    body.updatePosition(0.5); // 100 * 0.5^0.5 = 100 * 0.707106 = ~70.71
+    expect(body.velocity.x).toBeCloseTo(70.71, 1);
+
+    // Frame 2 with same dt = 0.5 (hits cache)
+    body.updatePosition(0.5); // 70.71 * 0.707106 = ~50
+    expect(body.velocity.x).toBeCloseTo(50, 1);
+
+    // Frame 3 with new dt = 1.0 (invalidates and updates cache)
+    body.updatePosition(1.0); // 50 * 0.5^1.0 = ~25
+    expect(body.velocity.x).toBeCloseTo(25, 1);
   });
 });
 

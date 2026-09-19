@@ -7,6 +7,26 @@ services:
       - ./:/usr/src/app
       - bumpr_node_modules:/usr/src/app/node_modules
 
+  website:
+    build:
+      context: ./website
+      dockerfile: dockerfile
+    container_name: bumpr-website
+    # the demos import the built library, so wait for bumpr to produce dist/
+    depends_on:
+      bumpr:
+        condition: service_completed_successfully
+    volumes:
+      - ./website/package.json:/usr/src/app/package.json:ro
+      - ./website/package-lock.json:/usr/src/app/package-lock.json
+      - ./website/docs:/usr/src/app/docs
+      - ./dist:/usr/src/app/dist:ro
+      - website_node_modules:/usr/src/app/node_modules
+    # reinstall on start so package.json edits reach the node_modules volume
+    command: sh -c "npm i --loglevel=error --ignore-scripts --no-fund && node --run dev"
+    ports:
+      - "5173:5173"
+
 volumes:
   bumpr_node_modules:
     driver: local
@@ -14,3 +34,4 @@ volumes:
       type: none
       o: bind
       device: ${PWD}/node_modules
+  website_node_modules:

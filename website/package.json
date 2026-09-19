@@ -1,0 +1,27 @@
+{
+  "name": "bumpr-docs",
+  "version": "1.0.0",
+  "description": "Documentation for BumpR.js.",
+  "private": true,
+  "scripts": {
+    "dev": "vitepress dev docs --host",
+    "build": "vitepress build docs",
+    "preview": "vitepress preview docs",
+    "docs:generate": "node scripts/generate-docs.mjs"
+  },
+  "author": "Ludovic Cluber",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/1pizzateam/BumpR.js.git",
+    "directory": "website"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3",
+    "vitepress": "1.6.4"
+  },
+  "dependencies": {
+    "@1pizzateam/spock": "4.0.0",
+    "@1pizzateam/loopr": "2.0.0"
+  }
+}

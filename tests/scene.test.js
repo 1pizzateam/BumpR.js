@@ -335,6 +335,109 @@ describe('Scene Management & Lifecycle', () => {
       scene.setGrid(null);
       expect(() => scene.drawGrid({}, '', '', 1)).not.toThrow();
     });
+
+    test('removeBody uses swap-with-last to remove middle body in O(1)', () => {
+      const scene = new Scene();
+      const b1 = new Physics(0, 0, 0, 0, 10, 10, 1, 1, 0.5, 'circle');
+      const b2 = new Physics(10, 0, 0, 0, 10, 10, 1, 1, 0.5, 'circle');
+      const b3 = new Physics(20, 0, 0, 0, 10, 10, 1, 1, 0.5, 'circle');
+      scene.addBody(b1);
+      scene.addBody(b2);
+      scene.addBody(b3);
+
+      expect(scene.bodiesLength).toBe(3);
+      const removed = scene.removeBody(b2);
+      expect(removed).toBe(true);
+      expect(scene.bodiesLength).toBe(2);
+      expect(scene.bodies[0]).toBe(b1);
+      expect(scene.bodies[1]).toBe(b3);
+    });
+
+    test('update skips stationary static bodies', () => {
+      const scene = new Scene();
+      const staticBody = new Physics(50, 50, 0, 0, 20, 20, 0, 1, 0.5, 'aabb');
+      let updateCalled = false;
+      staticBody.updatePosition = () => { updateCalled = true; return staticBody.position; };
+      scene.addBody(staticBody);
+      scene.update(0.1);
+      expect(updateCalled).toBe(false);
+    });
+
+    test('Grid broad-phase deduplicates pair tests across multi-cell spanning bodies', () => {
+      const grid = new Grid(800, 600, 20);
+      const scene = new Scene(grid);
+      scene.setGravity(0, 0);
+
+      // Large bodies spanning multiple cells vertically and horizontally
+      const b1 = new Physics(18, 30, 5, 0, 20, 60, 1.0, 1.0, 0.5, 'aabb');
+      const b2 = new Physics(34, 30, -5, 0, 20, 60, 1.0, 1.0, 0.5, 'aabb');
+      scene.addBody(b1);
+      scene.addBody(b2);
+
+      expect(b1.body.gridCells.length).toBeGreaterThan(1);
+      expect(b2.body.gridCells.length).toBeGreaterThan(1);
+
+      scene.test();
+      expect(b1.impulse.x).toBeLessThan(0);
+      expect(b2.impulse.x).toBeGreaterThan(0);
+    });
+
+    test('testScene with grid detects collisions across overlapping bodies', () => {
+      const grid = new Grid(800, 600, 50);
+      const sceneA = new Scene(grid);
+      const sceneB = new Scene(grid);
+      sceneA.setGravity(0, 0);
+      sceneB.setGravity(0, 0);
+
+      const b1 = new Physics(25, 25, 10, 0, 10, 10, 1.0, 1.0, 1.0, 'circle');
+      const b2 = new Physics(35, 25, -10, 0, 10, 10, 1.0, 1.0, 1.0, 'circle');
+
+      sceneA.addBody(b1);
+      sceneB.addBody(b2);
+
+      sceneA.testScene(sceneB);
+      expect(b1.impulse.x).toBeLessThan(0);
+      expect(b2.impulse.x).toBeGreaterThan(0);
+    });
+
+    test('Grid broad-phase scales efficiently with many distributed bodies', () => {
+      const grid = new Grid(2000, 2000, 50);
+      const scene = new Scene(grid);
+      scene.setGravity(0, 0);
+
+      for (let i = 0; i < 200; i++) {
+        const x = (i % 20) * 90 + 20;
+        const y = Math.floor(i / 20) * 90 + 20;
+        scene.addBody(new Physics(x, y, 0, 0, 10, 10, 1.0, 1.0, 0.5, 'circle'));
+      }
+
+      const start = performance.now();
+      scene.test();
+      const elapsed = performance.now() - start;
+      expect(elapsed).toBeLessThan(100);
+    });
+
+    test('Sparse Grid broad-phase skips out-of-bounds bodies and empty buckets', () => {
+      const grid = new Grid(2000, 2000, 20); // 10,000 cells
+      const scene = new Scene(grid);
+      scene.setGravity(0, 0);
+
+      // Body out of grid bounds (gridCells = [-1])
+      const outOfBounds = new Physics(5000, 5000, 0, 0, 10, 10, 1.0, 1.0, 0.5, 'circle');
+      // In-bounds colliding bodies
+      const b1 = new Physics(50, 50, 5, 0, 10, 10, 1.0, 1.0, 0.5, 'circle');
+      const b2 = new Physics(55, 50, -5, 0, 10, 10, 1.0, 1.0, 0.5, 'circle');
+
+      scene.addBody(outOfBounds);
+      scene.addBody(b1);
+      scene.addBody(b2);
+
+      scene.test();
+
+      expect(b1.impulse.x).toBeLessThan(0);
+      expect(b2.impulse.x).toBeGreaterThan(0);
+      expect(outOfBounds.impulse.isOrigin()).toBe(true);
+    });
   });
 });
 

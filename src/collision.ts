@@ -27,49 +27,45 @@ export const CollisionDetection = {
 
   test( a: Physics, b: Physics ): boolean {
     this.detect( a.body, b.body );
-    if( !this.penetration.isOrigin()) {
-      if ( this.resolve( a, b )) {
-        this.computeImpulse( a, b );
-      }
-      return true;
-    }
-    return false;
+    if (this.penetration.isOrigin())
+      return false;
+    if (this.resolve( a, b ))
+      this.computeImpulse( a, b );
+    return true;
   },
 
   detect( a: Circ | Rect, b: Circ | Rect ): void {
     if( a.shape === Shape.circle ) {
-      if( b.shape === Shape.circle ) {
+      if( b.shape === Shape.circle )
         this.penetration = CircleVSCircle.detect( a.position, a.radius, b.position, b.radius );
-      }else if( b.shape === Shape.aabb ) {
+      else if( b.shape === Shape.aabb )
         this.penetration = CircleVSAabb.detect( a.position, a.radius, b.position, b.halfSize );
-      }
-    }else if( a.shape === Shape.aabb ) {
-      if( b.shape === Shape.circle ) {
+      return;
+    }
+    if( a.shape === Shape.aabb ) {
+      if( b.shape === Shape.circle )
         this.penetration = CircleVSAabb.detect( b.position, b.radius, a.position, a.halfSize ).opposite();
-      }else if( b.shape === Shape.aabb ) {
+      else if( b.shape === Shape.aabb )
         this.penetration = AabbVSAabb.detect( a.position, a.halfSize, b.position, b.halfSize );
-      }
     }
   },
 
   resolve( a: Physics, b: Physics ): boolean {
     this.totalInverseMass = a.inverseMass + b.inverseMass;
-    if (this.totalInverseMass === 0) {
+    if (this.totalInverseMass === 0)
       return false;
-    }
 
     // compute correction
     this.correction.copy(this.penetration)
                    .scale( this.percent / this.totalInverseMass );
 
-    if(!this.correction.isOrigin()) {
-      a.correctPosition( this.correction );
-      this.correction.opposite();
-      b.correctPosition( this.correction );
-      this.correction.opposite();
-      return true;
-    }
-    return false;
+    if(this.correction.isOrigin())
+      return false;
+    a.correctPosition( this.correction );
+    this.correction.opposite();
+    b.correctPosition( this.correction );
+    this.correction.opposite();
+    return true;
   },
 
   computeImpulse( a: Physics, b: Physics ): void {

@@ -1,5 +1,5 @@
-
-import { Circ, Grid, Rect, Utils, Vec2 } from '@1pizzateam/spock';
+import type { Grid } from '@1pizzateam/spock';
+import { Circ, Rect, Utils, Vec2 } from '@1pizzateam/spock';
 
 export class Physics {
 
@@ -16,6 +16,11 @@ export class Physics {
   mass        : number = 1.0;
   inverseMass : number = 1.0;
   restitution : number = 0; // elasticity [0, 1]
+
+  private cachedSecond : number = -1;
+  private cachedDamping : number = -1;
+  private cachedDampingFactor : number = 1;
+  private grid : Grid | null = null;
 
   body        : Rect | Circ;
 
@@ -67,106 +72,64 @@ export class Physics {
   }
 
   public toggleActive(): boolean {
-    return this.active = !this.active;
+    this.active = !this.active;
+    return this.active;
   }
 
   public isActive(): boolean {
     return this.active;
   }
 
-
-  // /**
-  // * Set the element as active
-  // * @since 0.4.0
-  // * @method
-  // */
-  // setDeactivationTresholdActive : function(){
-  //   this.deactivationTresholdActive = true;
-  // },
-  //
-  // /**
-  // * Set the element as inactive
-  // * @since 0.4.0
-  // * @method
-  // */
-  // setDeactivationTresholdInactive : function(){
-  //   this.deactivationTresholdActive = false;
-  // },
-  //
-  // /**
-  // * Return true if the element is active. false otherwise
-  // * @since 0.4.0
-  // * @method
-  // */
-  // isDeactivationTresholdActive : function(){
-  //   return this.deactivationTresholdActive;
-  // },
-
-  // /**
-  // * Return true if the element is active. false otherwise
-  // * @since 0.4.0
-  // * @method
-  // */
-  // setDeactivationTreshold : function(treshold){
-  //   this.deactivationTreshold = treshold;
-  // },
-
-  // /**
-  // * Return true if the element is active. false otherwise
-  // * @since 0.4.0
-  // * @method
-  // */
-  // getDeactivationTreshold : function(){
-  //   return this.deactivationTreshold;
-  // },
-
   public updatePosition( second: number ): Vec2 {
     this.translate.origin();
-    if (this.active && second > 0) {
-      if (this.inverseMass) {
-        this.applyImpulse();
-        this.applyForces( second );
-      }
-      this.applyVelocity( second );
+    if (!this.active || second <= 0)
+      return this.position;
+    if (this.inverseMass) {
+      this.applyImpulse();
+      this.applyForces( second );
     }
+    this.applyVelocity( second );
     return this.position;
   }
 
   public applyForces( second: number ): void {
-    this.resultingAcc.copy( this.gravity );// initialize resulting acceleration for this frame
+    this.resultingAcc.copy( this.gravity ); // initialize resulting acceleration for this frame
     if(!this.force.isOrigin()) {
       this.resultingAcc.addScaledVector( this.force, this.inverseMass );
       this.force.origin();
     }
-    if(!this.resultingAcc.isOrigin()){
+    if(!this.resultingAcc.isOrigin())
       this.velocity.addScaledVector( this.resultingAcc, second );
-    }
   }
 
   private applyImpulse() : void {
-    //apply impulse from collision directly to velocity
-    if(!this.impulse.isOrigin()) {
-      this.velocity.addScaledVector( this.impulse, this.inverseMass );//add impulse vector to velocity
-      this.impulse.origin();
-    }
+    if (this.impulse.isOrigin())
+      return;
+    this.velocity.addScaledVector( this.impulse, this.inverseMass );
+    this.impulse.origin();
   }
 
   private applyVelocity( second: number ): void {
-    if(!this.velocity.isOrigin()) {
-      if(this.damping < 1) {
-        this.velocity.scale( Math.pow( this.damping, second ) );
+    if (this.velocity.isOrigin())
+      return;
+    if(this.damping < 1) {
+      if (this.cachedSecond !== second || this.cachedDamping !== this.damping) {
+        this.cachedSecond = second;
+        this.cachedDamping = this.damping;
+        this.cachedDampingFactor = this.damping ** second;
       }
-      this.translate.copy(this.velocity).scale(second);
-      this.position.add(this.translate);
-      this.body.setPosition(this.position.x, this.position.y);
+      this.velocity.scale( this.cachedDampingFactor );
     }
+    this.translate.copy(this.velocity).scale(second);
+    this.position.add(this.translate);
+    this.body.setPosition(this.position.x, this.position.y);
   }
 
   public correctPosition(correction: Vec2): void {
-    if (this.inverseMass) {
-      this.position.addScaledVector(correction, this.inverseMass);
-      this.body.setPosition(this.position.x, this.position.y);
-    }
+    if (!this.inverseMass)
+      return;
+    this.position.addScaledVector(correction, this.inverseMass);
+    this.body.setPosition(this.position.x, this.position.y);
   }
 
   public setPosition(x: number, y: number ): void {
@@ -235,19 +198,19 @@ export class Physics {
   }
 
   public setSize( width: number, height?: number ): void {
-    if (this.body instanceof Rect) {
+    if (this.body instanceof Rect)
       this.body.setSize( width, height ?? width );
-    } else if (this.body instanceof Circ) {
+    else if (this.body instanceof Circ)
       this.body.setRadius( width );
-    }
   }
 
   public setGrid( grid: Grid | null ): void {
+    this.grid = grid;
     this.body.setGrid( grid );
   }
 
   public getGrid(): Grid | null {
-    return (this.body as any).grid ?? null;
+    return this.grid;
   }
 
   public setDamageDealt( damageDealt: number ): void {
@@ -263,18 +226,16 @@ export class Physics {
   }
 
   public applyDamage(): number|false {
-    if(this.active && this.damageTaken) {
-      let dmg = this.damageTaken;
-      this.damageTaken = 0;
-      return dmg;
-    }
-    return false;
+    if (!this.active || !this.damageTaken)
+      return false;
+    const dmg = this.damageTaken;
+    this.damageTaken = 0;
+    return dmg;
   }
 
   public collision (impulsePerInverseMass: Vec2, object: Physics): void {
-    if(this.inverseMass) {
+    if(this.inverseMass)
       this.impulse.add(impulsePerInverseMass);
-    }
     this.damageTaken += object.damageDealt;
   }
 

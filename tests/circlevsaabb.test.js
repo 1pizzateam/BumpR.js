@@ -103,5 +103,15 @@ describe('CircleVSAabb Collisions', () => {
       expect(pen.x).toBe(11);
       expect(pen.y).toBe(0);
     });
+
+    test('No collision when separated along X or Y axis', () => {
+      // Separated on X
+      const circlePosX = new Vec2(25, 0);
+      expect(CircleVSAabb.detect(circlePosX, circleRadius, boxPos, boxHalfSize).isOrigin()).toBe(true);
+
+      // Separated on Y (X overlaps)
+      const circlePosY = new Vec2(0, 25);
+      expect(CircleVSAabb.detect(circlePosY, circleRadius, boxPos, boxHalfSize).isOrigin()).toBe(true);
+    });
   });
 });

@@ -53,5 +53,9 @@ describe('AabbVSAabb Collision Detection', () => {
 
     const pen = AabbVSAabb.detect(posA, halfSizeA, posB, halfSizeB);
     expect(pen.isOrigin()).toBe(true);
+
+    const posAY = new Vec2(0, 25);
+    const penY = AabbVSAabb.detect(posAY, halfSizeA, posB, halfSizeB);
+    expect(penY.isOrigin()).toBe(true);
   });
 });

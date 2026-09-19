@@ -1,4 +1,4 @@
-import { Grid, Vec2 } from '@1pizzateam/spock';
+import { Grid } from '@1pizzateam/spock';
 import { CollisionDetection } from '../build/es6/collision.js';
 import { Physics } from '../build/es6/physics.js';
 
@@ -70,6 +70,25 @@ describe('Collision Detection & Impulse Response', () => {
     const a = new Physics(0, 0, 0, 0, 10, 10, 1.0, 1.0, 0.5, 'circle');
     const b = new Physics(100, 100, 0, 0, 10, 10, 1.0, 1.0, 0.5, 'circle');
     expect(CollisionDetection.test(a, b)).toBe(false);
+  });
+
+  test('Vertical collision along Y axis resolves with axis-aligned normal', () => {
+    const circle = new Physics(0, 0, 0, 10, 10, 10, 1.0, 1.0, 1.0, 'circle');
+    const floor = new Physics(0, 15, 0, 0, 100, 20, 0, 1.0, 1.0, 'rectangle');
+
+    const collided = CollisionDetection.test(circle, floor);
+    expect(collided).toBe(true);
+    expect(circle.impulse.y).toBeLessThan(0);
+  });
+
+  test('Diagonal corner collision resolves with normalized contact normal', () => {
+    const circle = new Physics(16, 16, -10, -10, 10, 10, 1.0, 1.0, 1.0, 'circle');
+    const aabb = new Physics(0, 0, 0, 0, 20, 20, 1.0, 1.0, 1.0, 'rectangle');
+
+    const collided = CollisionDetection.test(circle, aabb);
+    expect(collided).toBe(true);
+    expect(circle.impulse.x).toBeGreaterThan(0);
+    expect(circle.impulse.y).toBeGreaterThan(0);
   });
 });
 
