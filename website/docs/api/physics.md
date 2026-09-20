@@ -7,7 +7,8 @@ A 2D rigid body with mass, velocity, acceleration, restitution, damping, and geo
 A mass of `0` denotes a static, immovable obstacle (`inverseMass = 0`), which absorbs collisions without being pushed back.
 
 ```javascript
-import { Physics, Vec2 } from '@1pizzateam/bumpr';
+import { Physics } from '@1pizzateam/bumpr';
+import { Vec2 } from '@1pizzateam/spock';
 
 // Dynamic circle (position, velocity, size, mass, damping, restitution, shape)
 const ball = new Physics(
@@ -39,7 +40,7 @@ const wall = new Physics(
 Create a new `Physics` body with vector-first arguments.
 
 ```typescript
-new Physics(position    : Vec2 = new Vec2(), velocity    : Vec2 = new Vec2(), size        : Vec2 = new Vec2(20, 20), mass        : number = 1.0, damping     : number = 0.8, restitution : number = 0, shape       : 'circle' | 'aabb' | 'rectangle' = 'circle', friction?   : number)
+new Physics(position    : Vec2 = new Vec2(), velocity    : Vec2 = new Vec2(), size        : Vec2 = new Vec2(20, 20), mass        : number = 1.0, damping     : number = 0.8, restitution : number = 0, shape       : 'circle' | 'aabb' | 'rectangle' = 'circle', friction?   : number, isSensor    : boolean = false)
 ```
 
 ### Parameters
@@ -52,6 +53,7 @@ new Physics(position    : Vec2 = new Vec2(), velocity    : Vec2 = new Vec2(), si
 - `restitution` — `number`. Bounciness in `[0, 1]` (default `0`).
 - `shape` — `'circle' | 'aabb' | 'rectangle'`. Collision geometry (default `'circle'`).
 - `friction` — `number` (optional). Coulomb friction coefficient in `[0, 1]` (defaults to `0` for circle, `0.6` for AABB).
+- `isSensor` — `boolean` (optional). Whether this body acts as a sensor/trigger collider (default `false`).
 
 ### Returns
 
@@ -112,6 +114,180 @@ isActive(): boolean
 ### Returns
 
 `boolean`
+
+---
+
+## Physics.sleep()
+
+Manually put the body to sleep. Zeroes velocity and skips simulation updates until perturbed.
+
+```typescript
+sleep(): void
+```
+
+### Returns
+
+`void`
+
+---
+
+## Physics.wakeUp()
+
+Awaken the sleeping body, restoring normal integration and broad-phase collision checks.
+
+```typescript
+wakeUp(): void
+```
+
+### Returns
+
+`void`
+
+---
+
+## Physics.setCanSleep()
+
+Configure whether this body can automatically go to sleep when idle.
+
+```typescript
+setCanSleep(canSleep: boolean): void
+```
+
+### Parameters
+
+- `canSleep` — `boolean`. Whether sleep is allowed.
+
+### Returns
+
+`void`
+
+---
+
+## Physics.getCanSleep()
+
+Check whether automatic idle sleeping is enabled for this body.
+
+```typescript
+getCanSleep(): boolean
+```
+
+### Returns
+
+`boolean`
+
+---
+
+## Physics.getIsSleeping()
+
+Check whether the body is currently sleeping.
+
+```typescript
+getIsSleeping(): boolean
+```
+
+### Returns
+
+`boolean`
+
+---
+
+## Physics.setSleepThreshold()
+
+Set linear velocity threshold (in px/s) below which the body is considered idle.
+
+```typescript
+setSleepThreshold(threshold: number): void
+```
+
+### Parameters
+
+- `threshold` — `number`. Speed threshold.
+
+### Returns
+
+`void`
+
+---
+
+## Physics.getSleepThreshold()
+
+Get linear velocity sleep threshold in px/s.
+
+```typescript
+getSleepThreshold(): number
+```
+
+### Returns
+
+`number`
+
+---
+
+## Physics.setSleepStepsThreshold()
+
+Set number of consecutive idle steps required before putting the body to sleep.
+
+```typescript
+setSleepStepsThreshold(steps: number): void
+```
+
+### Parameters
+
+- `steps` — `number`. Step count threshold.
+
+### Returns
+
+`void`
+
+---
+
+## Physics.getSleepStepsThreshold()
+
+Get consecutive idle steps threshold.
+
+```typescript
+getSleepStepsThreshold(): number
+```
+
+### Returns
+
+`number`
+
+---
+
+## Physics.applyForce()
+
+Apply continuous external force vector (resets after step) and awakens the body if sleeping.
+
+```typescript
+applyForce(force: Vec2): void
+```
+
+### Parameters
+
+- `force` — `Vec2`. Force vector.
+
+### Returns
+
+`void`
+
+---
+
+## Physics.applyImpulseVector()
+
+Apply instantaneous impulse vector and awakens the body if sleeping.
+
+```typescript
+applyImpulseVector(impulse: Vec2): void
+```
+
+### Parameters
+
+- `impulse` — `Vec2`. Impulse vector.
+
+### Returns
+
+`void`
 
 ---
 
@@ -494,12 +670,154 @@ applyDamage(): number|false
 
 ---
 
+## Physics.setOnCollision()
+
+Set collision callback function for this body.
+
+```typescript
+setOnCollision(callback: BodyCollisionCallback | null): void
+```
+
+### Parameters
+
+- `callback` — `((other: Physics, normal: Vec2, impulse: Vec2) => void) | null`. Callback invoked on collision.
+
+### Returns
+
+`void`
+
+### Example
+
+```javascript
+body.setOnCollision((other, normal, impulse) => {
+  console.log('Collided with:', other, 'impulse:', impulse.getMagnitude());
+});
+```
+
+---
+
+## Physics.getOnCollision()
+
+Get current collision callback for this body.
+
+```typescript
+getOnCollision(): BodyCollisionCallback | null
+```
+
+### Returns
+
+`BodyCollisionCallback | null`
+
+---
+
+## Physics.addCollisionListener()
+
+Add an additional collision listener for this body.
+
+```typescript
+addCollisionListener(listener: BodyCollisionCallback): void
+```
+
+### Parameters
+
+- `listener` — `BodyCollisionCallback`. Collision listener function.
+
+### Returns
+
+`void`
+
+---
+
+## Physics.removeCollisionListener()
+
+Remove a previously registered collision listener from this body.
+
+```typescript
+removeCollisionListener(listener: BodyCollisionCallback): boolean
+```
+
+### Parameters
+
+- `listener` — `BodyCollisionCallback`. Collision listener function.
+
+### Returns
+
+`boolean` — `true` if listener was found and removed.
+
+---
+
+## Physics.clearCollisionListeners()
+
+Remove all registered collision listeners from this body.
+
+```typescript
+clearCollisionListeners(): void
+```
+
+### Returns
+
+`void`
+
+---
+
+## Physics.setSensor()
+
+Configure this body as a sensor/trigger collider. Sensors detect overlaps and fire collision events without applying positional correction or impulse response.
+
+```typescript
+setSensor(isSensor: boolean): void
+```
+
+### Parameters
+
+- `isSensor` — `boolean`. Sensor state.
+
+### Returns
+
+`void`
+
+### Example
+
+```javascript
+coin.setSensor(true);
+```
+
+---
+
+## Physics.getSensor()
+
+Get whether this body is configured as a sensor.
+
+```typescript
+getSensor(): boolean
+```
+
+### Returns
+
+`boolean`
+
+---
+
+## Physics.getIsSensor()
+
+Alias for `getSensor()`.
+
+```typescript
+getIsSensor(): boolean
+```
+
+### Returns
+
+`boolean`
+
+---
+
 ## Physics.collision()
 
 
 
 ```typescript
-collision(impulsePerInverseMass: Vec2, object: Physics): void
+collision(impulsePerInverseMass: Vec2, object: Physics, normal?: Vec2): void
 ```
 
 ---

@@ -96,12 +96,43 @@ describe('CircleVSAabb Collisions', () => {
     test('Circle inside AABB projects along shallowest penetration axis', () => {
       // Circle at (5, 0), radius 6.
       // Penetration on X: (10 + 6) - 5 = 11. Penetration on Y: (10 + 6) - 0 = 16.
-      // Shallowest axis is X.
-      const circlePos = new Vec2(5, 0);
-      const pen = CircleVSAabb.detect(circlePos, circleRadius, boxPos, boxHalfSize);
+      // Shallowest axis is X (+).
+      const circlePosX = new Vec2(5, 0);
+      const penX = CircleVSAabb.detect(circlePosX, circleRadius, boxPos, boxHalfSize);
+      expect(penX.x).toBe(11);
+      expect(penX.y).toBe(0);
 
-      expect(pen.x).toBe(11);
-      expect(pen.y).toBe(0);
+      // Circle at (-5, 0). Shallowest axis is X (-).
+      const circlePosNegX = new Vec2(-5, 0);
+      const penNegX = CircleVSAabb.detect(circlePosNegX, circleRadius, boxPos, boxHalfSize);
+      expect(penNegX.x).toBe(-11);
+      expect(penNegX.y).toBe(0);
+
+      // Circle at (0, 7).
+      // Penetration on X: (10 + 6) - 0 = 16. Penetration on Y: (10 + 6) - 7 = 9.
+      // Shallowest axis is Y (+).
+      const circlePosY = new Vec2(0, 7);
+      const penY = CircleVSAabb.detect(circlePosY, circleRadius, boxPos, boxHalfSize);
+      expect(penY.x).toBe(0);
+      expect(penY.y).toBe(9);
+
+      // Circle at (0, -7). Shallowest axis is Y (-).
+      const circlePosNegY = new Vec2(0, -7);
+      const penNegY = CircleVSAabb.detect(circlePosNegY, circleRadius, boxPos, boxHalfSize);
+      expect(penNegY.x).toBe(0);
+      expect(penNegY.y).toBe(-9);
+
+      // Concentric: circle at (0, 0).
+      const circlePosConcentric = new Vec2(0, 0);
+      const penConcentric = CircleVSAabb.detect(circlePosConcentric, circleRadius, boxPos, boxHalfSize);
+      expect(penConcentric.x).toBe(16);
+      expect(penConcentric.y).toBe(0);
+
+      // Circle center directly on AABB boundary at (10, 0)
+      const circlePosBoundary = new Vec2(10, 0);
+      const penBoundary = CircleVSAabb.detect(circlePosBoundary, circleRadius, boxPos, boxHalfSize);
+      expect(penBoundary.x).toBe(6);
+      expect(penBoundary.y).toBe(0);
     });
 
     test('No collision when separated along X or Y axis', () => {

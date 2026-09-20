@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
-import { Scene, Physics, Grid, Vec2 } from '@1pizzateam/bumpr';
+import { Scene, Physics } from '@1pizzateam/bumpr';
+import { Grid, Vec2 } from '@1pizzateam/spock';
 
 const canvasRef = ref(null);
 const activeCellCount = ref(0);

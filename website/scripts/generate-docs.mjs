@@ -22,7 +22,8 @@ const intros = {
     body: [
       '`Scene` holds rigid bodies, manages world gravity, coordinates spatial hash grid broad-phase bucketing, advances positions across physics timesteps, and resolves pairwise collisions using configurable constraint solver iterations.',
     ],
-    example: `import { Scene, Physics, Grid, Vec2 } from '@1pizzateam/bumpr';
+    example: `import { Scene, Physics } from '@1pizzateam/bumpr';
+import { Grid, Vec2 } from '@1pizzateam/spock';
 
 const scene = new Scene();
 scene.setGravity(new Vec2(0, 300));
@@ -73,7 +74,7 @@ function tick(dt) {
         description: 'Attach a Spock spatial hashing `Grid` for broad-phase collision culling.',
         params: ['- `grid` — `Grid | null`. Spatial grid or `null` to disable grid broad-phase.'],
         returns: '`void`',
-        example: `import { Grid, Vec2 } from '@1pizzateam/bumpr';\n\nscene.setGrid(new Grid(new Vec2(0, 0), new Vec2(1000, 1000), new Vec2(10, 10)));`,
+        example: `import { Grid, Vec2 } from '@1pizzateam/spock';\n\nscene.setGrid(new Grid(new Vec2(0, 0), new Vec2(1000, 1000), new Vec2(10, 10)));`,
       },
       getGrid: {
         description: 'Get the currently attached Spock `Grid`, or `null` if broad-phase grid is not set.',
@@ -109,6 +110,30 @@ function tick(dt) {
         returns: '`void`',
         example: `scene.setIteration(4);`,
       },
+      setOnCollision: {
+        description: 'Set callback invoked when any physical collision occurs in the scene.',
+        params: ['- `callback` — `((bodyA: Physics, bodyB: Physics, normal: Vec2, impulse: Vec2) => void) | null`. Collision callback function.'],
+        returns: '`void`',
+        example: `scene.setOnCollision((a, b, normal, impulse) => {\n  console.log('Impact impulse:', impulse.getMagnitude());\n});`,
+      },
+      getOnCollision: {
+        description: 'Get current scene collision callback.',
+        returns: '`SceneCollisionCallback | null`',
+      },
+      addCollisionListener: {
+        description: 'Add an additional collision listener for this scene.',
+        params: ['- `listener` — `SceneCollisionCallback`. Collision listener function.'],
+        returns: '`void`',
+      },
+      removeCollisionListener: {
+        description: 'Remove a previously registered scene collision listener.',
+        params: ['- `listener` — `SceneCollisionCallback`. Collision listener function.'],
+        returns: '`boolean` — `true` if listener was found and removed.',
+      },
+      clearCollisionListeners: {
+        description: 'Remove all registered scene collision listeners.',
+        returns: '`void`',
+      },
       draw: {
         description: 'Render all active bodies in the scene to a 2D canvas context.',
         params: [
@@ -138,7 +163,8 @@ function tick(dt) {
       '`Physics` pairs physical dynamics (Newtonian integration, forces, velocity damping, and coefficient of restitution) with geometric primitives (`Circ` or `Rect`) from Spock.js.',
       'A mass of `0` denotes a static, immovable obstacle (`inverseMass = 0`), which absorbs collisions without being pushed back.',
     ],
-    example: `import { Physics, Vec2 } from '@1pizzateam/bumpr';
+    example: `import { Physics } from '@1pizzateam/bumpr';
+import { Vec2 } from '@1pizzateam/spock';
 
 // Dynamic circle (position, velocity, size, mass, damping, restitution, shape)
 const ball = new Physics(
@@ -173,6 +199,7 @@ const wall = new Physics(
           '- `restitution` — `number`. Bounciness in `[0, 1]` (default `0`).',
           "- `shape` — `'circle' | 'aabb' | 'rectangle'`. Collision geometry (default `'circle'`).",
           '- `friction` — `number` (optional). Coulomb friction coefficient in `[0, 1]` (defaults to `0` for circle, `0.6` for AABB).',
+          '- `isSensor` — `boolean` (optional). Whether this body acts as a sensor/trigger collider (default `false`).',
         ],
         returns: 'A new `Physics` instance.',
       },
@@ -291,6 +318,93 @@ const wall = new Physics(
         description: 'Toggle active status between enabled and disabled.',
         returns: '`boolean` — New active status.',
       },
+      sleep: {
+        description: 'Manually put the body to sleep. Zeroes velocity and skips simulation updates until perturbed.',
+        returns: '`void`',
+      },
+      wakeUp: {
+        description: 'Awaken the sleeping body, restoring normal integration and broad-phase collision checks.',
+        returns: '`void`',
+      },
+      setCanSleep: {
+        description: 'Configure whether this body can automatically go to sleep when idle.',
+        params: ['- `canSleep` — `boolean`. Whether sleep is allowed.'],
+        returns: '`void`',
+      },
+      getCanSleep: {
+        description: 'Check whether automatic idle sleeping is enabled for this body.',
+        returns: '`boolean`',
+      },
+      getIsSleeping: {
+        description: 'Check whether the body is currently sleeping.',
+        returns: '`boolean`',
+      },
+      setSleepThreshold: {
+        description: 'Set linear velocity threshold (in px/s) below which the body is considered idle.',
+        params: ['- `threshold` — `number`. Speed threshold.'],
+        returns: '`void`',
+      },
+      getSleepThreshold: {
+        description: 'Get linear velocity sleep threshold in px/s.',
+        returns: '`number`',
+      },
+      setSleepStepsThreshold: {
+        description: 'Set number of consecutive idle steps required before putting the body to sleep.',
+        params: ['- `steps` — `number`. Step count threshold.'],
+        returns: '`void`',
+      },
+      getSleepStepsThreshold: {
+        description: 'Get consecutive idle steps threshold.',
+        returns: '`number`',
+      },
+      applyForce: {
+        description: 'Apply continuous external force vector (resets after step) and awakens the body if sleeping.',
+        params: ['- `force` — `Vec2`. Force vector.'],
+        returns: '`void`',
+      },
+      applyImpulseVector: {
+        description: 'Apply instantaneous impulse vector and awakens the body if sleeping.',
+        params: ['- `impulse` — `Vec2`. Impulse vector.'],
+        returns: '`void`',
+      },
+      setOnCollision: {
+        description: 'Set collision callback function for this body.',
+        params: ['- `callback` — `((other: Physics, normal: Vec2, impulse: Vec2) => void) | null`. Callback invoked on collision.'],
+        returns: '`void`',
+        example: `body.setOnCollision((other, normal, impulse) => {\n  console.log('Collided with:', other, 'impulse:', impulse.getMagnitude());\n});`,
+      },
+      getOnCollision: {
+        description: 'Get current collision callback for this body.',
+        returns: '`BodyCollisionCallback | null`',
+      },
+      addCollisionListener: {
+        description: 'Add an additional collision listener for this body.',
+        params: ['- `listener` — `BodyCollisionCallback`. Collision listener function.'],
+        returns: '`void`',
+      },
+      removeCollisionListener: {
+        description: 'Remove a previously registered collision listener from this body.',
+        params: ['- `listener` — `BodyCollisionCallback`. Collision listener function.'],
+        returns: '`boolean` — `true` if listener was found and removed.',
+      },
+      clearCollisionListeners: {
+        description: 'Remove all registered collision listeners from this body.',
+        returns: '`void`',
+      },
+      setSensor: {
+        description: 'Configure this body as a sensor/trigger collider. Sensors detect overlaps and fire collision events without applying positional correction or impulse response.',
+        params: ['- `isSensor` — `boolean`. Sensor state.'],
+        returns: '`void`',
+        example: `coin.setSensor(true);`,
+      },
+      getSensor: {
+        description: 'Get whether this body is configured as a sensor.',
+        returns: '`boolean`',
+      },
+      getIsSensor: {
+        description: 'Alias for `getSensor()`.',
+        returns: '`boolean`',
+      },
     },
   },
   CollisionDetection: {
@@ -298,7 +412,8 @@ const wall = new Physics(
     body: [
       '`CollisionDetection` computes penetration vectors between pairs of bodies (`Circle vs Circle`, `Circle vs AABB`, `AABB vs AABB`), separates overlapping bodies along the contact normal according to inverse mass ratios, and computes linear impulse responses.',
     ],
-    example: `import { CollisionDetection, Physics, Vec2 } from '@1pizzateam/bumpr';
+    example: `import { CollisionDetection, Physics } from '@1pizzateam/bumpr';
+import { Vec2 } from '@1pizzateam/spock';
  
 const a = new Physics(new Vec2(50, 50), new Vec2(), new Vec2(40, 40), 1.0, 1.0, 0.5, 'circle');
 const b = new Physics(new Vec2(70, 50), new Vec2(), new Vec2(40, 40), 1.0, 1.0, 0.5, 'aabb');
@@ -342,7 +457,8 @@ const hasCollided = CollisionDetection.test(a, b);`,
     body: [
       '`CircleVSCircle` calculates Euclidean separation between circle centers, detects radial overlaps, handles concentric zero-distance edge cases, and returns outward penetration vectors.',
     ],
-    example: `import { CircleVSCircle, Vec2 } from '@1pizzateam/bumpr';
+    example: `import { CircleVSCircle } from '@1pizzateam/bumpr';
+import { Vec2 } from '@1pizzateam/spock';
 
 const posA = new Vec2(100, 100);
 const posB = new Vec2(120, 100);
@@ -373,9 +489,10 @@ console.log(penetration.isOrigin()); // false (colliding, 10px overlap)`,
   CircleVSAabb: {
     summary: 'Narrow-phase detection between a Circle and an Axis-Aligned Bounding Box (AABB).',
     body: [
-      '`CircleVSAabb` categorizes the circle position relative to the 9 Voronoi regions of the box. For face collisions, it projects along the shallowest axis; for corner diagonal collisions, it performs outward radial projection.',
+      '`CircleVSAabb` computes the closest clamped point on the AABB to the circle center. For external collisions (faces and corners), it projects outward radially; for internal penetration, it projects along the shallowest axis.',
     ],
-    example: `import { CircleVSAabb, Vec2 } from '@1pizzateam/bumpr';
+    example: `import { CircleVSAabb } from '@1pizzateam/bumpr';
+import { Vec2 } from '@1pizzateam/spock';
 
 const circlePos = new Vec2(50, 40);
 const circleRadius = 15;
@@ -421,7 +538,8 @@ const pen = CircleVSAabb.detect(circlePos, circleRadius, boxPos, boxHalfSize);`,
     body: [
       '`AabbVSAabb` computes overlapping intervals along the horizontal and vertical axes, checks for positive overlap, and returns the minimum translation vector along the shallowest axis.',
     ],
-    example: `import { AabbVSAabb, Vec2 } from '@1pizzateam/bumpr';
+    example: `import { AabbVSAabb } from '@1pizzateam/bumpr';
+import { Vec2 } from '@1pizzateam/spock';
 
 const posA = new Vec2(40, 40);
 const halfSizeA = new Vec2(20, 20);

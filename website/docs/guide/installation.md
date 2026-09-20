@@ -27,7 +27,8 @@ pnpm add @1pizzateam/bumpr
 Import the classes and helpers directly:
 
 ```javascript
-import { Scene, Physics, CollisionDetection, Grid, Vec2 } from '@1pizzateam/bumpr';
+import { Scene, Physics, CollisionDetection } from '@1pizzateam/bumpr';
+import { Grid, Vec2 } from '@1pizzateam/spock';
 
 const scene = new Scene();
 scene.setGravity(new Vec2(0, 500));
@@ -52,7 +53,8 @@ BumpR.js is packaged as a standard ES module and can be loaded directly inside b
 <canvas id="stage" width="800" height="600"></canvas>
 
 <script type="module">
-  import { Scene, Physics, Vec2 } from './node_modules/@1pizzateam/bumpr/dist/bumpr.js';
+  import { Scene, Physics } from './node_modules/@1pizzateam/bumpr/dist/bumpr.js';
+  import { Vec2 } from './node_modules/@1pizzateam/spock/dist/spock.js';
 
   const canvas = document.getElementById('stage');
   const ctx = canvas.getContext('2d');

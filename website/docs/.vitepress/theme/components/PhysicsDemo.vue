@@ -1,6 +1,7 @@
 <script setup>
 import { onBeforeUnmount, onMounted, ref } from 'vue';
-import { Grid, Physics, Scene, Vec2 } from '@1pizzateam/bumpr';
+import { Physics, Scene } from '@1pizzateam/bumpr';
+import { Grid, Vec2 } from '@1pizzateam/spock';
 import { Player } from '@1pizzateam/loopr';
 
 const canvasRef = ref(null);

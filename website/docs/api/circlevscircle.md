@@ -5,7 +5,8 @@ Narrow-phase detection and penetration calculation between two circles.
 `CircleVSCircle` calculates Euclidean separation between circle centers, detects radial overlaps, handles concentric zero-distance edge cases, and returns outward penetration vectors.
 
 ```javascript
-import { CircleVSCircle, Vec2 } from '@1pizzateam/bumpr';
+import { CircleVSCircle } from '@1pizzateam/bumpr';
+import { Vec2 } from '@1pizzateam/spock';
 
 const posA = new Vec2(100, 100);
 const posB = new Vec2(120, 100);

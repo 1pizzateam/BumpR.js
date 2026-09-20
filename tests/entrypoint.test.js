@@ -1,28 +1,21 @@
+import * as BumprBundle from '../build/bumpr.mjs';
+import * as BumprEs6 from '../build/es6/bumpr.js';
 import {
-  Circ as DistCirc,
   CollisionDetection as DistCollisionDetection,
-  Grid as DistGrid,
   Physics as DistPhysics,
-  Rect as DistRect,
   Scene as DistScene,
-  Shape as DistShape,
-  Utils as DistUtils, 
-  Vec2 as DistVec2
+  Shape as DistShape
 } from '../build/bumpr.mjs';
 import {
-  Circ,
   CollisionDetection,
-  Grid,
   Physics,
-  Rect,
   Scene,
-  Shape,
-  Utils, 
-  Vec2
+  Shape
 } from '../build/es6/bumpr.js';
+import { Vec2 } from '@1pizzateam/spock';
 
 describe('Public Library Exports', () => {
-  test('ES6 source exports Scene, Physics, CollisionDetection, Shape, and Spock primitives', () => {
+  test('ES6 source exports only BumpR modules (Scene, Physics, CollisionDetection, Shape) and does not re-export Spock primitives', () => {
     expect(Scene).toBeDefined();
     expect(Physics).toBeDefined();
     expect(CollisionDetection).toBeDefined();
@@ -30,11 +23,12 @@ describe('Public Library Exports', () => {
     expect(Shape.circle).toBe('circle');
     expect(Shape.aabb).toBe('aabb');
 
-    expect(Grid).toBeDefined();
-    expect(Vec2).toBeDefined();
-    expect(Circ).toBeDefined();
-    expect(Rect).toBeDefined();
-    expect(Utils).toBeDefined();
+    // Verify Spock primitives are not re-exported
+    expect(BumprEs6.Grid).toBeUndefined();
+    expect(BumprEs6.Vec2).toBeUndefined();
+    expect(BumprEs6.Circ).toBeUndefined();
+    expect(BumprEs6.Rect).toBeUndefined();
+    expect(BumprEs6.Utils).toBeUndefined();
 
     const scene = new Scene();
     const body = new Physics(
@@ -50,7 +44,7 @@ describe('Public Library Exports', () => {
     expect(scene.bodiesLength).toBe(1);
   });
 
-  test('Rollup bundled build/bumpr.mjs exports Scene, Physics, CollisionDetection, Shape, and Spock primitives', () => {
+  test('Rollup bundled build/bumpr.mjs exports only BumpR modules and does not re-export Spock primitives', () => {
     expect(DistScene).toBeDefined();
     expect(DistPhysics).toBeDefined();
     expect(DistCollisionDetection).toBeDefined();
@@ -58,26 +52,27 @@ describe('Public Library Exports', () => {
     expect(DistShape.circle).toBe('circle');
     expect(DistShape.aabb).toBe('aabb');
 
-    expect(DistGrid).toBeDefined();
-    expect(DistVec2).toBeDefined();
-    expect(DistCirc).toBeDefined();
-    expect(DistRect).toBeDefined();
-    expect(DistUtils).toBeDefined();
+    // Verify Spock primitives are not re-exported in bundled dist
+    expect(BumprBundle.Grid).toBeUndefined();
+    expect(BumprBundle.Vec2).toBeUndefined();
+    expect(BumprBundle.Circ).toBeUndefined();
+    expect(BumprBundle.Rect).toBeUndefined();
+    expect(BumprBundle.Utils).toBeUndefined();
 
     const scene = new DistScene();
     const bodyA = new DistPhysics(
-      new DistVec2(0, 0),
-      new DistVec2(5, 0),
-      new DistVec2(20, 20),
+      new Vec2(0, 0),
+      new Vec2(5, 0),
+      new Vec2(20, 20),
       1.0,
       1.0,
       0.5,
       'circle'
     );
     const bodyB = new DistPhysics(
-      new DistVec2(8, 0),
-      new DistVec2(-5, 0),
-      new DistVec2(20, 20),
+      new Vec2(8, 0),
+      new Vec2(-5, 0),
+      new Vec2(20, 20),
       1.0,
       1.0,
       0.5,

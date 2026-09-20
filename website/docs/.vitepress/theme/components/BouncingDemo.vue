@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
-import { Scene, Physics, Vec2 } from '@1pizzateam/bumpr';
+import { Scene, Physics } from '@1pizzateam/bumpr';
+import { Vec2 } from '@1pizzateam/spock';
 
 const canvasRef = ref(null);
 const gravityEnabled = ref(true);

@@ -9,7 +9,8 @@ A dynamic physics environment simulating circles and boxes bouncing under gravit
 <BouncingDemo />
 
 ```javascript
-import { Scene, Physics, Vec2 } from '@1pizzateam/bumpr';
+import { Scene, Physics } from '@1pizzateam/bumpr';
+import { Vec2 } from '@1pizzateam/spock';
 
 const scene = new Scene();
 scene.setGravity(new Vec2(0, 250)); // Downward acceleration
@@ -57,7 +58,8 @@ The coefficient of restitution ($e \in [0.0, 1.0]$) governs the elasticity of co
 <RestitutionDemo />
 
 ```javascript
-import { Physics, Vec2 } from '@1pizzateam/bumpr';
+import { Physics } from '@1pizzateam/bumpr';
+import { Vec2 } from '@1pizzateam/spock';
 
 const clay = new Physics(new Vec2(50, 50), new Vec2(), new Vec2(36, 36), 1.0, 1.0, 0.0, 'circle'); // Completely inelastic
 const rubber = new Physics(new Vec2(100, 50), new Vec2(), new Vec2(36, 36), 1.0, 1.0, 0.5, 'circle'); // Moderate bounce
@@ -73,7 +75,8 @@ For scenes with many bodies, checking every pair ($O(N^2)$) wastes CPU cycles on
 <GridBroadphaseDemo />
 
 ```javascript
-import { Scene, Grid } from '@1pizzateam/bumpr';
+import { Scene } from '@1pizzateam/bumpr';
+import { Grid } from '@1pizzateam/spock';
 
 const scene = new Scene();
 const grid = new Grid(800, 600, 50); // width, height, cellSize
@@ -92,7 +95,8 @@ BumpR handles three distinct narrow-phase collision pairs:
 <CollisionShapesDemo />
 
 ```javascript
-import { CollisionDetection, Physics, Vec2 } from '@1pizzateam/bumpr';
+import { CollisionDetection, Physics } from '@1pizzateam/bumpr';
+import { Vec2 } from '@1pizzateam/spock';
 
 // Circle colliding against a static box (mass = 0)
 const ball = new Physics(

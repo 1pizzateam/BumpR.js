@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
-import { CollisionDetection, Physics, Vec2 } from '@1pizzateam/bumpr';
+import { CollisionDetection, Physics } from '@1pizzateam/bumpr';
+import { Vec2 } from '@1pizzateam/spock';
 
 const canvasRef = ref(null);
 const currentMode = ref('circlevsaabb');

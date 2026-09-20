@@ -5,7 +5,8 @@ The main spatial world manager and collision resolution orchestrator.
 `Scene` holds rigid bodies, manages world gravity, coordinates spatial hash grid broad-phase bucketing, advances positions across physics timesteps, and resolves pairwise collisions using configurable constraint solver iterations.
 
 ```javascript
-import { Scene, Physics, Grid, Vec2 } from '@1pizzateam/bumpr';
+import { Scene, Physics } from '@1pizzateam/bumpr';
+import { Grid, Vec2 } from '@1pizzateam/spock';
 
 const scene = new Scene();
 scene.setGravity(new Vec2(0, 300));
@@ -143,7 +144,7 @@ setGrid(grid: Grid | null): void
 ### Example
 
 ```javascript
-import { Grid, Vec2 } from '@1pizzateam/bumpr';
+import { Grid, Vec2 } from '@1pizzateam/spock';
 
 scene.setGrid(new Grid(new Vec2(0, 0), new Vec2(1000, 1000), new Vec2(10, 10)));
 ```
@@ -262,6 +263,106 @@ sceneA.testScene(sceneB);
 
 ---
 
+## Scene.setOnCollision()
+
+Set callback invoked when any physical collision occurs in the scene.
+
+```typescript
+setOnCollision(callback: SceneCollisionCallback | null): void
+```
+
+### Parameters
+
+- `callback` — `((bodyA: Physics, bodyB: Physics, normal: Vec2, impulse: Vec2) => void) | null`. Collision callback function.
+
+### Returns
+
+`void`
+
+### Example
+
+```javascript
+scene.setOnCollision((a, b, normal, impulse) => {
+  console.log('Impact impulse:', impulse.getMagnitude());
+});
+```
+
+---
+
+## Scene.getOnCollision()
+
+Get current scene collision callback.
+
+```typescript
+getOnCollision(): SceneCollisionCallback | null
+```
+
+### Returns
+
+`SceneCollisionCallback | null`
+
+---
+
+## Scene.addCollisionListener()
+
+Add an additional collision listener for this scene.
+
+```typescript
+addCollisionListener(listener: SceneCollisionCallback): void
+```
+
+### Parameters
+
+- `listener` — `SceneCollisionCallback`. Collision listener function.
+
+### Returns
+
+`void`
+
+---
+
+## Scene.removeCollisionListener()
+
+Remove a previously registered scene collision listener.
+
+```typescript
+removeCollisionListener(listener: SceneCollisionCallback): boolean
+```
+
+### Parameters
+
+- `listener` — `SceneCollisionCallback`. Collision listener function.
+
+### Returns
+
+`boolean` — `true` if listener was found and removed.
+
+---
+
+## Scene.clearCollisionListeners()
+
+Remove all registered scene collision listeners.
+
+```typescript
+clearCollisionListeners(): void
+```
+
+### Returns
+
+`void`
+
+---
+
+## Scene.dispatchCollision()
+
+
+
+```typescript
+dispatchCollision(a: Physics, b: Physics, normal: Vec2, impulse: Vec2): void
+```
+
+---
+
 ## Scene.setIteration()
 
 Set number of constraint solver iterations per step (default `1`). Higher iterations increase stacking stability.
@@ -282,6 +383,36 @@ setIteration(iterations: number): void
 
 ```javascript
 scene.setIteration(4);
+```
+
+---
+
+## Scene.setDeduplicationMode()
+
+
+
+```typescript
+setDeduplicationMode(mode: DeduplicationMode): void
+```
+
+---
+
+## Scene.getDeduplicationMode()
+
+
+
+```typescript
+getDeduplicationMode(): DeduplicationMode
+```
+
+---
+
+## Scene.getActiveDeduplicationMode()
+
+
+
+```typescript
+getActiveDeduplicationMode(): 'cell' | 'pair'
 ```
 
 ---

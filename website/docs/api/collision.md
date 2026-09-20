@@ -5,7 +5,8 @@ Narrow-phase collision detection, positional resolution, and elastic impulse sol
 `CollisionDetection` computes penetration vectors between pairs of bodies (`Circle vs Circle`, `Circle vs AABB`, `AABB vs AABB`), separates overlapping bodies along the contact normal according to inverse mass ratios, and computes linear impulse responses.
 
 ```javascript
-import { CollisionDetection, Physics, Vec2 } from '@1pizzateam/bumpr';
+import { CollisionDetection, Physics } from '@1pizzateam/bumpr';
+import { Vec2 } from '@1pizzateam/spock';
  
 const a = new Physics(new Vec2(50, 50), new Vec2(), new Vec2(40, 40), 1.0, 1.0, 0.5, 'circle');
 const b = new Physics(new Vec2(70, 50), new Vec2(), new Vec2(40, 40), 1.0, 1.0, 0.5, 'aabb');
@@ -41,7 +42,7 @@ broadphase(a: Physics, b: Physics, grid: Grid): boolean
 Execute full collision pipeline: narrow-phase detection, positional resolution, and impulse computation.
 
 ```typescript
-test(a: Physics, b: Physics): boolean
+test(a: Physics, b: Physics, sceneCallback?: (a: Physics, b: Physics, normal: Vec2, impulse: Vec2) => void, iteration: number = 0): boolean
 ```
 
 ### Parameters
@@ -98,7 +99,7 @@ resolve(a: Physics, b: Physics): boolean
 Compute and apply normal collision impulse and tangential Coulomb friction based on relative velocity, restitution, friction coefficients, and masses. Stabilizes steady contact with a resting velocity threshold.
 
 ```typescript
-computeImpulse(a: Physics, b: Physics): void
+computeImpulse(a: Physics, b: Physics, sceneCallback?: (a: Physics, b: Physics, normal: Vec2, impulse: Vec2) => void): void
 ```
 
 ### Parameters

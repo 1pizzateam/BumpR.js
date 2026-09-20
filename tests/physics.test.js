@@ -396,4 +396,253 @@ describe('Physics Engine', () => {
     expect(body.updatePosition(0)).toBe(body.position);
     expect(body.updatePosition(0.016)).toBe(body.position);
   });
+
+  describe('Body Sleeping and Deactivation', () => {
+    test('Default sleep configuration properties and getters/setters', () => {
+      const body = new Physics();
+      expect(body.getIsSleeping()).toBe(false);
+      expect(body.getCanSleep()).toBe(true);
+      expect(body.getSleepThreshold()).toBe(0.1);
+      expect(body.getSleepStepsThreshold()).toBe(60);
+
+      body.setSleepThreshold(0.5);
+      expect(body.getSleepThreshold()).toBe(0.5);
+      body.setSleepThreshold(-5);
+      expect(body.getSleepThreshold()).toBe(0);
+
+      body.setSleepStepsThreshold(30);
+      expect(body.getSleepStepsThreshold()).toBe(30);
+      body.setSleepStepsThreshold(0);
+      expect(body.getSleepStepsThreshold()).toBe(1);
+    });
+
+    test('Manual sleep() and wakeUp() state transitions', () => {
+      const body = new Physics(new Vec2(10, 10), new Vec2(5, 5));
+      body.idleSteps = 10;
+      body.sleep();
+      expect(body.isSleeping).toBe(true);
+      expect(body.getIsSleeping()).toBe(true);
+      expect(body.velocity.isOrigin()).toBe(true);
+      expect(body.idleSteps).toBe(0);
+
+      body.wakeUp();
+      expect(body.isSleeping).toBe(false);
+      expect(body.getIsSleeping()).toBe(false);
+    });
+
+    test('canSleep = false disables sleep and wakes up body', () => {
+      const body = new Physics();
+      body.sleep();
+      expect(body.isSleeping).toBe(true);
+
+      body.setCanSleep(false);
+      expect(body.isSleeping).toBe(false);
+      expect(body.getCanSleep()).toBe(false);
+
+      body.sleep();
+      expect(body.isSleeping).toBe(false);
+    });
+
+    test('updatePosition transitions to sleep after sleepStepsThreshold idle steps', () => {
+      const body = new Physics(new Vec2(0, 0), new Vec2(0.05, 0.05));
+      body.setSleepStepsThreshold(3);
+      body.setSleepThreshold(0.1);
+
+      // Step 1: idleSteps becomes 1
+      body.updatePosition(0.016);
+      expect(body.isSleeping).toBe(false);
+      expect(body.idleSteps).toBe(1);
+
+      // Step 2: idleSteps becomes 2
+      body.updatePosition(0.016);
+      expect(body.isSleeping).toBe(false);
+      expect(body.idleSteps).toBe(2);
+
+      // Step 3: reaches threshold 3, transitions to sleep
+      body.updatePosition(0.016);
+      expect(body.isSleeping).toBe(true);
+      expect(body.idleSteps).toBe(0);
+      expect(body.velocity.isOrigin()).toBe(true);
+
+      // Step 4: sleeping body does not move
+      const posBefore = body.position.clone();
+      body.updatePosition(0.016);
+      expect(body.position.x).toBe(posBefore.x);
+      expect(body.position.y).toBe(posBefore.y);
+    });
+
+    test('Velocity exceeding sleepThreshold resets idleSteps', () => {
+      const body = new Physics(new Vec2(0, 0), new Vec2(0.05, 0));
+      body.setSleepStepsThreshold(5);
+
+      body.updatePosition(0.016);
+      expect(body.idleSteps).toBe(1);
+
+      // Increase velocity above threshold
+      body.velocity.setScalar(10, 0);
+      body.updatePosition(0.016);
+      expect(body.idleSteps).toBe(0);
+      expect(body.isSleeping).toBe(false);
+    });
+
+    test('Sleeping body wakes up on applyForce, applyImpulseVector, setPosition, setVelocity, and reset', () => {
+      const body = new Physics();
+      body.sleep();
+      expect(body.isSleeping).toBe(true);
+
+      body.applyForce(new Vec2(10, 0));
+      expect(body.isSleeping).toBe(false);
+
+      body.sleep();
+      body.applyImpulseVector(new Vec2(5, 5));
+      expect(body.isSleeping).toBe(false);
+
+      body.sleep();
+      body.setPosition(new Vec2(50, 50));
+      expect(body.isSleeping).toBe(false);
+
+      body.sleep();
+      body.setVelocity(new Vec2(1, 1));
+      expect(body.isSleeping).toBe(false);
+
+      body.sleep();
+      body.reset();
+      expect(body.isSleeping).toBe(false);
+    });
+
+    test('Sleeping body wakes up if force or impulse is queued before updatePosition', () => {
+      const body = new Physics();
+      body.sleep();
+      expect(body.isSleeping).toBe(true);
+
+      body.force.setScalar(20, 0);
+      body.updatePosition(0.016);
+      expect(body.isSleeping).toBe(false);
+      expect(body.velocity.x).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Collision Callbacks and Contact Events', () => {
+    test('onCollision callback is called with other, normal, and impulse on collision', () => {
+      const body = new Physics(new Vec2(0, 0), new Vec2(10, 0));
+      const other = new Physics(new Vec2(15, 0), new Vec2(-10, 0));
+
+      let receivedOther = null;
+      let receivedNormal = null;
+      let receivedImpulse = null;
+
+      body.onCollision = (o, normal, impulse) => {
+        receivedOther = o;
+        receivedNormal = normal;
+        receivedImpulse = impulse;
+      };
+
+      const testImpulse = new Vec2(-5, 0);
+      const testNormal = new Vec2(-1, 0);
+      body.collision(testImpulse, other, testNormal);
+
+      expect(receivedOther).toBe(other);
+      expect(receivedNormal.x).toBe(-1);
+      expect(receivedNormal.y).toBe(0);
+      expect(receivedImpulse.x).toBe(-5);
+      expect(receivedImpulse.y).toBe(0);
+    });
+
+    test('setOnCollision and getOnCollision manage callback reference', () => {
+      const body = new Physics();
+      const fn = () => {};
+      body.setOnCollision(fn);
+      expect(body.getOnCollision()).toBe(fn);
+
+      body.setOnCollision(null);
+      expect(body.getOnCollision()).toBeNull();
+    });
+
+    test('addCollisionListener, removeCollisionListener, and clearCollisionListeners', () => {
+      const body = new Physics();
+      const other = new Physics();
+      let count1 = 0;
+      let count2 = 0;
+
+      const listener1 = () => { count1++; };
+      const listener2 = () => { count2++; };
+
+      body.addCollisionListener(listener1);
+      body.addCollisionListener(listener2);
+      // Adding duplicate listener should not duplicate calls
+      body.addCollisionListener(listener1);
+
+      body.collision(new Vec2(1, 0), other);
+      expect(count1).toBe(1);
+      expect(count2).toBe(1);
+
+      expect(body.removeCollisionListener(listener1)).toBe(true);
+      expect(body.removeCollisionListener(listener1)).toBe(false);
+
+      body.collision(new Vec2(1, 0), other);
+      expect(count1).toBe(1);
+      expect(count2).toBe(2);
+
+      body.clearCollisionListeners();
+      body.collision(new Vec2(1, 0), other);
+      expect(count2).toBe(2);
+    });
+
+    test('Callback vectors are safe from mutation and default to zero vector if normal omitted', () => {
+      const body = new Physics();
+      const other = new Physics();
+      const impulse = new Vec2(10, 20);
+
+      let savedNormal = null;
+      let savedImpulse = null;
+
+      body.onCollision = (o, n, imp) => {
+        savedNormal = n;
+        savedImpulse = imp;
+        n.x = 999;
+        imp.x = 888;
+      };
+
+      body.collision(impulse, other);
+      expect(savedNormal.x).toBe(999);
+      expect(impulse.x).toBe(10); // Original impulse was not mutated
+    });
+  });
+
+  describe('Sensor and Trigger Bodies', () => {
+    test('isSensor defaults to false and can be configured via constructor or setters', () => {
+      const normalBody = new Physics();
+      expect(normalBody.isSensor).toBe(false);
+      expect(normalBody.getSensor()).toBe(false);
+      expect(normalBody.getIsSensor()).toBe(false);
+
+      normalBody.setSensor(true);
+      expect(normalBody.isSensor).toBe(true);
+      expect(normalBody.getSensor()).toBe(true);
+      expect(normalBody.getIsSensor()).toBe(true);
+
+      const sensorBody = new Physics(
+        new Vec2(10, 10),
+        new Vec2(0, 0),
+        new Vec2(20, 20),
+        0,
+        0.8,
+        0,
+        'aabb',
+        0.6,
+        true
+      );
+      expect(sensorBody.isSensor).toBe(true);
+      expect(sensorBody.getSensor()).toBe(true);
+      expect(sensorBody.getIsSensor()).toBe(true);
+    });
+
+    test('isSensor survives reset()', () => {
+      const sensor = new Physics();
+      sensor.setSensor(true);
+      sensor.reset();
+      expect(sensor.isSensor).toBe(true);
+    });
+  });
 });
+

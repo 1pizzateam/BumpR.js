@@ -18,6 +18,7 @@ export const CollisionDetection = {
   contactTangent         : new Vec2(),
   correction             : new Vec2(),
   impulsePerInverseMass  : new Vec2(),
+  zeroImpulse            : new Vec2(),
 
   totalInverseMass       : 0,
   impulse                : 0,
@@ -30,12 +31,27 @@ export const CollisionDetection = {
     return grid.testCells( a.body.gridCells, b.body.gridCells );
   },
 
-  test( a: Physics, b: Physics ): boolean {
+  test( a: Physics, b: Physics, sceneCallback?: (a: Physics, b: Physics, normal: Vec2, impulse: Vec2) => void, iteration: number = 0 ): boolean {
+    if (a.isSleeping && b.isSleeping)
+      return false;
+    if (iteration > 0 && (a.isSensor || b.isSensor))
+      return false;
     this.detect( a.body, b.body );
     if (this.penetration.isOrigin())
       return false;
+    if (a.isSensor || b.isSensor) {
+      this.contactNormal.copy(this.penetration).normalize();
+      this.zeroImpulse.origin();
+      a.collision( this.zeroImpulse, b, this.contactNormal );
+      if (sceneCallback)
+        sceneCallback( a, b, this.contactNormal.clone(), this.zeroImpulse.clone() );
+      this.contactNormal.opposite();
+      b.collision( this.zeroImpulse, a, this.contactNormal );
+      this.contactNormal.opposite();
+      return true;
+    }
     if (this.resolve( a, b ))
-      this.computeImpulse( a, b );
+      this.computeImpulse( a, b, sceneCallback );
     return true;
   },
 
@@ -70,10 +86,12 @@ export const CollisionDetection = {
     this.correction.opposite();
     b.correctPosition( this.correction );
     this.correction.opposite();
+    a.wakeUp();
+    b.wakeUp();
     return true;
   },
 
-  computeImpulse( a: Physics, b: Physics ): void {
+  computeImpulse( a: Physics, b: Physics, sceneCallback?: (a: Physics, b: Physics, normal: Vec2, impulse: Vec2) => void ): void {
     this.contactNormal.copy(this.penetration).normalize();
 
     this.effectiveVelocityA.copy(a.velocity);
@@ -107,9 +125,15 @@ export const CollisionDetection = {
         }
       }
 
-      a.collision( this.impulsePerInverseMass, b );
+      a.collision( this.impulsePerInverseMass, b, this.contactNormal );
+      if (sceneCallback)
+        sceneCallback( a, b, this.contactNormal.clone(), this.impulsePerInverseMass.clone() );
+
       this.impulsePerInverseMass.opposite();
-      b.collision( this.impulsePerInverseMass, a );
+      this.contactNormal.opposite();
+      b.collision( this.impulsePerInverseMass, a, this.contactNormal );
+      this.impulsePerInverseMass.opposite();
+      this.contactNormal.opposite();
     }
   }
 

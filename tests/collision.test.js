@@ -302,4 +302,96 @@ describe('Collision Detection & Impulse Response', () => {
     expect(ballA.velocity.x).toBeCloseTo(-40, 2);
     expect(ballB.velocity.x).toBeCloseTo(40, 2);
   });
+
+  describe('Sensor / Trigger Colliders (Ghost Bodies)', () => {
+    test('Sensor collision detects overlap, fires callbacks with zero impulse, and does not alter positions or velocities', () => {
+      const player = new Physics(
+        new Vec2(100, 100),
+        new Vec2(150, 0),
+        new Vec2(40, 40),
+        1.0,
+        1.0,
+        0.5,
+        'circle'
+      );
+      const coin = new Physics(
+        new Vec2(110, 100),
+        new Vec2(0, 0),
+        new Vec2(20, 20),
+        0, // static mass
+        1.0,
+        0,
+        'circle',
+        0,
+        true // isSensor = true
+      );
+
+      const initialPlayerPos = player.position.clone();
+      const initialPlayerVel = player.velocity.clone();
+      const initialCoinPos = coin.position.clone();
+
+      let playerCalled = false;
+      let coinCalled = false;
+      let sceneCallbackCalled = false;
+      let capturedImpulse = null;
+      let capturedNormal = null;
+
+      player.onCollision = (other, normal, impulse) => {
+        playerCalled = true;
+        capturedImpulse = impulse;
+        capturedNormal = normal;
+      };
+      coin.onCollision = (other) => {
+        if (other === player) coinCalled = true;
+      };
+
+      const sceneCb = (a, b, normal, impulse) => {
+        sceneCallbackCalled = true;
+        expect(impulse.isOrigin()).toBe(true);
+      };
+
+      const collided = CollisionDetection.test(player, coin, sceneCb);
+      expect(collided).toBe(true);
+      expect(playerCalled).toBe(true);
+      expect(coinCalled).toBe(true);
+      expect(sceneCallbackCalled).toBe(true);
+
+      // Contact normal exists pointing from coin to player
+      expect(capturedNormal).not.toBeNull();
+      expect(capturedNormal.x).toBeLessThan(0);
+
+      // Impulse is zero (no physical bounce or force)
+      expect(capturedImpulse.x).toBe(0);
+      expect(capturedImpulse.y).toBe(0);
+      expect(player.impulse.isOrigin()).toBe(true);
+
+      // Positions are completely unchanged (NO positional correction / resolve)
+      expect(player.position.x).toBe(initialPlayerPos.x);
+      expect(player.position.y).toBe(initialPlayerPos.y);
+      expect(coin.position.x).toBe(initialCoinPos.x);
+      expect(coin.position.y).toBe(initialCoinPos.y);
+
+      // Velocity is completely unchanged
+      expect(player.velocity.x).toBe(initialPlayerVel.x);
+      expect(player.velocity.y).toBe(initialPlayerVel.y);
+    });
+
+    test('iteration > 0 immediately skips sensor pairs', () => {
+      const sensor = new Physics(new Vec2(50, 50), new Vec2(), new Vec2(20, 20), 0, 1, 0, 'circle', 0, true);
+      const body = new Physics(new Vec2(50, 50), new Vec2(), new Vec2(20, 20), 1, 1, 0, 'circle');
+
+      let callCount = 0;
+      sensor.onCollision = () => { callCount++; };
+
+      // Iteration 0 tests and triggers
+      const r0 = CollisionDetection.test(sensor, body, undefined, 0);
+      expect(r0).toBe(true);
+      expect(callCount).toBe(1);
+
+      // Iteration 1 returns false immediately and does not trigger
+      const r1 = CollisionDetection.test(sensor, body, undefined, 1);
+      expect(r1).toBe(false);
+      expect(callCount).toBe(1);
+    });
+  });
 });

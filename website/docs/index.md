@@ -31,7 +31,8 @@ features:
 <PhysicsDemo />
 
 ```js
-import { Scene, Physics, Grid, Vec2 } from '@1pizzateam/bumpr';
+import { Scene, Physics } from '@1pizzateam/bumpr';
+import { Grid, Vec2 } from '@1pizzateam/spock';
 import { Player } from '@1pizzateam/loopr';
 
 // 1. Initialize simulation world with downward gravity

@@ -1,6 +1,8 @@
 import type { Grid } from '@1pizzateam/spock';
 import { Circ, Rect, Utils, Vec2 } from '@1pizzateam/spock';
 
+export type BodyCollisionCallback = (other: Physics, normal: Vec2, impulse: Vec2) => void;
+
 export class Physics {
 
   public position : Vec2;
@@ -26,9 +28,21 @@ export class Physics {
   body        : Rect | Circ;
 
   collisionSceneId : number = 0;
+  sceneIndex : number = -1;
   active : boolean = true;
   damageTaken : number = 0;
   damageDealt : number = 1;
+
+  isSleeping : boolean = false;
+  canSleep : boolean = true;
+  sleepThreshold : number = 0.1;
+  sleepStepsThreshold : number = 60;
+  idleSteps : number = 0;
+
+  isSensor : boolean = false;
+
+  public onCollision: BodyCollisionCallback | null = null;
+  private collisionListeners: BodyCollisionCallback[] = [];
 
   /**
    * Create a new rigid body using vector-first parameters.
@@ -40,6 +54,7 @@ export class Physics {
    * @param restitution - Elasticity coefficient in [0, 1]. Defaults to 0.0.
    * @param shape - Geometric shape ('circle', 'aabb', 'rectangle'). Defaults to 'circle'.
    * @param friction - Surface friction coefficient in [0, 1]. Defaults to 0.0 for circle, 0.6 for AABB.
+   * @param isSensor - Whether this body is a sensor/trigger (detects overlap without physical resolution). Defaults to false.
    */
   constructor(
     position    : Vec2 = new Vec2(),
@@ -49,7 +64,8 @@ export class Physics {
     damping     : number = 0.8,
     restitution : number = 0,
     shape       : 'circle' | 'aabb' | 'rectangle' = 'circle',
-    friction?   : number
+    friction?   : number,
+    isSensor    : boolean = false
   ) {
     const pos = position ? position.clone() : new Vec2();
     this.velocity = velocity ? velocity.clone() : new Vec2();
@@ -69,6 +85,8 @@ export class Physics {
     this.friction     = friction !== undefined
       ? Utils.clamp(friction, 0, 1)
       : (shape === 'rectangle' || shape === 'aabb' ? 0.6 : 0.0);
+
+    this.isSensor     = isSensor;
 
     const s = size ? size.clone() : new Vec2(20, 20);
     if (shape === 'rectangle' || shape === 'aabb') {
@@ -96,14 +114,88 @@ export class Physics {
     return this.active;
   }
 
+  public sleep(): void {
+    if (!this.canSleep) return;
+    this.isSleeping = true;
+    this.velocity.origin();
+    this.translate.origin();
+    this.idleSteps = 0;
+  }
+
+  public wakeUp(): void {
+    this.isSleeping = false;
+    this.idleSteps = 0;
+  }
+
+  public setCanSleep(canSleep: boolean): void {
+    this.canSleep = canSleep;
+    if (!canSleep && this.isSleeping)
+      this.wakeUp();
+  }
+
+  public getCanSleep(): boolean {
+    return this.canSleep;
+  }
+
+  public getIsSleeping(): boolean {
+    return this.isSleeping;
+  }
+
+  public setSleepThreshold(threshold: number): void {
+    this.sleepThreshold = Math.max(0, threshold);
+  }
+
+  public getSleepThreshold(): number {
+    return this.sleepThreshold;
+  }
+
+  public setSleepStepsThreshold(steps: number): void {
+    this.sleepStepsThreshold = Math.max(1, steps);
+  }
+
+  public getSleepStepsThreshold(): number {
+    return this.sleepStepsThreshold;
+  }
+
+  public applyForce(force: Vec2): void {
+    this.force.add(force);
+    this.wakeUp();
+  }
+
+  public applyImpulseVector(impulse: Vec2): void {
+    this.impulse.add(impulse);
+    this.wakeUp();
+  }
+
   public updatePosition( second: number ): Vec2 {
     this.translate.origin();
     if (!this.active || second <= 0)
       return this.position;
-    if (this.inverseMass) {
+
+    if (!this.force.isOrigin() || !this.impulse.isOrigin())
+      this.wakeUp();
+
+    if (this.isSleeping)
+      return this.position;
+
+    if (this.inverseMass)
       this.applyImpulse();
-      this.applyForces( second );
+
+    if (this.canSleep) {
+      const speedSq = this.velocity.getMagnitude(true);
+      if (speedSq < this.sleepThreshold * this.sleepThreshold) {
+        this.idleSteps++;
+        if (this.idleSteps >= this.sleepStepsThreshold) {
+          this.sleep();
+          return this.position;
+        }
+      } else {
+        this.idleSteps = 0;
+      }
     }
+
+    if (this.inverseMass)
+      this.applyForces( second );
     this.applyVelocity( second );
     return this.position;
   }
@@ -141,6 +233,7 @@ export class Physics {
   }
 
   public correctPosition(correction: Vec2): void {
+    this.wakeUp();
     if (!this.inverseMass) return;
     this.translate.copy(correction).scale(this.inverseMass);
     this.body.translate(this.translate);
@@ -148,6 +241,7 @@ export class Physics {
 
   public setPosition(position: Vec2): void {
     this.body.setPosition(position);
+    this.wakeUp();
   }
 
   public getPosition(): Vec2 {
@@ -156,6 +250,8 @@ export class Physics {
 
   public setVelocity(velocity: Vec2): void {
     this.velocity.copy(velocity);
+    if (!this.velocity.isOrigin())
+      this.wakeUp();
   }
 
   public getVelocity(): Vec2 {
@@ -259,10 +355,60 @@ export class Physics {
     return dmg;
   }
 
-  public collision (impulsePerInverseMass: Vec2, object: Physics): void {
+  public setOnCollision(callback: BodyCollisionCallback | null): void {
+    this.onCollision = callback;
+  }
+
+  public getOnCollision(): BodyCollisionCallback | null {
+    return this.onCollision;
+  }
+
+  public addCollisionListener(listener: BodyCollisionCallback): void {
+    if (this.collisionListeners.indexOf(listener) === -1) {
+      this.collisionListeners.push(listener);
+    }
+  }
+
+  public removeCollisionListener(listener: BodyCollisionCallback): boolean {
+    const idx = this.collisionListeners.indexOf(listener);
+    if (idx !== -1) {
+      this.collisionListeners.splice(idx, 1);
+      return true;
+    }
+    return false;
+  }
+
+  public clearCollisionListeners(): void {
+    this.collisionListeners = [];
+  }
+
+  public setSensor(isSensor: boolean): void {
+    this.isSensor = isSensor;
+  }
+
+  public getSensor(): boolean {
+    return this.isSensor;
+  }
+
+  public getIsSensor(): boolean {
+    return this.isSensor;
+  }
+
+  public collision (impulsePerInverseMass: Vec2, object: Physics, normal?: Vec2): void {
+    this.wakeUp();
     if(this.inverseMass)
       this.impulse.add(impulsePerInverseMass);
     this.damageTaken += object.damageDealt;
+    if (this.onCollision || this.collisionListeners.length > 0) {
+      const n = normal ? normal.clone() : new Vec2();
+      const imp = impulsePerInverseMass.clone();
+      if (this.onCollision) {
+        this.onCollision(object, n, imp);
+      }
+      for (let i = 0; i < this.collisionListeners.length; i++) {
+        this.collisionListeners[i](object, n, imp);
+      }
+    }
   }
 
   public reset(): void {
@@ -272,6 +418,7 @@ export class Physics {
     this.impulse.origin();
     this.resultingAcc.origin();
     this.damageTaken = 0;
+    this.wakeUp();
   }
 
   public draw(context: CanvasRenderingContext2D, fillColor: string, strokeColor: string, strokeWidth: number): void {

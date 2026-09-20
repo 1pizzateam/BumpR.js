@@ -5,7 +5,8 @@ Narrow-phase detection between two Axis-Aligned Bounding Boxes (AABB vs AABB).
 `AabbVSAabb` computes overlapping intervals along the horizontal and vertical axes, checks for positive overlap, and returns the minimum translation vector along the shallowest axis.
 
 ```javascript
-import { AabbVSAabb, Vec2 } from '@1pizzateam/bumpr';
+import { AabbVSAabb } from '@1pizzateam/bumpr';
+import { Vec2 } from '@1pizzateam/spock';
 
 const posA = new Vec2(40, 40);
 const halfSizeA = new Vec2(20, 20);

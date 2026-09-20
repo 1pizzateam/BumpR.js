@@ -429,16 +429,39 @@ describe('Scene Management & Lifecycle', () => {
       const b1 = new Physics(new Vec2(0, 0), new Vec2(), new Vec2(20, 20), 1, 1, 0.5, 'circle');
       const b2 = new Physics(new Vec2(10, 0), new Vec2(), new Vec2(20, 20), 1, 1, 0.5, 'circle');
       const b3 = new Physics(new Vec2(20, 0), new Vec2(), new Vec2(20, 20), 1, 1, 0.5, 'circle');
+      expect(b1.sceneIndex).toBe(-1);
+
       scene.addBody(b1);
       scene.addBody(b2);
       scene.addBody(b3);
 
+      expect(b1.sceneIndex).toBe(0);
+      expect(b2.sceneIndex).toBe(1);
+      expect(b3.sceneIndex).toBe(2);
       expect(scene.bodiesLength).toBe(3);
+
       const removed = scene.removeBody(b2);
       expect(removed).toBe(true);
+      expect(b2.sceneIndex).toBe(-1);
       expect(scene.bodiesLength).toBe(2);
       expect(scene.bodies[0]).toBe(b1);
+      expect(b1.sceneIndex).toBe(0);
       expect(scene.bodies[1]).toBe(b3);
+      expect(b3.sceneIndex).toBe(1);
+
+      // Re-removing already removed body returns false
+      expect(scene.removeBody(b2)).toBe(false);
+
+      // Removing last body
+      expect(scene.removeBody(b3)).toBe(true);
+      expect(b3.sceneIndex).toBe(-1);
+      expect(scene.bodiesLength).toBe(1);
+      expect(scene.bodies[0]).toBe(b1);
+
+      // Clearing resets sceneIndex on remaining bodies
+      scene.clear();
+      expect(b1.sceneIndex).toBe(-1);
+      expect(scene.bodiesLength).toBe(0);
     });
 
     test('update skips stationary static bodies', () => {
@@ -590,5 +613,599 @@ describe('Scene Management & Lifecycle', () => {
       expect(b2.impulse.x).toBeGreaterThan(0);
       expect(outOfBounds.impulse.isOrigin()).toBe(true);
     });
+
+    test('populateBuckets is called exactly once per test() even with iterations > 1', () => {
+      const grid = new Grid(800, 600, 50);
+      const scene = new Scene(grid);
+      scene.setGravity(new Vec2(0, 0));
+      scene.setIteration(8);
+
+      const b1 = new Physics(new Vec2(50, 50), new Vec2(10, 0), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
+      const b2 = new Physics(new Vec2(60, 50), new Vec2(-10, 0), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
+      scene.addBody(b1);
+      scene.addBody(b2);
+
+      let populateCount = 0;
+      const origPopulate = scene['populateBuckets'];
+      scene['populateBuckets'] = function() {
+        populateCount++;
+        return origPopulate.apply(this, arguments);
+      };
+
+      scene.test();
+
+      expect(populateCount).toBe(1);
+      expect(b1.impulse.x).toBeLessThan(0);
+      expect(b2.impulse.x).toBeGreaterThan(0);
+      expect(scene['candidatePairsCount']).toBe(0);
+      expect(scene['candidatePairs'][0]).toBeNull();
+    });
+
+    test('populateBuckets is called exactly once per testScene() with iterations > 1', () => {
+      const grid = new Grid(800, 600, 50);
+      const sceneA = new Scene(grid);
+      const sceneB = new Scene(grid);
+      sceneA.setGravity(new Vec2(0, 0));
+      sceneB.setGravity(new Vec2(0, 0));
+      sceneA.setIteration(5);
+
+      const b1 = new Physics(new Vec2(50, 50), new Vec2(10, 0), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
+      const b2 = new Physics(new Vec2(60, 50), new Vec2(-10, 0), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
+      sceneA.addBody(b1);
+      sceneB.addBody(b2);
+
+      let populateCount = 0;
+      const origPopulate = sceneA['populateBuckets'];
+      sceneA['populateBuckets'] = function() {
+        populateCount++;
+        return origPopulate.apply(this, arguments);
+      };
+
+      sceneA.testScene(sceneB);
+
+      expect(populateCount).toBe(1);
+      expect(b1.impulse.x).toBeLessThan(0);
+      expect(b2.impulse.x).toBeGreaterThan(0);
+      expect(sceneA['candidatePairsCount']).toBe(0);
+    });
+
+    test('isFirstCommonCell delegates to grid when grid is attached', () => {
+      const grid = new Grid(800, 600, 50);
+      const scene = new Scene(grid);
+      let calledWith = null;
+      const origIsFirst = grid.isFirstCommonCell;
+      grid.isFirstCommonCell = function(a, b, c) {
+        calledWith = [a, b, c];
+        return origIsFirst.apply(this, arguments);
+      };
+
+      const result = scene['isFirstCommonCell']([1, 2], [2, 3], 2);
+      expect(calledWith).toEqual([[1, 2], [2, 3], 2]);
+      expect(result).toBe(true);
+    });
+
+    test('clear resets candidatePairs buffer and count', () => {
+      const grid = new Grid(800, 600, 50);
+      const scene = new Scene(grid);
+      const b1 = new Physics(new Vec2(50, 50), new Vec2(), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
+      const b2 = new Physics(new Vec2(55, 50), new Vec2(), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
+      scene.addBody(b1);
+      scene.addBody(b2);
+      scene.test();
+
+      scene.clear();
+      expect(scene['candidatePairsCount']).toBe(0);
+      expect(scene['candidatePairs']).toEqual([]);
+    });
+
+    test('non-grid test() resolves candidate pairs across multiple iterations', () => {
+      const scene = new Scene();
+      scene.setGravity(new Vec2(0, 0));
+      scene.setIteration(4);
+
+      const b1 = new Physics(new Vec2(50, 50), new Vec2(10, 0), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
+      const b2 = new Physics(new Vec2(60, 50), new Vec2(-10, 0), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
+      scene.addBody(b1);
+      scene.addBody(b2);
+
+      scene.test();
+      expect(b1.impulse.x).toBeLessThan(0);
+      expect(b2.impulse.x).toBeGreaterThan(0);
+      expect(scene['candidatePairsCount']).toBe(0);
+    });
+
+    test('deduplicationMode getter and setter default to auto', () => {
+      const scene = new Scene();
+      expect(scene.getDeduplicationMode()).toBe('auto');
+
+      scene.setDeduplicationMode('cell');
+      expect(scene.getDeduplicationMode()).toBe('cell');
+
+      scene.setDeduplicationMode('pair');
+      expect(scene.getDeduplicationMode()).toBe('pair');
+
+      scene.setDeduplicationMode('auto');
+      expect(scene.getDeduplicationMode()).toBe('auto');
+    });
+
+    test('explicit cell deduplication mode resolves multi-cell collision and keeps mode', () => {
+      const grid = new Grid(800, 600, 50);
+      const scene = new Scene(grid);
+      scene.setGravity(new Vec2(0, 0));
+      scene.setDeduplicationMode('cell');
+
+      // Bodies spanning multiple cells
+      const b1 = new Physics(new Vec2(48, 50), new Vec2(10, 0), new Vec2(30, 100), 1.0, 1.0, 0.5, 'aabb');
+      const b2 = new Physics(new Vec2(52, 50), new Vec2(-10, 0), new Vec2(30, 100), 1.0, 1.0, 0.5, 'aabb');
+      scene.addBody(b1);
+      scene.addBody(b2);
+
+      let isFirstCalled = false;
+      const origIsFirst = grid.isFirstCommonCell;
+      grid.isFirstCommonCell = function() {
+        isFirstCalled = true;
+        return origIsFirst.apply(this, arguments);
+      };
+
+      scene.test();
+      expect(scene.getActiveDeduplicationMode()).toBe('cell');
+      expect(isFirstCalled).toBe(true);
+      expect(b1.impulse.x).toBeLessThan(0);
+      expect(b2.impulse.x).toBeGreaterThan(0);
+    });
+
+    test('explicit pair deduplication mode resolves multi-cell collision without calling isFirstCommonCell', () => {
+      const grid = new Grid(800, 600, 50);
+      const scene = new Scene(grid);
+      scene.setGravity(new Vec2(0, 0));
+      scene.setDeduplicationMode('pair');
+
+      // Bodies spanning multiple cells
+      const b1 = new Physics(new Vec2(48, 50), new Vec2(10, 0), new Vec2(30, 100), 1.0, 1.0, 0.5, 'aabb');
+      const b2 = new Physics(new Vec2(52, 50), new Vec2(-10, 0), new Vec2(30, 100), 1.0, 1.0, 0.5, 'aabb');
+      scene.addBody(b1);
+      scene.addBody(b2);
+
+      let isFirstCalled = false;
+      const origIsFirst = grid.isFirstCommonCell;
+      grid.isFirstCommonCell = function() {
+        isFirstCalled = true;
+        return origIsFirst.apply(this, arguments);
+      };
+
+      scene.test();
+      expect(scene.getActiveDeduplicationMode()).toBe('pair');
+      expect(isFirstCalled).toBe(false);
+      expect(b1.impulse.x).toBeLessThan(0);
+      expect(b2.impulse.x).toBeGreaterThan(0);
+      expect(scene['testedPairs'].size).toBe(0); // cleared post-collection
+    });
+
+    test('auto mode selects cell for small bodies and pair for multi-cell bodies with identical impulse outcome', () => {
+      const gridA = new Grid(800, 600, 50);
+      const sceneSmall = new Scene(gridA);
+      sceneSmall.setGravity(new Vec2(0, 0));
+      // Small bodies occupying <= 2 cells
+      const s1 = new Physics(new Vec2(25, 25), new Vec2(5, 0), new Vec2(10, 10), 1.0, 1.0, 0.5, 'circle');
+      const s2 = new Physics(new Vec2(30, 25), new Vec2(-5, 0), new Vec2(10, 10), 1.0, 1.0, 0.5, 'circle');
+      sceneSmall.addBody(s1);
+      sceneSmall.addBody(s2);
+      sceneSmall.test();
+      expect(sceneSmall.getActiveDeduplicationMode()).toBe('cell');
+
+      // Large multi-cell bodies spanning >= 3 cells
+      const gridB = new Grid(800, 600, 50);
+      const sceneLarge = new Scene(gridB);
+      sceneLarge.setGravity(new Vec2(0, 0));
+      const l1 = new Physics(new Vec2(45, 100), new Vec2(5, 0), new Vec2(20, 160), 1.0, 1.0, 0.5, 'aabb');
+      const l2 = new Physics(new Vec2(55, 100), new Vec2(-5, 0), new Vec2(20, 160), 1.0, 1.0, 0.5, 'aabb');
+      sceneLarge.addBody(l1);
+      sceneLarge.addBody(l2);
+      sceneLarge.test();
+      expect(sceneLarge.getActiveDeduplicationMode()).toBe('pair');
+
+      // Now verify exact impulse equivalence between explicit cell and explicit pair modes
+      const scenePair = new Scene(new Grid(800, 600, 50));
+      scenePair.setGravity(new Vec2(0, 0));
+      scenePair.setDeduplicationMode('pair');
+      const p1 = new Physics(new Vec2(45, 100), new Vec2(5, 0), new Vec2(20, 160), 1.0, 1.0, 0.5, 'aabb');
+      const p2 = new Physics(new Vec2(55, 100), new Vec2(-5, 0), new Vec2(20, 160), 1.0, 1.0, 0.5, 'aabb');
+      scenePair.addBody(p1);
+      scenePair.addBody(p2);
+      scenePair.test();
+
+      const sceneCell = new Scene(new Grid(800, 600, 50));
+      sceneCell.setGravity(new Vec2(0, 0));
+      sceneCell.setDeduplicationMode('cell');
+      const c1 = new Physics(new Vec2(45, 100), new Vec2(5, 0), new Vec2(20, 160), 1.0, 1.0, 0.5, 'aabb');
+      const c2 = new Physics(new Vec2(55, 100), new Vec2(-5, 0), new Vec2(20, 160), 1.0, 1.0, 0.5, 'aabb');
+      sceneCell.addBody(c1);
+      sceneCell.addBody(c2);
+      sceneCell.test();
+
+      expect(p1.impulse.x).toBeCloseTo(c1.impulse.x, 5);
+      expect(p2.impulse.x).toBeCloseTo(c2.impulse.x, 5);
+    });
+
+    test('testScene works under both cell and pair deduplication modes', () => {
+      const grid = new Grid(800, 600, 50);
+      const sceneA = new Scene(grid);
+      const sceneB = new Scene(grid);
+      sceneA.setGravity(new Vec2(0, 0));
+      sceneB.setGravity(new Vec2(0, 0));
+
+      const bA = new Physics(new Vec2(48, 50), new Vec2(10, 0), new Vec2(30, 80), 1.0, 1.0, 0.5, 'aabb');
+      const bB = new Physics(new Vec2(52, 50), new Vec2(-10, 0), new Vec2(30, 80), 1.0, 1.0, 0.5, 'aabb');
+      sceneA.addBody(bA);
+      sceneB.addBody(bB);
+
+      sceneA.setDeduplicationMode('pair');
+      sceneA.testScene(sceneB);
+      expect(bA.impulse.x).toBeLessThan(0);
+      expect(bB.impulse.x).toBeGreaterThan(0);
+
+      // Reset and test with cell mode
+      bA.impulse.setScalar(0, 0);
+      bB.impulse.setScalar(0, 0);
+      sceneA.setDeduplicationMode('cell');
+      sceneA.testScene(sceneB);
+      expect(bA.impulse.x).toBeLessThan(0);
+      expect(bB.impulse.x).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Body Sleeping and Resting Stacks in Scene', () => {
+    test('Sleeping bodies are skipped during scene.update(second)', () => {
+      const scene = new Scene();
+      scene.setGravity(new Vec2(0, 500));
+      const body = new Physics(new Vec2(100, 100), new Vec2(0, 0));
+      scene.addBody(body);
+
+      body.sleep();
+      expect(body.isSleeping).toBe(true);
+
+      const posBefore = body.position.clone();
+      scene.update(0.016);
+
+      // Sleeping body should not move and gravity should not be integrated
+      expect(body.position.x).toBe(posBefore.x);
+      expect(body.position.y).toBe(posBefore.y);
+      expect(body.velocity.isOrigin()).toBe(true);
+      expect(body.isSleeping).toBe(true);
+    });
+
+    test('Perturbing sleeping body with force awakens it during scene.update', () => {
+      const scene = new Scene();
+      scene.setGravity(new Vec2(0, 0));
+      const body = new Physics(new Vec2(100, 100), new Vec2(0, 0));
+      scene.addBody(body);
+      body.sleep();
+      expect(body.isSleeping).toBe(true);
+
+      body.force.setScalar(50, 0);
+      scene.update(0.016);
+
+      expect(body.isSleeping).toBe(false);
+      expect(body.velocity.x).toBeGreaterThan(0);
+    });
+
+    test('Broad-phase skips collision tests between two sleeping bodies', () => {
+      const grid = new Grid(800, 600, 50);
+      const scene = new Scene(grid);
+      scene.setGravity(new Vec2(0, 0));
+
+      const box1 = new Physics(new Vec2(50, 50), new Vec2(0, 0), new Vec2(30, 30), 1.0, 1.0, 0.5, 'aabb');
+      const box2 = new Physics(new Vec2(55, 50), new Vec2(0, 0), new Vec2(30, 30), 1.0, 1.0, 0.5, 'aabb');
+      scene.addBody(box1);
+      scene.addBody(box2);
+
+      box1.sleep();
+      box2.sleep();
+
+      scene.test();
+      expect(scene['candidatePairsCount']).toBe(0);
+      expect(box1.impulse.isOrigin()).toBe(true);
+      expect(box2.impulse.isOrigin()).toBe(true);
+    });
+
+    test('Broad-phase skips test between sleeping body and static body', () => {
+      const grid = new Grid(800, 600, 50);
+      const scene = new Scene(grid);
+      scene.setGravity(new Vec2(0, 0));
+
+      const staticFloor = new Physics(new Vec2(50, 100), new Vec2(0, 0), new Vec2(200, 20), 0, 1.0, 0.5, 'aabb');
+      const sleepingBox = new Physics(new Vec2(50, 90), new Vec2(0, 0), new Vec2(20, 20), 1.0, 1.0, 0.5, 'aabb');
+      scene.addBody(staticFloor);
+      scene.addBody(sleepingBox);
+
+      sleepingBox.sleep();
+      scene.test();
+
+      expect(scene['candidatePairsCount']).toBe(0);
+      expect(sleepingBox.isSleeping).toBe(true);
+    });
+
+    test('Moving active body collides with sleeping body and wakes it up', () => {
+      const grid = new Grid(800, 600, 50);
+      const scene = new Scene(grid);
+      scene.setGravity(new Vec2(0, 0));
+
+      const sleepingBox = new Physics(new Vec2(60, 50), new Vec2(0, 0), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
+      const movingBall = new Physics(new Vec2(45, 50), new Vec2(50, 0), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
+      scene.addBody(sleepingBox);
+      scene.addBody(movingBall);
+
+      sleepingBox.sleep();
+      expect(sleepingBox.isSleeping).toBe(true);
+
+      scene.test();
+
+      expect(sleepingBox.isSleeping).toBe(false);
+      expect(sleepingBox.impulse.x).toBeGreaterThan(0);
+      expect(movingBall.impulse.x).toBeLessThan(0);
+    });
+
+    test('Scene setGravity awakens all sleeping bodies', () => {
+      const scene = new Scene();
+      const b1 = new Physics(new Vec2(50, 50));
+      const b2 = new Physics(new Vec2(100, 100));
+      scene.addBody(b1);
+      scene.addBody(b2);
+
+      b1.sleep();
+      b2.sleep();
+      expect(b1.isSleeping).toBe(true);
+      expect(b2.isSleeping).toBe(true);
+
+      scene.setGravity(new Vec2(0, 300));
+      expect(b1.isSleeping).toBe(false);
+      expect(b2.isSleeping).toBe(false);
+    });
+
+    test('Removing a body awakens neighbor bodies sharing grid cells', () => {
+      const grid = new Grid(800, 600, 50);
+      const scene = new Scene(grid);
+      const b1 = new Physics(new Vec2(50, 50), new Vec2(0, 0), new Vec2(20, 20), 1, 1, 0, 'aabb');
+      const b2 = new Physics(new Vec2(50, 50), new Vec2(0, 0), new Vec2(20, 20), 1, 1, 0, 'aabb');
+      scene.addBody(b1);
+      scene.addBody(b2);
+
+      // Populate buckets
+      scene.test();
+
+      b1.sleep();
+      b2.sleep();
+      expect(b1.isSleeping).toBe(true);
+      expect(b2.isSleeping).toBe(true);
+
+      // Removing b1 should wake up b2 because they share grid cells
+      scene.removeBody(b1);
+      expect(b2.isSleeping).toBe(false);
+    });
+  });
+
+  describe('Collision Callbacks and Contact Events in Scene', () => {
+    test('scene.onCollision receives collision events during test()', () => {
+      const scene = new Scene();
+      const b1 = new Physics(new Vec2(100, 100), new Vec2(50, 0), new Vec2(40, 40), 1, 1, 0.5, 'circle');
+      const b2 = new Physics(new Vec2(130, 100), new Vec2(-50, 0), new Vec2(40, 40), 1, 1, 0.5, 'circle');
+      scene.addBody(b1);
+      scene.addBody(b2);
+
+      let eventReceived = null;
+      scene.onCollision = (a, b, normal, impulse) => {
+        eventReceived = { a, b, normal, impulse };
+      };
+
+      scene.test();
+
+      expect(eventReceived).not.toBeNull();
+      expect(eventReceived.a).toBe(b1);
+      expect(eventReceived.b).toBe(b2);
+      expect(eventReceived.normal.x).toBeLessThan(0); // Normal points from b2 to b1 (-X)
+      expect(eventReceived.impulse.x).toBeLessThan(0);
+    });
+
+    test('setOnCollision, getOnCollision, and listener methods on Scene', () => {
+      const scene = new Scene();
+      const fn = () => {};
+      scene.setOnCollision(fn);
+      expect(scene.getOnCollision()).toBe(fn);
+      scene.setOnCollision(null);
+      expect(scene.getOnCollision()).toBeNull();
+
+      let count = 0;
+      const listener = () => { count++; };
+      scene.addCollisionListener(listener);
+      scene.addCollisionListener(listener); // duplicate ignored
+
+      const b1 = new Physics(new Vec2(100, 100), new Vec2(50, 0), new Vec2(40, 40), 1, 1, 0.5, 'circle');
+      const b2 = new Physics(new Vec2(130, 100), new Vec2(-50, 0), new Vec2(40, 40), 1, 1, 0.5, 'circle');
+      scene.addBody(b1);
+      scene.addBody(b2);
+
+      scene.test();
+      expect(count).toBe(1);
+
+      expect(scene.removeCollisionListener(listener)).toBe(true);
+      expect(scene.removeCollisionListener(listener)).toBe(false);
+
+      scene.clearCollisionListeners();
+    });
+
+    test('Both body-level and scene-level callbacks fire with symmetrical perspectives', () => {
+      const scene = new Scene();
+      const b1 = new Physics(new Vec2(100, 100), new Vec2(50, 0), new Vec2(40, 40), 1, 1, 0.5, 'circle');
+      const b2 = new Physics(new Vec2(130, 100), new Vec2(-50, 0), new Vec2(40, 40), 1, 1, 0.5, 'circle');
+      scene.addBody(b1);
+      scene.addBody(b2);
+
+      let b1Event = null;
+      let b2Event = null;
+      let sceneEvent = null;
+
+      b1.onCollision = (other, normal, impulse) => {
+        b1Event = { other, normal, impulse };
+      };
+      b2.onCollision = (other, normal, impulse) => {
+        b2Event = { other, normal, impulse };
+      };
+      scene.onCollision = (a, b, normal, impulse) => {
+        sceneEvent = { a, b, normal, impulse };
+      };
+
+      scene.test();
+
+      expect(b1Event.other).toBe(b2);
+      expect(b2Event.other).toBe(b1);
+      expect(sceneEvent.a).toBe(b1);
+      expect(sceneEvent.b).toBe(b2);
+
+      // Symmetrical normals and impulses
+      expect(b1Event.normal.x).toBeCloseTo(-b2Event.normal.x, 5);
+      expect(b1Event.impulse.x).toBeCloseTo(-b2Event.impulse.x, 5);
+      expect(sceneEvent.normal.x).toBeCloseTo(b1Event.normal.x, 5);
+      expect(sceneEvent.impulse.x).toBeCloseTo(b1Event.impulse.x, 5);
+    });
+
+    test('Multi-iteration solver (iterations = 5) fires callback exactly once per collision contact per frame', () => {
+      const scene = new Scene();
+      scene.setIteration(5);
+      const b1 = new Physics(new Vec2(100, 100), new Vec2(50, 0), new Vec2(40, 40), 1, 1, 0.5, 'circle');
+      const b2 = new Physics(new Vec2(130, 100), new Vec2(-50, 0), new Vec2(40, 40), 1, 1, 0.5, 'circle');
+      scene.addBody(b1);
+      scene.addBody(b2);
+
+      let b1CallCount = 0;
+      let sceneCallCount = 0;
+
+      b1.onCollision = () => { b1CallCount++; };
+      scene.onCollision = () => { sceneCallCount++; };
+
+      scene.test();
+
+      expect(b1CallCount).toBe(1);
+      expect(sceneCallCount).toBe(1);
+    });
+
+    test('Dynamic body colliding with static body triggers callback on both bodies and scene', () => {
+      const scene = new Scene();
+      const ball = new Physics(new Vec2(100, 85), new Vec2(0, 100), new Vec2(20, 20), 1, 1, 0.5, 'circle');
+      const floor = new Physics(new Vec2(100, 100), new Vec2(0, 0), new Vec2(100, 20), 0, 1, 0.5, 'aabb'); // mass = 0
+      scene.addBody(ball);
+      scene.addBody(floor);
+
+      let ballHit = false;
+      let floorHit = false;
+      let sceneHit = false;
+
+      ball.onCollision = (other) => {
+        if (other === floor) ballHit = true;
+      };
+      floor.onCollision = (other) => {
+        if (other === ball) floorHit = true;
+      };
+      scene.onCollision = (a, b) => {
+        if ((a === ball && b === floor) || (a === floor && b === ball))
+          sceneHit = true;
+      };
+
+      scene.test();
+
+      expect(ballHit).toBe(true);
+      expect(floorHit).toBe(true);
+      expect(sceneHit).toBe(true);
+      expect(floor.velocity.x).toBe(0);
+      expect(floor.velocity.y).toBe(0);
+    });
+
+    test('testScene dispatches collision callbacks across distinct scenes', () => {
+      const scene1 = new Scene();
+      const scene2 = new Scene();
+
+      const b1 = new Physics(new Vec2(100, 100), new Vec2(50, 0), new Vec2(40, 40), 1, 1, 0.5, 'circle');
+      const b2 = new Physics(new Vec2(130, 100), new Vec2(-50, 0), new Vec2(40, 40), 1, 1, 0.5, 'circle');
+      scene1.addBody(b1);
+      scene2.addBody(b2);
+
+      let scene1Called = false;
+      let scene2Called = false;
+
+      scene1.onCollision = () => { scene1Called = true; };
+      scene2.onCollision = () => { scene2Called = true; };
+
+      scene1.testScene(scene2);
+
+      expect(scene1Called).toBe(true);
+      expect(scene2Called).toBe(true);
+    });
+
+    test('Sensor trigger in Scene fires exactly once per frame even with iterations = 5, deals damage, and leaves velocity intact', () => {
+      const scene = new Scene();
+      scene.setIteration(5);
+
+      // Player running rightwards
+      const player = new Physics(
+        new Vec2(100, 100),
+        new Vec2(200, 0),
+        new Vec2(30, 30),
+        1.0,
+        1.0,
+        0,
+        'circle'
+      );
+
+      // Lava trigger zone (static, mass = 0, isSensor = true)
+      const lavaZone = new Physics(
+        new Vec2(110, 100),
+        new Vec2(0, 0),
+        new Vec2(60, 60),
+        0,
+        1.0,
+        0,
+        'aabb',
+        0,
+        true
+      );
+      lavaZone.damageDealt = 25;
+
+      scene.addBody(player);
+      scene.addBody(lavaZone);
+
+      let playerCallbacks = 0;
+      let lavaCallbacks = 0;
+      let sceneCallbacks = 0;
+
+      player.onCollision = (other, normal, impulse) => {
+        playerCallbacks++;
+        expect(impulse.isOrigin()).toBe(true);
+      };
+      lavaZone.onCollision = () => {
+        lavaCallbacks++;
+      };
+      scene.onCollision = (a, b, normal, impulse) => {
+        sceneCallbacks++;
+        expect(impulse.isOrigin()).toBe(true);
+      };
+
+      const initialVelX = player.velocity.x;
+      const initialPosX = player.position.x;
+
+      scene.test();
+
+      // Only fires once despite 5 solver iterations
+      expect(playerCallbacks).toBe(1);
+      expect(lavaCallbacks).toBe(1);
+      expect(sceneCallbacks).toBe(1);
+
+      // No positional pushback
+      expect(player.position.x).toBe(initialPosX);
+      // No velocity bounce or deceleration
+      expect(player.velocity.x).toBe(initialVelX);
+
+      // Damage was applied correctly by the hazard sensor
+      expect(player.damageTaken).toBe(25);
+    });
   });
 });
+

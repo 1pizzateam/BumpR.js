@@ -39,7 +39,8 @@ The simulation pipeline consists of three core components:
 ## Quick Start
 
 ```js
-import { Scene, Physics, Vec2 } from '@1pizzateam/bumpr';
+import { Scene, Physics } from '@1pizzateam/bumpr';
+import { Vec2 } from '@1pizzateam/spock';
 import { Player } from '@1pizzateam/loopr';
 
 // 1. Create a scene
