@@ -98,24 +98,5 @@ export function drawLogo(context, state, theme) {
   context.lineWidth = 2;
   context.stroke();
 
-  // Central AABB Obstacle (Box)
-  const boxSize = radius * 0.32;
-  const boxX = cx - boxSize * 0.5;
-  const boxY = cy - boxSize * 0.5;
-  context.beginPath();
-  context.roundRect(boxX, boxY, boxSize, boxSize, 8);
-  context.fillStyle = theme.dark ? '#25262b' : '#edf2ff';
-  context.fill();
-  context.strokeStyle = theme.guide;
-  context.lineWidth = 2;
-  context.stroke();
-
-  // Center symbol / label "B"
-  context.font = `bold ${Math.round(boxSize * 0.5)}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
-  context.textAlign = 'center';
-  context.textBaseline = 'middle';
-  context.fillStyle = theme.text;
-  context.fillText('B', cx, cy);
-
   context.restore();
 }

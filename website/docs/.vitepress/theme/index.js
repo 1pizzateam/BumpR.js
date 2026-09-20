@@ -5,6 +5,7 @@ import BouncingDemo from './components/BouncingDemo.vue';
 import RestitutionDemo from './components/RestitutionDemo.vue';
 import GridBroadphaseDemo from './components/GridBroadphaseDemo.vue';
 import CollisionShapesDemo from './components/CollisionShapesDemo.vue';
+import PhysicsDemo from './components/PhysicsDemo.vue';
 import './demo.css';
 
 export default {
@@ -21,5 +22,6 @@ export default {
     app.component('RestitutionDemo', RestitutionDemo);
     app.component('GridBroadphaseDemo', GridBroadphaseDemo);
     app.component('CollisionShapesDemo', CollisionShapesDemo);
+    app.component('PhysicsDemo', PhysicsDemo);
   },
 };

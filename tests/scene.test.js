@@ -5,9 +5,9 @@ import { Scene } from '../build/es6/scene.js';
 describe('Scene Management & Lifecycle', () => {
   test('addBody adds body, sets collisionSceneId, and propagates gravity', () => {
     const scene = new Scene();
-    scene.setGravity(0, 500);
+    scene.setGravity(new Vec2(0, 500));
 
-    const body = new Physics(0, 0, 0, 0, 10, 10, 1.0, 1.0, 0.5, 'circle');
+    const body = new Physics(new Vec2(), new Vec2(), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
     expect(body.collisionSceneId).toBe(0);
 
     const added = scene.addBody(body);
@@ -25,8 +25,8 @@ describe('Scene Management & Lifecycle', () => {
 
   test('removeBody removes body, resets collisionSceneId, and allows re-adding', () => {
     const scene = new Scene();
-    const body1 = new Physics(0, 0, 0, 0, 10, 10, 1.0, 1.0, 0.5, 'circle');
-    const body2 = new Physics(10, 0, 0, 0, 10, 10, 1.0, 1.0, 0.5, 'circle');
+    const body1 = new Physics(new Vec2(0, 0), new Vec2(), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
+    const body2 = new Physics(new Vec2(10, 0), new Vec2(), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
 
     scene.addBody(body1);
     scene.addBody(body2);
@@ -48,8 +48,8 @@ describe('Scene Management & Lifecycle', () => {
 
   test('clear removes all bodies and resets collisionSceneId', () => {
     const scene = new Scene();
-    const body1 = new Physics(0, 0, 0, 0, 10, 10, 1.0, 1.0, 0.5, 'circle');
-    const body2 = new Physics(10, 0, 0, 0, 10, 10, 1.0, 1.0, 0.5, 'circle');
+    const body1 = new Physics(new Vec2(0, 0), new Vec2(), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
+    const body2 = new Physics(new Vec2(10, 0), new Vec2(), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
 
     scene.addBody(body1);
     scene.addBody(body2);
@@ -64,13 +64,13 @@ describe('Scene Management & Lifecycle', () => {
 
   test('setGravity updates scene gravity and all member bodies', () => {
     const scene = new Scene();
-    const body1 = new Physics(0, 0, 0, 0, 10, 10, 1.0, 1.0, 0.5, 'circle');
-    const body2 = new Physics(10, 0, 0, 0, 10, 10, 1.0, 1.0, 0.5, 'circle');
+    const body1 = new Physics(new Vec2(0, 0), new Vec2(), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
+    const body2 = new Physics(new Vec2(10, 0), new Vec2(), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
 
     scene.addBody(body1);
     scene.addBody(body2);
 
-    scene.setGravity(10, 980);
+    scene.setGravity(new Vec2(10, 980));
     expect(scene.gravity.x).toBe(10);
     expect(scene.gravity.y).toBe(980);
     expect(body1.gravity.x).toBe(10);
@@ -81,10 +81,10 @@ describe('Scene Management & Lifecycle', () => {
 
   test('update advances position of active bodies', () => {
     const scene = new Scene();
-    scene.setGravity(0, 100);
+    scene.setGravity(new Vec2(0, 100));
 
-    const activeBody = new Physics(0, 0, 0, 0, 10, 10, 1.0, 1.0, 0.5, 'circle');
-    const inactiveBody = new Physics(0, 0, 0, 0, 10, 10, 1.0, 1.0, 0.5, 'circle');
+    const activeBody = new Physics(new Vec2(0, 0), new Vec2(), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
+    const inactiveBody = new Physics(new Vec2(0, 0), new Vec2(), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
     inactiveBody.toggleActive(); // active becomes false
 
     scene.addBody(activeBody);
@@ -101,11 +101,27 @@ describe('Scene Management & Lifecycle', () => {
 
   test('test detects and resolves collisions within the scene', () => {
     const scene = new Scene();
-    scene.setGravity(0, 0);
+    scene.setGravity(new Vec2(0, 0));
 
     // Two circles heading towards each other
-    const body1 = new Physics(0, 0, 10, 0, 10, 10, 1.0, 1.0, 1.0, 'circle');
-    const body2 = new Physics(15, 0, -10, 0, 10, 10, 1.0, 1.0, 1.0, 'circle');
+    const body1 = new Physics(
+      new Vec2(0, 0),
+      new Vec2(10, 0),
+      new Vec2(20, 20),
+      1.0,
+      1.0,
+      1.0,
+      'circle'
+    );
+    const body2 = new Physics(
+      new Vec2(15, 0),
+      new Vec2(-10, 0),
+      new Vec2(20, 20),
+      1.0,
+      1.0,
+      1.0,
+      'circle'
+    );
 
     scene.addBody(body1);
     scene.addBody(body2);
@@ -120,11 +136,27 @@ describe('Scene Management & Lifecycle', () => {
   test('testScene detects collisions across separate scenes', () => {
     const sceneA = new Scene();
     const sceneB = new Scene();
-    sceneA.setGravity(0, 0);
-    sceneB.setGravity(0, 0);
+    sceneA.setGravity(new Vec2(0, 0));
+    sceneB.setGravity(new Vec2(0, 0));
 
-    const bodyA = new Physics(0, 0, 10, 0, 10, 10, 1.0, 1.0, 1.0, 'circle');
-    const bodyB = new Physics(15, 0, -10, 0, 10, 10, 1.0, 1.0, 1.0, 'circle');
+    const bodyA = new Physics(
+      new Vec2(0, 0),
+      new Vec2(10, 0),
+      new Vec2(20, 20),
+      1.0,
+      1.0,
+      1.0,
+      'circle'
+    );
+    const bodyB = new Physics(
+      new Vec2(15, 0),
+      new Vec2(-10, 0),
+      new Vec2(20, 20),
+      1.0,
+      1.0,
+      1.0,
+      'circle'
+    );
 
     sceneA.addBody(bodyA);
     sceneB.addBody(bodyB);
@@ -136,9 +168,9 @@ describe('Scene Management & Lifecycle', () => {
   });
 
   test('Cumulative damage from multiple collisions in a single step', () => {
-    const victim = new Physics(0, 0, 0, 0, 10, 10, 1.0, 1.0, 0.5, 'circle');
-    const attacker1 = new Physics(10, 0, 0, 0, 10, 10, 1.0, 1.0, 0.5, 'circle');
-    const attacker2 = new Physics(-10, 0, 0, 0, 10, 10, 1.0, 1.0, 0.5, 'circle');
+    const victim = new Physics(new Vec2(0, 0), new Vec2(), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
+    const attacker1 = new Physics(new Vec2(10, 0), new Vec2(), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
+    const attacker2 = new Physics(new Vec2(-10, 0), new Vec2(), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
 
     attacker1.setDamageDealt(15);
     attacker2.setDamageDealt(25);
@@ -154,9 +186,9 @@ describe('Scene Management & Lifecycle', () => {
 
   test('Monotonic collisionSceneId allocation prevents duplicate IDs across removals', () => {
     const scene = new Scene();
-    const b1 = new Physics(0, 0, 0, 0, 10, 10, 1.0, 1.0, 0.5, 'circle');
-    const b2 = new Physics(10, 0, 0, 0, 10, 10, 1.0, 1.0, 0.5, 'circle');
-    const b3 = new Physics(20, 0, 0, 0, 10, 10, 1.0, 1.0, 0.5, 'circle');
+    const b1 = new Physics(new Vec2(0, 0), new Vec2(), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
+    const b2 = new Physics(new Vec2(10, 0), new Vec2(), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
+    const b3 = new Physics(new Vec2(20, 0), new Vec2(), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
 
     scene.addBody(b1); // id: 1
     scene.addBody(b2); // id: 2
@@ -173,7 +205,15 @@ describe('Scene Management & Lifecycle', () => {
 
   test('testScene ignores self-collision when a scene is tested against itself', () => {
     const scene = new Scene();
-    const b1 = new Physics(0, 0, 10, 0, 10, 10, 1.0, 1.0, 1.0, 'circle');
+    const b1 = new Physics(
+      new Vec2(0, 0),
+      new Vec2(10, 0),
+      new Vec2(20, 20),
+      1.0,
+      1.0,
+      1.0,
+      'circle'
+    );
     scene.addBody(b1);
 
     // Testing scene against itself: b1 should not collide with b1
@@ -183,8 +223,8 @@ describe('Scene Management & Lifecycle', () => {
 
   test('draw calls draw on all active bodies and skips inactive bodies', () => {
     const scene = new Scene();
-    const activeBody = new Physics(0, 0, 0, 0, 10, 10, 1.0, 1.0, 0.5, 'circle');
-    const inactiveBody = new Physics(10, 0, 0, 0, 10, 10, 1.0, 1.0, 0.5, 'circle');
+    const activeBody = new Physics(new Vec2(0, 0), new Vec2(), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
+    const inactiveBody = new Physics(new Vec2(10, 0), new Vec2(), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
     inactiveBody.setInactive();
 
     let activeDrawn = false;
@@ -210,8 +250,8 @@ describe('Scene Management & Lifecycle', () => {
 
   test('dual static bodies with inverseMass = 0 are skipped in test() and testScene()', () => {
     const scene = new Scene();
-    const staticA = new Physics(0, 0, 0, 0, 20, 20, 0, 1.0, 0.5, 'circle');
-    const staticB = new Physics(10, 0, 0, 0, 20, 20, 0, 1.0, 0.5, 'circle');
+    const staticA = new Physics(new Vec2(0, 0), new Vec2(), new Vec2(40, 40), 0, 1.0, 0.5, 'circle');
+    const staticB = new Physics(new Vec2(10, 0), new Vec2(), new Vec2(40, 40), 0, 1.0, 0.5, 'circle');
     scene.addBody(staticA);
     scene.addBody(staticB);
 
@@ -219,7 +259,7 @@ describe('Scene Management & Lifecycle', () => {
     expect(staticA.impulse.isOrigin()).toBe(true);
 
     const scene2 = new Scene();
-    const staticC = new Physics(5, 0, 0, 0, 20, 20, 0, 1.0, 0.5, 'circle');
+    const staticC = new Physics(new Vec2(5, 0), new Vec2(), new Vec2(40, 40), 0, 1.0, 0.5, 'circle');
     scene2.addBody(staticC);
 
     expect(() => scene.testScene(scene2)).not.toThrow();
@@ -233,8 +273,8 @@ describe('Scene Management & Lifecycle', () => {
       const scene = new Scene(grid);
       expect(scene.getGrid()).toBe(grid);
 
-      const b1 = new Physics(50, 50, 0, 0, 10, 10, 1.0, 1.0, 0.5, 'circle');
-      const b2 = new Physics(100, 100, 0, 0, 10, 10, 1.0, 1.0, 0.5, 'aabb');
+      const b1 = new Physics(new Vec2(50, 50), new Vec2(), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
+      const b2 = new Physics(new Vec2(100, 100), new Vec2(), new Vec2(10, 10), 1.0, 1.0, 0.5, 'aabb');
 
       scene.addBody(b1);
       scene.addBody(b2);
@@ -267,11 +307,27 @@ describe('Scene Management & Lifecycle', () => {
     test('Grid broad-phase skips collision detection when bodies are in different cells', () => {
       const grid = new Grid(800, 600, 50);
       const scene = new Scene(grid);
-      scene.setGravity(0, 0);
+      scene.setGravity(new Vec2(0, 0));
 
       // Body 1 at (25, 25), Body 2 at (400, 400) - far apart in different grid cells
-      const b1 = new Physics(25, 25, 10, 0, 10, 10, 1.0, 1.0, 1.0, 'circle');
-      const b2 = new Physics(400, 400, -10, 0, 10, 10, 1.0, 1.0, 1.0, 'circle');
+      const b1 = new Physics(
+        new Vec2(25, 25),
+        new Vec2(10, 0),
+        new Vec2(20, 20),
+        1.0,
+        1.0,
+        1.0,
+        'circle'
+      );
+      const b2 = new Physics(
+        new Vec2(400, 400),
+        new Vec2(-10, 0),
+        new Vec2(20, 20),
+        1.0,
+        1.0,
+        1.0,
+        'circle'
+      );
 
       scene.addBody(b1);
       scene.addBody(b2);
@@ -286,11 +342,27 @@ describe('Scene Management & Lifecycle', () => {
     test('Grid broad-phase allows collision detection when bodies share grid cells', () => {
       const grid = new Grid(800, 600, 50);
       const scene = new Scene(grid);
-      scene.setGravity(0, 0);
+      scene.setGravity(new Vec2(0, 0));
 
       // Overlapping bodies in the same cell at (25, 25) and (35, 25)
-      const b1 = new Physics(25, 25, 10, 0, 10, 10, 1.0, 1.0, 1.0, 'circle');
-      const b2 = new Physics(35, 25, -10, 0, 10, 10, 1.0, 1.0, 1.0, 'circle');
+      const b1 = new Physics(
+        new Vec2(25, 25),
+        new Vec2(10, 0),
+        new Vec2(20, 20),
+        1.0,
+        1.0,
+        1.0,
+        'circle'
+      );
+      const b2 = new Physics(
+        new Vec2(35, 25),
+        new Vec2(-10, 0),
+        new Vec2(20, 20),
+        1.0,
+        1.0,
+        1.0,
+        'circle'
+      );
 
       scene.addBody(b1);
       scene.addBody(b2);
@@ -306,12 +378,28 @@ describe('Scene Management & Lifecycle', () => {
       const grid = new Grid(800, 600, 50);
       const sceneA = new Scene(grid);
       const sceneB = new Scene();
-      sceneA.setGravity(0, 0);
-      sceneB.setGravity(0, 0);
+      sceneA.setGravity(new Vec2(0, 0));
+      sceneB.setGravity(new Vec2(0, 0));
 
       // Distant bodies
-      const b1 = new Physics(25, 25, 10, 0, 10, 10, 1.0, 1.0, 1.0, 'circle');
-      const b2 = new Physics(500, 500, -10, 0, 10, 10, 1.0, 1.0, 1.0, 'circle');
+      const b1 = new Physics(
+        new Vec2(25, 25),
+        new Vec2(10, 0),
+        new Vec2(20, 20),
+        1.0,
+        1.0,
+        1.0,
+        'circle'
+      );
+      const b2 = new Physics(
+        new Vec2(500, 500),
+        new Vec2(-10, 0),
+        new Vec2(20, 20),
+        1.0,
+        1.0,
+        1.0,
+        'circle'
+      );
 
       sceneA.addBody(b1);
       sceneB.addBody(b2);
@@ -338,9 +426,9 @@ describe('Scene Management & Lifecycle', () => {
 
     test('removeBody uses swap-with-last to remove middle body in O(1)', () => {
       const scene = new Scene();
-      const b1 = new Physics(0, 0, 0, 0, 10, 10, 1, 1, 0.5, 'circle');
-      const b2 = new Physics(10, 0, 0, 0, 10, 10, 1, 1, 0.5, 'circle');
-      const b3 = new Physics(20, 0, 0, 0, 10, 10, 1, 1, 0.5, 'circle');
+      const b1 = new Physics(new Vec2(0, 0), new Vec2(), new Vec2(20, 20), 1, 1, 0.5, 'circle');
+      const b2 = new Physics(new Vec2(10, 0), new Vec2(), new Vec2(20, 20), 1, 1, 0.5, 'circle');
+      const b3 = new Physics(new Vec2(20, 0), new Vec2(), new Vec2(20, 20), 1, 1, 0.5, 'circle');
       scene.addBody(b1);
       scene.addBody(b2);
       scene.addBody(b3);
@@ -355,7 +443,7 @@ describe('Scene Management & Lifecycle', () => {
 
     test('update skips stationary static bodies', () => {
       const scene = new Scene();
-      const staticBody = new Physics(50, 50, 0, 0, 20, 20, 0, 1, 0.5, 'aabb');
+      const staticBody = new Physics(new Vec2(50, 50), new Vec2(), new Vec2(20, 20), 0, 1, 0.5, 'aabb');
       let updateCalled = false;
       staticBody.updatePosition = () => { updateCalled = true; return staticBody.position; };
       scene.addBody(staticBody);
@@ -366,11 +454,27 @@ describe('Scene Management & Lifecycle', () => {
     test('Grid broad-phase deduplicates pair tests across multi-cell spanning bodies', () => {
       const grid = new Grid(800, 600, 20);
       const scene = new Scene(grid);
-      scene.setGravity(0, 0);
+      scene.setGravity(new Vec2(0, 0));
 
       // Large bodies spanning multiple cells vertically and horizontally
-      const b1 = new Physics(18, 30, 5, 0, 20, 60, 1.0, 1.0, 0.5, 'aabb');
-      const b2 = new Physics(34, 30, -5, 0, 20, 60, 1.0, 1.0, 0.5, 'aabb');
+      const b1 = new Physics(
+        new Vec2(18, 30),
+        new Vec2(5, 0),
+        new Vec2(20, 60),
+        1.0,
+        1.0,
+        0.5,
+        'aabb'
+      );
+      const b2 = new Physics(
+        new Vec2(34, 30),
+        new Vec2(-5, 0),
+        new Vec2(20, 60),
+        1.0,
+        1.0,
+        0.5,
+        'aabb'
+      );
       scene.addBody(b1);
       scene.addBody(b2);
 
@@ -386,11 +490,27 @@ describe('Scene Management & Lifecycle', () => {
       const grid = new Grid(800, 600, 50);
       const sceneA = new Scene(grid);
       const sceneB = new Scene(grid);
-      sceneA.setGravity(0, 0);
-      sceneB.setGravity(0, 0);
+      sceneA.setGravity(new Vec2(0, 0));
+      sceneB.setGravity(new Vec2(0, 0));
 
-      const b1 = new Physics(25, 25, 10, 0, 10, 10, 1.0, 1.0, 1.0, 'circle');
-      const b2 = new Physics(35, 25, -10, 0, 10, 10, 1.0, 1.0, 1.0, 'circle');
+      const b1 = new Physics(
+        new Vec2(25, 25),
+        new Vec2(10, 0),
+        new Vec2(20, 20),
+        1.0,
+        1.0,
+        1.0,
+        'circle'
+      );
+      const b2 = new Physics(
+        new Vec2(35, 25),
+        new Vec2(-10, 0),
+        new Vec2(20, 20),
+        1.0,
+        1.0,
+        1.0,
+        'circle'
+      );
 
       sceneA.addBody(b1);
       sceneB.addBody(b2);
@@ -403,12 +523,20 @@ describe('Scene Management & Lifecycle', () => {
     test('Grid broad-phase scales efficiently with many distributed bodies', () => {
       const grid = new Grid(2000, 2000, 50);
       const scene = new Scene(grid);
-      scene.setGravity(0, 0);
+      scene.setGravity(new Vec2(0, 0));
 
       for (let i = 0; i < 200; i++) {
         const x = (i % 20) * 90 + 20;
         const y = Math.floor(i / 20) * 90 + 20;
-        scene.addBody(new Physics(x, y, 0, 0, 10, 10, 1.0, 1.0, 0.5, 'circle'));
+        scene.addBody(new Physics(
+          new Vec2(x, y),
+          new Vec2(),
+          new Vec2(20, 20),
+          1.0,
+          1.0,
+          0.5,
+          'circle'
+        ));
       }
 
       const start = performance.now();
@@ -420,13 +548,37 @@ describe('Scene Management & Lifecycle', () => {
     test('Sparse Grid broad-phase skips out-of-bounds bodies and empty buckets', () => {
       const grid = new Grid(2000, 2000, 20); // 10,000 cells
       const scene = new Scene(grid);
-      scene.setGravity(0, 0);
+      scene.setGravity(new Vec2(0, 0));
 
       // Body out of grid bounds (gridCells = [-1])
-      const outOfBounds = new Physics(5000, 5000, 0, 0, 10, 10, 1.0, 1.0, 0.5, 'circle');
+      const outOfBounds = new Physics(
+        new Vec2(5000, 5000),
+        new Vec2(),
+        new Vec2(20, 20),
+        1.0,
+        1.0,
+        0.5,
+        'circle'
+      );
       // In-bounds colliding bodies
-      const b1 = new Physics(50, 50, 5, 0, 10, 10, 1.0, 1.0, 0.5, 'circle');
-      const b2 = new Physics(55, 50, -5, 0, 10, 10, 1.0, 1.0, 0.5, 'circle');
+      const b1 = new Physics(
+        new Vec2(50, 50),
+        new Vec2(5, 0),
+        new Vec2(20, 20),
+        1.0,
+        1.0,
+        0.5,
+        'circle'
+      );
+      const b2 = new Physics(
+        new Vec2(55, 50),
+        new Vec2(-5, 0),
+        new Vec2(20, 20),
+        1.0,
+        1.0,
+        0.5,
+        'circle'
+      );
 
       scene.addBody(outOfBounds);
       scene.addBody(b1);
@@ -440,5 +592,3 @@ describe('Scene Management & Lifecycle', () => {
     });
   });
 });
-
-

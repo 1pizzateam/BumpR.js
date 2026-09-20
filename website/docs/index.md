@@ -10,47 +10,85 @@ hero:
       text: Get Started
       link: /guide/overview
     - theme: alt
-      text: Live Examples
-      link: /guide/examples
-    - theme: alt
       text: API Reference
       link: /api/
 
 features:
   - icon: ⚡
     title: Rigid Body Dynamics
-    details: Linear momentum, gravity, mass ratios, impulse response, velocity damping, and restitution.
+    details: Linear momentum, gravity, mass ratios, impulse response, surface friction, velocity damping, and restitution.
   - icon: 🎯
     title: Precise Narrow-Phase
     details: Exact collision detection for Circle vs Circle, Circle vs AABB (with Voronoi corners), and AABB vs AABB.
   - icon: 🌐
     title: Spatial Hash Broad-Phase
     details: Built-in integration with Spock Grid, accelerating collision queries down to active spatial cells.
-  - icon: 🍕
-    title: Zero Extra Dependencies
-    details: Tightly integrated with the 1 Pizza Team ecosystem, re-exporting Vec2, Grid, Circ, Rect, and Utils.
+  - icon: 🚀
+    title: Zero-Allocation Hot Paths
+    details: Preallocated math vectors and reusable calculation structures eliminate garbage collection pauses during simulation loops.
 ---
+
+<PhysicsDemo />
 
 ```js
 import { Scene, Physics, Grid, Vec2 } from '@1pizzateam/bumpr';
+import { Player } from '@1pizzateam/loopr';
 
-// Create simulation world
+// 1. Initialize simulation world with downward gravity
 const scene = new Scene();
-scene.setGravity(0, 400); // 400 px/s² downward
+scene.setGravity(new Vec2(0, 400)); // 400 px/s² downward
 
-// Dynamic circle (radius = 18, mass = 1.0, restitution = 0.8)
-const ball = new Physics('circle', 18, undefined, 150, 50, 1.0);
-ball.setVelocity(60, 0);
-ball.setRestitution(0.8);
-scene.addBody(ball);
+// 2. Attach spatial hash Grid for broad-phase culling (efficient for 50+ bodies)
+const grid = new Grid(800, 480, 40);
+scene.setGrid(grid);
 
-// Immovable static floor (width = 600, height = 30, mass = 0)
-const floor = new Physics('aabb', 600, 30, 300, 400, 0);
-scene.addBody(floor);
+// 3. Helper to spawn lively, bouncy balls with tuned physics properties
+function spawnBall(x, y, vx, vy, radius = 12) {
+  const mass = 1.0;          // Uniform mass ensures balanced, symmetric momentum transfer
+  const damping = 0.99;      // Minimal air resistance preserves kinetic energy
+  const restitution = 0.85;  // High elasticity for springy, responsive bounces
+  const friction = 0.0;      // Zero tangential friction for smooth rolling
 
-// Advance physics in your animation or render loop
-function tick(deltaSeconds) {
-  scene.update(deltaSeconds);
-  scene.test();
+  const ball = new Physics(
+    new Vec2(x, y),
+    new Vec2(vx, vy),
+    new Vec2(radius * 2, radius * 2),
+    mass,
+    damping,
+    restitution,
+    'circle',
+    friction
+  );
+  scene.addBody(ball);
+  return ball;
 }
+
+// Spawn a burst of balls from top center with moderate spread
+for (let i = 0; i < 30; i++) {
+  const angle = Math.random() * Math.PI; // Downward hemisphere spread
+  const speed = 40 + Math.random() * 60;
+  spawnBall(
+    400 + (Math.random() - 0.5) * 60, 40,
+    Math.cos(angle) * speed, Math.sin(angle) * speed,
+    10 + Math.random() * 6
+  );
+}
+
+// 4. Drive physics loop on every animation frame with LoopR
+const player = new Player((delta) => {
+  const dt = Math.min(delta, 0.05);
+
+  // Advance integration & resolve pairwise collisions
+  scene.update(dt);
+  scene.test();
+
+  // Detect collision impacts for particle sparks or audio triggers
+  for (let i = 0; i < scene.bodiesLength; i++) {
+    const body = scene.bodies[i];
+    if (body.applyDamage()) {
+      // Trigger visual sparks, ripples, or hit audio
+    }
+  }
+});
+player.start();
 ```

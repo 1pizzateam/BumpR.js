@@ -30,9 +30,17 @@ Import the classes and helpers directly:
 import { Scene, Physics, CollisionDetection, Grid, Vec2 } from '@1pizzateam/bumpr';
 
 const scene = new Scene();
-scene.setGravity(0, 500);
+scene.setGravity(new Vec2(0, 500));
 
-const body = new Physics('circle', 20, undefined, 50, 50, 1.0);
+const body = new Physics(
+  new Vec2(50, 50),
+  new Vec2(),
+  new Vec2(40, 40),
+  1.0,
+  1.0,
+  0.5,
+  'circle'
+);
 scene.addBody(body);
 ```
 
@@ -44,17 +52,23 @@ BumpR.js is packaged as a standard ES module and can be loaded directly inside b
 <canvas id="stage" width="800" height="600"></canvas>
 
 <script type="module">
-  import { Scene, Physics } from './node_modules/@1pizzateam/bumpr/dist/bumpr.js';
+  import { Scene, Physics, Vec2 } from './node_modules/@1pizzateam/bumpr/dist/bumpr.js';
 
   const canvas = document.getElementById('stage');
   const ctx = canvas.getContext('2d');
 
   const scene = new Scene();
-  scene.setGravity(0, 350);
+  scene.setGravity(new Vec2(0, 350));
 
-  const ball = new Physics('circle', 18, undefined, 400, 100, 1.0);
-  ball.setVelocity(100, 0);
-  ball.setRestitution(0.85);
+  const ball = new Physics(
+    new Vec2(400, 100),
+    new Vec2(100, 0),
+    new Vec2(36, 36),
+    1.0,
+    1.0,
+    0.85,
+    'circle'
+  );
   scene.addBody(ball);
 
   let lastTime = performance.now();

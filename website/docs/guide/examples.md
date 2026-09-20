@@ -4,26 +4,38 @@ Live interactive examples running `@1pizzateam/bumpr` directly in your browser.
 
 ## Rigid Body Bouncing Sandbox
 
-A dynamic physics environment simulating circles and boxes bouncing under gravity with boundary reflection and pairwise collision resolution.
+A dynamic physics environment simulating circles and boxes bouncing under gravity with boundary reflection, Coulomb friction, and pairwise collision resolution. Boxes have surface friction and settle smoothly into resting contact upon landing or stacking, while circles roll and glide freely.
 
 <BouncingDemo />
 
 ```javascript
-import { Scene, Physics } from '@1pizzateam/bumpr';
+import { Scene, Physics, Vec2 } from '@1pizzateam/bumpr';
 
 const scene = new Scene();
-scene.setGravity(0, 250); // Downward acceleration
+scene.setGravity(new Vec2(0, 250)); // Downward acceleration
 
 // Add dynamic circle
-const ball = new Physics('circle', 16, undefined, 100, 50, 1.0);
-ball.setVelocity(80, 20);
-ball.setRestitution(0.75);
+const ball = new Physics(
+  new Vec2(100, 50),
+  new Vec2(80, 20),
+  new Vec2(32, 32),
+  1.0,
+  1.0,
+  0.75,
+  'circle'
+);
 scene.addBody(ball);
 
 // Add dynamic box
-const box = new Physics('aabb', 28, 28, 200, 50, 1.0);
-box.setVelocity(-60, 10);
-box.setRestitution(0.75);
+const box = new Physics(
+  new Vec2(200, 50),
+  new Vec2(-60, 10),
+  new Vec2(28, 28),
+  1.0,
+  1.0,
+  0.75,
+  'aabb'
+);
 scene.addBody(box);
 
 // Loop integration
@@ -45,16 +57,11 @@ The coefficient of restitution ($e \in [0.0, 1.0]$) governs the elasticity of co
 <RestitutionDemo />
 
 ```javascript
-import { Physics } from '@1pizzateam/bumpr';
+import { Physics, Vec2 } from '@1pizzateam/bumpr';
 
-const clay = new Physics('circle', 18, undefined, 50, 50, 1.0);
-clay.setRestitution(0.0); // Completely inelastic
-
-const rubber = new Physics('circle', 18, undefined, 100, 50, 1.0);
-rubber.setRestitution(0.5); // Moderate bounce
-
-const superball = new Physics('circle', 18, undefined, 150, 50, 1.0);
-superball.setRestitution(0.95); // High elasticity
+const clay = new Physics(new Vec2(50, 50), new Vec2(), new Vec2(36, 36), 1.0, 1.0, 0.0, 'circle'); // Completely inelastic
+const rubber = new Physics(new Vec2(100, 50), new Vec2(), new Vec2(36, 36), 1.0, 1.0, 0.5, 'circle'); // Moderate bounce
+const superball = new Physics(new Vec2(150, 50), new Vec2(), new Vec2(36, 36), 1.0, 1.0, 0.95, 'circle'); // High elasticity
 ```
 
 ---
@@ -66,24 +73,16 @@ For scenes with many bodies, checking every pair ($O(N^2)$) wastes CPU cycles on
 <GridBroadphaseDemo />
 
 ```javascript
-import { Scene, Grid, Vec2 } from '@1pizzateam/bumpr';
+import { Scene, Grid } from '@1pizzateam/bumpr';
 
 const scene = new Scene();
-
-// Create 6x4 spatial hash grid over 600x400 arena
-const grid = new Grid(
-  new Vec2(0, 0),       // Top-left origin
-  new Vec2(600, 400),   // Dimensions
-  new Vec2(6, 4)        // Columns and rows
-);
-
-// Attach grid to scene for automatic broad-phase culling
+const grid = new Grid(800, 600, 50); // width, height, cellSize
 scene.setGrid(grid);
 ```
 
 ---
 
-## Narrow-Phase Collision Pairs
+## Collision Detection Modes
 
 BumpR handles three distinct narrow-phase collision pairs:
 1. **Circle vs Circle**: Radial distance separation.
@@ -93,14 +92,28 @@ BumpR handles three distinct narrow-phase collision pairs:
 <CollisionShapesDemo />
 
 ```javascript
-import { CollisionDetection, Physics } from '@1pizzateam/bumpr';
-
-const detector = new CollisionDetection();
+import { CollisionDetection, Physics, Vec2 } from '@1pizzateam/bumpr';
 
 // Circle colliding against a static box (mass = 0)
-const ball = new Physics('circle', 22, undefined, 100, 100, 1.0);
-const obstacle = new Physics('aabb', 40, 40, 180, 100, 0.0); // static
+const ball = new Physics(
+  new Vec2(100, 100),
+  new Vec2(50, 0),
+  new Vec2(44, 44),
+  1.0,
+  1.0,
+  0.8,
+  'circle'
+);
+const obstacle = new Physics(
+  new Vec2(180, 100),
+  new Vec2(0, 0),
+  new Vec2(40, 40),
+  0.0, // static
+  1.0,
+  0.8,
+  'aabb'
+);
 
 // Test returns true if collision occurred and resolved
-const collided = detector.test(ball, obstacle);
+const collided = CollisionDetection.test(ball, obstacle);
 ```

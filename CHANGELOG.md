@@ -1,3 +1,19 @@
+Version 1.0.0 (September 20th 2026)
+-----------------------------
+ * Modernized to TypeScript and ES6 modules
+ * Integrated with Spock.js modern geometry and vector engine (Spock 4.1.0)
+ * Vector-first `Physics` constructor accepting `Vec2` instances directly for `position`, `velocity`, and `size`: `new Physics(position, velocity, size, mass, damping, restitution, shape, friction)`
+ * Pure vector-first physics API (`setPosition`, `setVelocity`, `setInitialVelocity`, `setGravity` accept `Vec2`)
+ * Removed configuration object wrapper and static factories in favor of direct vector constructor
+ * Zero-allocation positional de-penetration via `body.translate()`
+ * Zero-iterator collision passes in `Scene.testScene()` using indexed loops
+ * Spatial hash grid broad-phase partitioning with `Grid`
+ * Added 2D Coulomb tangential friction impulse solver (`CollisionDetection.computeImpulse`) to arrest relative sliding between flat surfaces
+ * Added `friction` property, `getFriction()`, and `setFriction()` to `Physics` (defaults to 0.6 for AABB/rectangle, 0.0 for circles)
+ * Added resting contact velocity threshold to prevent micro-bouncing jitter and maintain continuous resting contact between stacked bodies
+ * Fixed impulse solver in `CollisionDetection.computeImpulse` to use accumulated effective velocities, preventing multi-iteration phantom energy creation and velocity explosion during ball-to-ball collisions
+ * Enhanced website rigid body examples and interactive demos with vector-first configuration, impact friction, rolling resistance for resting circles, and progressive stiction deceleration
+
 Version 0.5.5 (May 09th 2020)
 -----------------------------
  * Update Type6js dependency to v2.0.0

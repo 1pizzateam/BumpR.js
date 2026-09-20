@@ -31,9 +31,7 @@
   },
   "license": "MIT",
   "author": {
-    "name": "Ludovic Cluber",
-    "email": "http://www.lcluber.com/contact",
-    "url": "http://www.lcluber.com/"
+    "name": "Ludovic Cluber"
   },
   "contributors": [],
   "scripts": {
@@ -53,7 +51,7 @@
     "node": ">= 22"
   },
   "dependencies": {
-    "@1pizzateam/spock": "4.0.0"
+    "@1pizzateam/spock": "4.1.0"
   },
   "devDependencies": {
     "@types/jest": "29.5.14",

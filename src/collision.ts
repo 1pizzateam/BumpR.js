@@ -1,6 +1,6 @@
 
 import type { Circ, Grid, Rect } from '@1pizzateam/spock';
-import { Vec2 } from '@1pizzateam/spock';
+import { Utils, Vec2 } from '@1pizzateam/spock';
 import { AabbVSAabb } from './collisions/aabbvsaabb';
 import { CircleVSAabb } from './collisions/circlevsaabb';
 import { CircleVSCircle } from './collisions/circlevscircle';
@@ -11,13 +11,18 @@ export enum Shape { circle = 'circle', aabb = 'aabb' };
 export const CollisionDetection = {
 
   ab                     : new Vec2(),
+  effectiveVelocityA     : new Vec2(),
+  effectiveVelocityB     : new Vec2(),
   penetration            : new Vec2(),
   contactNormal          : new Vec2(),
+  contactTangent         : new Vec2(),
   correction             : new Vec2(),
   impulsePerInverseMass  : new Vec2(),
 
   totalInverseMass       : 0,
   impulse                : 0,
+  tangentImpulse         : 0,
+  restingThreshold       : 6,
 
   percent                : 0.99, // Penetration percentage to correct
 
@@ -70,13 +75,38 @@ export const CollisionDetection = {
 
   computeImpulse( a: Physics, b: Physics ): void {
     this.contactNormal.copy(this.penetration).normalize();
-    this.ab.copy(a.velocity).subtract(b.velocity);
+
+    this.effectiveVelocityA.copy(a.velocity);
+    if (a.inverseMass && !a.impulse.isOrigin()) {
+      this.effectiveVelocityA.addScaledVector(a.impulse, a.inverseMass);
+    }
+    this.effectiveVelocityB.copy(b.velocity);
+    if (b.inverseMass && !b.impulse.isOrigin()) {
+      this.effectiveVelocityB.addScaledVector(b.impulse, b.inverseMass);
+    }
+
+    this.ab.copy(this.effectiveVelocityA).subtract(this.effectiveVelocityB);
     const separatingVelocity = this.ab.dotProduct(this.contactNormal);
     if( separatingVelocity < 0 ) {
-      const restitution = Math.max( a.restitution, b.restitution );
+      const restitution = Math.abs(separatingVelocity) < this.restingThreshold
+        ? 0
+        : Math.max( a.restitution, b.restitution );
       const deltaVelocity = -separatingVelocity * ( 1 + restitution );
       this.impulse = deltaVelocity / this.totalInverseMass;
       this.impulsePerInverseMass.copy(this.contactNormal).scale(this.impulse);
+
+      const friction = Math.min( a.friction, b.friction );
+      if (friction > 0) {
+        this.contactTangent.setScalar( -this.contactNormal.y, this.contactNormal.x );
+        const relativeTangentVelocity = this.ab.dotProduct(this.contactTangent);
+        if (relativeTangentVelocity !== 0) {
+          const desiredTangentImpulse = -relativeTangentVelocity / this.totalInverseMass;
+          const maxFrictionImpulse = friction * this.impulse;
+          this.tangentImpulse = Utils.clamp(desiredTangentImpulse, -maxFrictionImpulse, maxFrictionImpulse);
+          this.impulsePerInverseMass.addScaledVector(this.contactTangent, this.tangentImpulse);
+        }
+      }
+
       a.collision( this.impulsePerInverseMass, b );
       this.impulsePerInverseMass.opposite();
       b.collision( this.impulsePerInverseMass, a );

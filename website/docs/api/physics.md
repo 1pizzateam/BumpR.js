@@ -7,35 +7,51 @@ A 2D rigid body with mass, velocity, acceleration, restitution, damping, and geo
 A mass of `0` denotes a static, immovable obstacle (`inverseMass = 0`), which absorbs collisions without being pushed back.
 
 ```javascript
-import { Physics } from '@1pizzateam/bumpr';
+import { Physics, Vec2 } from '@1pizzateam/bumpr';
 
-// Dynamic circle (radius = 20, mass = 1.0)
-const ball = new Physics('circle', 20, undefined, 100, 100, 1.0);
-ball.setVelocity(200, 0);
-ball.setRestitution(0.85);
+// Dynamic circle (position, velocity, size, mass, damping, restitution, shape)
+const ball = new Physics(
+  new Vec2(100, 100),
+  new Vec2(200, 0),
+  new Vec2(40, 40),
+  1.0,
+  0.98,
+  0.85,
+  'circle'
+);
 
-// Static wall (width = 200, height = 20, mass = 0)
-const wall = new Physics('aabb', 200, 20, 100, 300, 0);
+// Static wall (mass = 0 denotes an immovable obstacle)
+const wall = new Physics(
+  new Vec2(100, 300),
+  new Vec2(0, 0),
+  new Vec2(200, 20),
+  0,
+  1.0,
+  0.5,
+  'aabb'
+);
 ```
 
 ---
 
 ## Constructor
 
-Create a new `Physics` body.
+Create a new `Physics` body with vector-first arguments.
 
 ```typescript
-new Physics(positionX: number, positionY: number, velocityX: number, velocityY: number, sizeX: number, sizeY: number, mass: number, damping: number, restitution: number, type: string)
+new Physics(position    : Vec2 = new Vec2(), velocity    : Vec2 = new Vec2(), size        : Vec2 = new Vec2(20, 20), mass        : number = 1.0, damping     : number = 0.8, restitution : number = 0, shape       : 'circle' | 'aabb' | 'rectangle' = 'circle', friction?   : number)
 ```
 
 ### Parameters
 
-- `type` — `'circle' | 'aabb'`. Geometric shape type.
-- `width` — `number`. Radius if circle, or total width if AABB.
-- `height` — `number | undefined`. Total height if AABB, omitted for circle.
-- `x` — `number`. Initial horizontal position (default `0`).
-- `y` — `number`. Initial vertical position (default `0`).
-- `mass` — `number`. Rigid body mass (default `1.0`). Use `0` for static immovable obstacles.
+- `position` — `Vec2`. Initial position (default `new Vec2()`).
+- `velocity` — `Vec2`. Initial velocity in px/s (default `new Vec2()`).
+- `size` — `Vec2`. Bounding dimensions (width, height; default `new Vec2(20, 20)`). For circles, radius is `size.x * 0.5`.
+- `mass` — `number`. Body mass in kg (default `1.0`). `0` marks a static body.
+- `damping` — `number`. Air resistance / velocity damping per second in `[0, 1]` (default `0.8`).
+- `restitution` — `number`. Bounciness in `[0, 1]` (default `0`).
+- `shape` — `'circle' | 'aabb' | 'rectangle'`. Collision geometry (default `'circle'`).
+- `friction` — `number` (optional). Coulomb friction coefficient in `[0, 1]` (defaults to `0` for circle, `0.6` for AABB).
 
 ### Returns
 
@@ -147,30 +163,19 @@ correctPosition(correction: Vec2): void
 
 ## Physics.setPosition()
 
-Explicitly set the body position coordinates.
+Explicitly set the body position vector.
 
 ```typescript
-setPosition(x: number, y: number): void
+setPosition(position: Vec2): void
 ```
 
 ### Parameters
 
-- `x` — `number`. Horizontal position.
-- `y` — `number`. Vertical position.
+- `position` — `Vec2`. New position vector.
 
 ### Returns
 
 `void`
-
----
-
-## Physics.setPositionFromVector()
-
-
-
-```typescript
-setPositionFromVector(position: Vec2): void
-```
 
 ---
 
@@ -186,30 +191,19 @@ getPosition(): Vec2
 
 ## Physics.setVelocity()
 
-Explicitly set linear velocity vector components.
+Explicitly set linear velocity vector.
 
 ```typescript
-setVelocity(x: number, y: number): void
+setVelocity(velocity: Vec2): void
 ```
 
 ### Parameters
 
-- `x` — `number`. Horizontal velocity.
-- `y` — `number`. Vertical velocity.
+- `velocity` — `Vec2`. New velocity vector.
 
 ### Returns
 
 `void`
-
----
-
-## Physics.setVelocityFromVector()
-
-
-
-```typescript
-setVelocityFromVector(velocity: Vec2): void
-```
 
 ---
 
@@ -228,13 +222,12 @@ getVelocity(): Vec2
 Record reference initial velocity for subsequent `reset()` calls.
 
 ```typescript
-setInitialVelocity(x: number, y: number): void
+setInitialVelocity(velocity: Vec2): void
 ```
 
 ### Parameters
 
-- `x` — `number`. Horizontal initial velocity.
-- `y` — `number`. Vertical initial velocity.
+- `velocity` — `Vec2`. Initial velocity vector.
 
 ### Returns
 
@@ -254,11 +247,19 @@ getInitialVelocity(): Vec2
 
 ## Physics.setGravity()
 
-
+Set custom gravity acceleration vector for this body.
 
 ```typescript
-setGravity(x: number, y: number): void
+setGravity(gravity: Vec2): void
 ```
+
+### Parameters
+
+- `gravity` — `Vec2`. Gravity vector.
+
+### Returns
+
+`void`
 
 ---
 
@@ -326,6 +327,38 @@ getRestitution(): number
 
 ---
 
+## Physics.setFriction()
+
+Set coefficient of Coulomb surface friction, clamped between `0.0` (frictionless) and `1.0` (high friction).
+
+```typescript
+setFriction(friction: number): void
+```
+
+### Parameters
+
+- `friction` — `number`. Friction coefficient in `[0.0, 1.0]`.
+
+### Returns
+
+`void`
+
+---
+
+## Physics.getFriction()
+
+Get coefficient of Coulomb surface friction.
+
+```typescript
+getFriction(): number
+```
+
+### Returns
+
+`number`
+
+---
+
 ## Physics.setDamping()
 
 Set linear air drag velocity damping factor (default `1.0` = no damping).
@@ -377,7 +410,7 @@ getBody(): Rect | Circ
 Update the dimensions of the underlying geometric shape.
 
 ```typescript
-setSize(width: number, height?: number): void
+setSize(sizeOrWidth: Vec2 | number, height?: number): void
 ```
 
 ### Parameters
@@ -388,6 +421,16 @@ setSize(width: number, height?: number): void
 ### Returns
 
 `void`
+
+---
+
+## Physics.setRadius()
+
+
+
+```typescript
+setRadius(radius: number): void
+```
 
 ---
 

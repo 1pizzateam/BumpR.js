@@ -14,9 +14,9 @@ const modes = [
 
 let bodyA = null;
 let bodyB = null;
-let detector = null;
 let animId = null;
 let isRunning = false;
+const tempPos = new Vec2();
 
 function setMode(id) {
   currentMode.value = id;
@@ -29,29 +29,83 @@ function setupBodies() {
   const cx = rect.width / 2;
   const cy = rect.height / 2;
 
-  detector = new CollisionDetection();
-
   if (currentMode.value === 'circlevscircle') {
-    bodyA = new Physics('circle', 24, undefined, cx - 70, cy, 1.0);
-    bodyB = new Physics('circle', 30, undefined, cx + 50, cy, 0.0); // static obstacle
-    bodyA.setVelocity(100, 0);
+    bodyA = new Physics(
+      new Vec2(cx - 95, cy),
+      new Vec2(120, 0),
+      new Vec2(48, 48),
+      1.0,
+      1.0,
+      0.9,
+      'circle'
+    );
+    bodyB = new Physics(
+      new Vec2(cx, cy),
+      new Vec2(0, 0),
+      new Vec2(60, 60),
+      0.0,
+      1.0,
+      0.9,
+      'circle'
+    ); // static obstacle in the center
   } else if (currentMode.value === 'circlevsaabb') {
-    bodyA = new Physics('circle', 22, undefined, cx - 80, cy - 25, 1.0);
-    bodyB = new Physics('aabb', 35, 35, cx + 40, cy, 0.0); // static box
-    bodyA.setVelocity(110, 30);
+    bodyA = new Physics(
+      new Vec2(cx - 95, cy - 25),
+      new Vec2(120, 30),
+      new Vec2(44, 44),
+      1.0,
+      1.0,
+      0.9,
+      'circle'
+    );
+    bodyB = new Physics(
+      new Vec2(cx, cy),
+      new Vec2(0, 0),
+      new Vec2(48, 48),
+      0.0,
+      1.0,
+      0.9,
+      'aabb'
+    ); // static box in the center
   } else {
-    bodyA = new Physics('aabb', 24, 24, cx - 80, cy, 1.0);
-    bodyB = new Physics('aabb', 35, 35, cx + 40, cy, 0.0); // static box
-    bodyA.setVelocity(100, 0);
+    bodyA = new Physics(
+      new Vec2(cx - 95, cy - 15),
+      new Vec2(120, 20),
+      new Vec2(32, 32),
+      1.0,
+      1.0,
+      0.9,
+      'aabb'
+    );
+    bodyB = new Physics(
+      new Vec2(cx, cy),
+      new Vec2(0, 0),
+      new Vec2(48, 48),
+      0.0,
+      1.0,
+      0.9,
+      'aabb'
+    ); // static box in the center
   }
-
-  bodyA.setRestitution(0.9);
-  bodyB.setRestitution(0.9);
 }
 
 function impulse() {
-  if (!bodyA) return;
-  bodyA.setVelocity(120, (Math.random() - 0.5) * 80);
+  if (!bodyA || !bodyB) return;
+  const targetX = bodyB.body.position.x;
+  const targetY = bodyB.body.position.y;
+  // Subtle lateral jitter so repeated pushes from same spot test different collision angles
+  const jitterX = (Math.random() - 0.5) * 16;
+  const jitterY = (Math.random() - 0.5) * 16;
+  const dx = (targetX + jitterX) - bodyA.body.position.x;
+  const dy = (targetY + jitterY) - bodyA.body.position.y;
+  const len = Math.hypot(dx, dy);
+  const speed = 140;
+
+  if (len > 0.001) {
+    bodyA.velocity.setScalar((dx / len) * speed, (dy / len) * speed);
+  } else {
+    bodyA.velocity.setScalar(speed, 0);
+  }
 }
 
 onMounted(() => {
@@ -92,25 +146,29 @@ onMounted(() => {
       // Boundaries for bodyA
       const r = 30;
       if (bodyA.body.position.x < r) {
-        bodyA.setPosition(r, bodyA.body.position.y);
+        tempPos.setScalar(r, bodyA.body.position.y);
+        bodyA.setPosition(tempPos);
         bodyA.velocity.x = Math.abs(bodyA.velocity.x);
       } else if (bodyA.body.position.x > w - r) {
-        bodyA.setPosition(w - r, bodyA.body.position.y);
+        tempPos.setScalar(w - r, bodyA.body.position.y);
+        bodyA.setPosition(tempPos);
         bodyA.velocity.x = -Math.abs(bodyA.velocity.x);
       }
       if (bodyA.body.position.y < r) {
-        bodyA.setPosition(bodyA.body.position.x, r);
+        tempPos.setScalar(bodyA.body.position.x, r);
+        bodyA.setPosition(tempPos);
         bodyA.velocity.y = Math.abs(bodyA.velocity.y);
       } else if (bodyA.body.position.y > h - r) {
-        bodyA.setPosition(bodyA.body.position.x, h - r);
+        tempPos.setScalar(bodyA.body.position.x, h - r);
+        bodyA.setPosition(tempPos);
         bodyA.velocity.y = -Math.abs(bodyA.velocity.y);
       }
     }
 
     // Detect and resolve
     let hit = false;
-    if (bodyA && bodyB && detector) {
-      hit = detector.test(bodyA, bodyB);
+    if (bodyA && bodyB) {
+      hit = CollisionDetection.test(bodyA, bodyB);
     }
     colliding.value = hit;
 
@@ -144,7 +202,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="bumpr-demo">
+  <figure class="bumpr-demo">
     <div class="bumpr-demo-toolbar">
       <div class="bumpr-btn-group">
         <button
@@ -177,5 +235,5 @@ onMounted(() => {
     <figcaption>
       Interactive narrow-phase test. The stationary obstacle has infinite mass (<code>inverseMass = 0</code>), causing the dynamic body to rebound symmetrically.
     </figcaption>
-  </div>
+  </figure>
 </template>

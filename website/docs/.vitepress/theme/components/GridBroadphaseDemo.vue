@@ -4,6 +4,7 @@ import { Scene, Physics, Grid, Vec2 } from '@1pizzateam/bumpr';
 
 const canvasRef = ref(null);
 const activeCellCount = ref(0);
+const totalCellCount = ref(24);
 const bodyCount = ref(0);
 const showGrid = ref(true);
 
@@ -11,6 +12,7 @@ let scene = null;
 let grid = null;
 let animId = null;
 let isRunning = false;
+const tempPos = new Vec2();
 
 function toggleGrid() {
   showGrid.value = !showGrid.value;
@@ -22,10 +24,18 @@ function addBody() {
   const rect = canvas.getBoundingClientRect();
   const x = 30 + Math.random() * (rect.width - 60);
   const y = 30 + Math.random() * (rect.height - 60);
+  const vx = (Math.random() - 0.5) * 120;
+  const vy = (Math.random() - 0.5) * 120;
 
-  const b = new Physics('circle', 16, undefined, x, y, 1.0);
-  b.setVelocity((Math.random() - 0.5) * 120, (Math.random() - 0.5) * 120);
-  b.setRestitution(0.9);
+  const b = new Physics(
+    new Vec2(x, y),
+    new Vec2(vx, vy),
+    new Vec2(32, 32),
+    1.0,
+    1.0,
+    0.9,
+    'circle'
+  );
   scene.addBody(b);
   bodyCount.value = scene.bodiesLength;
 }
@@ -36,12 +46,21 @@ function reset() {
   const canvas = canvasRef.value;
   const rect = canvas.getBoundingClientRect();
   const w = rect.width;
-  const h = rect.height;
 
   for (let i = 0; i < 5; i++) {
-    const b = new Physics('circle', 16, undefined, 40 + i * (w - 80) / 4, 40 + (i % 2) * 60, 1.0);
-    b.setVelocity((Math.random() - 0.5) * 140, (Math.random() - 0.5) * 140);
-    b.setRestitution(0.9);
+    const x = 40 + (i * (w - 80)) / 4;
+    const y = 40 + (i % 2) * 60;
+    const vx = (Math.random() - 0.5) * 140;
+    const vy = (Math.random() - 0.5) * 140;
+    const b = new Physics(
+      new Vec2(x, y),
+      new Vec2(vx, vy),
+      new Vec2(32, 32),
+      1.0,
+      1.0,
+      0.9,
+      'circle'
+    );
     scene.addBody(b);
   }
   bodyCount.value = scene.bodiesLength;
@@ -53,7 +72,7 @@ onMounted(() => {
   const ctx = canvas.getContext('2d');
 
   scene = new Scene();
-  scene.setGravity(0, 0);
+  scene.setGravity(new Vec2(0, 0));
 
   function resize() {
     const dpr = window.devicePixelRatio || 1;
@@ -64,10 +83,9 @@ onMounted(() => {
     canvas.height = Math.round(h * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    // Create 6x4 spatial hash grid
-    const cols = 6;
-    const rows = 4;
-    grid = new Grid(new Vec2(0, 0), new Vec2(w, h), new Vec2(cols, rows));
+    const cellSize = Math.max(40, Math.floor(w / 8));
+    grid = new Grid(w, h, cellSize);
+    totalCellCount.value = grid.len.x * grid.len.y;
     scene.setGrid(grid);
     reset();
   }
@@ -95,20 +113,24 @@ onMounted(() => {
     // Boundary bounces
     for (let i = 0; i < scene.bodiesLength; i++) {
       const b = scene.bodies[i];
-      const pos = b.body.position;
+      const pos = b.position;
       const r = b.body.radius;
       if (pos.x - r < 5) {
-        b.setPosition(5 + r, pos.y);
+        tempPos.setScalar(5 + r, pos.y);
+        b.setPosition(tempPos);
         b.velocity.x = Math.abs(b.velocity.x);
       } else if (pos.x + r > w - 5) {
-        b.setPosition(w - 5 - r, pos.y);
+        tempPos.setScalar(w - 5 - r, pos.y);
+        b.setPosition(tempPos);
         b.velocity.x = -Math.abs(b.velocity.x);
       }
       if (pos.y - r < 5) {
-        b.setPosition(pos.x, 5 + r);
+        tempPos.setScalar(pos.x, 5 + r);
+        b.setPosition(tempPos);
         b.velocity.y = Math.abs(b.velocity.y);
       } else if (pos.y + r > h - 5) {
-        b.setPosition(pos.x, h - 5 - r);
+        tempPos.setScalar(pos.x, h - 5 - r);
+        b.setPosition(tempPos);
         b.velocity.y = -Math.abs(b.velocity.y);
       }
     }
@@ -117,8 +139,9 @@ onMounted(() => {
 
     // Draw grid if enabled
     if (showGrid.value && grid) {
-      const cellW = w / 6;
-      const cellH = h / 4;
+      const size = grid.cellSize;
+      const cols = grid.len.x;
+      const rows = grid.len.y;
 
       // Highlight occupied cells
       const activeCellIds = new Set();
@@ -130,25 +153,27 @@ onMounted(() => {
       activeCellCount.value = activeCellIds.size;
 
       for (const cellId of activeCellIds) {
-        const cx = (cellId % 6) * cellW;
-        const cy = Math.floor(cellId / 6) * cellH;
+        const cx = (cellId % cols) * size;
+        const cy = Math.floor(cellId / cols) * size;
         ctx.fillStyle = isDark ? 'rgba(255, 107, 107, 0.12)' : 'rgba(255, 107, 107, 0.1)';
-        ctx.fillRect(cx, cy, cellW, cellH);
+        ctx.fillRect(cx, cy, size, size);
       }
 
       // Grid lines
       ctx.strokeStyle = isDark ? '#2e3039' : '#e9ecef';
       ctx.lineWidth = 1;
-      for (let x = 0; x <= w; x += cellW) {
+      const gridW = cols * size;
+      const gridH = rows * size;
+      for (let x = 0; x <= gridW; x += size) {
         ctx.beginPath();
         ctx.moveTo(x, 0);
-        ctx.lineTo(x, h);
+        ctx.lineTo(x, gridH);
         ctx.stroke();
       }
-      for (let y = 0; y <= h; y += cellH) {
+      for (let y = 0; y <= gridH; y += size) {
         ctx.beginPath();
         ctx.moveTo(0, y);
-        ctx.lineTo(w, y);
+        ctx.lineTo(gridW, y);
         ctx.stroke();
       }
 
@@ -156,9 +181,10 @@ onMounted(() => {
       ctx.font = '10px ui-monospace, SFMono-Regular, monospace';
       ctx.fillStyle = isDark ? '#5c5f66' : '#adb5bd';
       ctx.textAlign = 'left';
-      for (let i = 0; i < 24; i++) {
-        const cx = (i % 6) * cellW + 4;
-        const cy = Math.floor(i / 6) * cellH + 12;
+      const total = cols * rows;
+      for (let i = 0; i < total; i++) {
+        const cx = (i % cols) * size + 4;
+        const cy = Math.floor(i / cols) * size + 12;
         ctx.fillText(`#${i}`, cx, cy);
       }
     }
@@ -183,7 +209,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="bumpr-demo">
+  <figure class="bumpr-demo">
     <div class="bumpr-demo-toolbar">
       <div class="bumpr-btn-group">
         <button
@@ -204,7 +230,7 @@ onMounted(() => {
 
       <div class="bumpr-stats">
         <span class="bumpr-badge status-active">
-          Active Cells: <strong>{{ activeCellCount }} / 24</strong>
+          Active Cells: <strong>{{ activeCellCount }} / {{ totalCellCount }}</strong>
         </span>
         <span class="bumpr-badge status-info">
           Bodies: <strong>{{ bodyCount }}</strong>
@@ -217,5 +243,5 @@ onMounted(() => {
     <figcaption>
       Spock's <code>Grid</code> partitions space into cells. BumpR only performs narrow-phase collision tests on bodies sharing active cells (highlighted in red), scaling to thousands of bodies.
     </figcaption>
-  </div>
+  </figure>
 </template>

@@ -1,12 +1,13 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
-import { Scene, Physics } from '@1pizzateam/bumpr';
+import { Scene, Physics, Vec2 } from '@1pizzateam/bumpr';
 
 const canvasRef = ref(null);
 let scene = null;
 let animId = null;
 let isRunning = false;
 let balls = [];
+const tempPos = new Vec2();
 
 function drop() {
   if (!canvasRef.value) return;
@@ -17,8 +18,9 @@ function drop() {
   const restitutions = [0.0, 0.5, 0.95];
 
   for (let i = 0; i < 3; i++) {
-    balls[i].setPosition(positions[i], 40);
-    balls[i].setVelocity(0, 0);
+    tempPos.setScalar(positions[i], 40);
+    balls[i].setPosition(tempPos);
+    balls[i].velocity.origin();
     balls[i].setRestitution(restitutions[i]);
   }
 }
@@ -29,12 +31,12 @@ onMounted(() => {
   const ctx = canvas.getContext('2d');
 
   scene = new Scene();
-  scene.setGravity(0, 400);
+  scene.setGravity(new Vec2(0, 400));
 
   balls = [
-    new Physics('circle', 18, undefined, 50, 40, 1.0),
-    new Physics('circle', 18, undefined, 100, 40, 1.0),
-    new Physics('circle', 18, undefined, 150, 40, 1.0),
+    new Physics(new Vec2(50, 40), new Vec2(), new Vec2(36, 36), 1.0, 1.0, 0.0, 'circle'),
+    new Physics(new Vec2(100, 40), new Vec2(), new Vec2(36, 36), 1.0, 1.0, 0.5, 'circle'),
+    new Physics(new Vec2(150, 40), new Vec2(), new Vec2(36, 36), 1.0, 1.0, 0.95, 'circle'),
   ];
 
   for (const ball of balls) {
@@ -74,7 +76,8 @@ onMounted(() => {
       const b = balls[i];
       const r = b.body.radius;
       if (b.body.position.y + r >= floorY) {
-        b.setPosition(b.body.position.x, floorY - r);
+        tempPos.setScalar(b.body.position.x, floorY - r);
+        b.setPosition(tempPos);
         b.velocity.y = -Math.abs(b.velocity.y) * b.restitution;
         if (Math.abs(b.velocity.y) < 10) b.velocity.y = 0;
       }
@@ -132,17 +135,12 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="bumpr-demo">
+  <figure class="bumpr-demo">
     <div class="bumpr-demo-toolbar">
       <div class="bumpr-btn-group">
         <button type="button" class="bumpr-btn active" @click="drop">
           Drop Balls
         </button>
-      </div>
-      <div class="bumpr-stats">
-        <span class="bumpr-badge status-info">
-          Coefficient of Restitution (e)
-        </span>
       </div>
     </div>
 
@@ -151,5 +149,5 @@ onMounted(() => {
     <figcaption>
       Restitution determines post-collision impulse magnitude. <code>0.0</code> is completely inelastic, while <code>0.95</code> retains nearly all kinetic energy.
     </figcaption>
-  </div>
+  </figure>
 </template>

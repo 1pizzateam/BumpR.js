@@ -8,14 +8,21 @@ The main spatial world manager and collision resolution orchestrator.
 import { Scene, Physics, Grid, Vec2 } from '@1pizzateam/bumpr';
 
 const scene = new Scene();
-scene.setGravity(0, 300);
+scene.setGravity(new Vec2(0, 300));
 
-const ball = new Physics('circle', 20, undefined, 100, 50, 1.0);
-ball.setVelocity(50, 0);
+const ball = new Physics(
+  new Vec2(100, 50),
+  new Vec2(50, 0),
+  new Vec2(40, 40),
+  1.0,
+  1.0,
+  0.5,
+  'circle'
+);
 scene.addBody(ball);
 
 // Optional: attach spatial hashing grid
-scene.setGrid(new Grid(new Vec2(0, 0), new Vec2(800, 600), new Vec2(8, 6)));
+scene.setGrid(new Grid(800, 600, 50));
 
 // In your render/game loop:
 function tick(dt) {
@@ -67,7 +74,7 @@ addBody(body: Physics): boolean
 ### Example
 
 ```javascript
-const ball = new Physics('circle', 15, undefined, 50, 50, 1.0);
+const ball = new Physics(new Vec2(50, 50), new Vec2(), new Vec2(30, 30), 1.0, 1.0, 0.5, 'circle');
 scene.addBody(ball);
 ```
 
@@ -168,13 +175,12 @@ const grid = scene.getGrid();
 Set global scene gravity vector and propagate to all current member bodies.
 
 ```typescript
-setGravity(x: number, y: number): void
+setGravity(gravity: Vec2): void
 ```
 
 ### Parameters
 
-- `x` — `number`. Horizontal gravity acceleration.
-- `y` — `number`. Vertical gravity acceleration.
+- `gravity` — `Vec2`. Gravity acceleration vector.
 
 ### Returns
 
@@ -183,7 +189,7 @@ setGravity(x: number, y: number): void
 ### Example
 
 ```javascript
-scene.setGravity(0, 980); // Earth gravity in px/s²
+scene.setGravity(new Vec2(0, 980)); // Earth gravity in px/s²
 ```
 
 ---

@@ -42,11 +42,6 @@ export default defineConfig({
   ],
   themeConfig: {
     siteTitle: 'BumpR.js',
-    nav: [
-      { text: 'Guide', link: '/guide/overview' },
-      { text: 'Examples', link: '/guide/examples' },
-      { text: 'API', link: '/api/' },
-    ],
     sidebar: [
       {
         text: 'Guide',

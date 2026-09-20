@@ -16,6 +16,7 @@ export class Physics {
   mass        : number = 1.0;
   inverseMass : number = 1.0;
   restitution : number = 0; // elasticity [0, 1]
+  friction    : number;
 
   private cachedSecond : number = -1;
   private cachedDamping : number = -1;
@@ -29,15 +30,29 @@ export class Physics {
   damageTaken : number = 0;
   damageDealt : number = 1;
 
-  constructor(  positionX: number, positionY: number,
-                velocityX: number, velocityY: number,
-                sizeX: number, sizeY: number,
-                mass: number,
-                damping: number,
-                restitution: number,
-                type: string ) {
-
-    this.velocity        = new Vec2( velocityX, velocityY );
+  /**
+   * Create a new rigid body using vector-first parameters.
+   * @param position - Center position vector. Defaults to (0, 0).
+   * @param velocity - Linear velocity vector. Defaults to (0, 0).
+   * @param size - Dimensions (width, height) vector in pixels (radius = size.x * 0.5 for circle). Defaults to (20, 20).
+   * @param mass - Mass in kg (0 indicates an immovable static body). Defaults to 1.0.
+   * @param damping - Velocity damping factor in [0, 1]. Defaults to 0.8.
+   * @param restitution - Elasticity coefficient in [0, 1]. Defaults to 0.0.
+   * @param shape - Geometric shape ('circle', 'aabb', 'rectangle'). Defaults to 'circle'.
+   * @param friction - Surface friction coefficient in [0, 1]. Defaults to 0.0 for circle, 0.6 for AABB.
+   */
+  constructor(
+    position    : Vec2 = new Vec2(),
+    velocity    : Vec2 = new Vec2(),
+    size        : Vec2 = new Vec2(20, 20),
+    mass        : number = 1.0,
+    damping     : number = 0.8,
+    restitution : number = 0,
+    shape       : 'circle' | 'aabb' | 'rectangle' = 'circle',
+    friction?   : number
+  ) {
+    const pos = position ? position.clone() : new Vec2();
+    this.velocity = velocity ? velocity.clone() : new Vec2();
     this.initialVelocity = this.velocity.clone();
 
     this.translate       = new Vec2();
@@ -51,16 +66,17 @@ export class Physics {
     this.damping      = Utils.clamp(damping, 0, 1);
     this.restitution  = Utils.clamp(restitution, 0, 1);
 
-    switch (type) {
-      case 'rectangle':
-      case 'aabb':
-        this.body = new Rect( sizeX, sizeY, positionX, positionY );
-        break;
-      default:
-        this.body = new Circ( sizeX, positionX, positionY );
+    this.friction     = friction !== undefined
+      ? Utils.clamp(friction, 0, 1)
+      : (shape === 'rectangle' || shape === 'aabb' ? 0.6 : 0.0);
+
+    const s = size ? size.clone() : new Vec2(20, 20);
+    if (shape === 'rectangle' || shape === 'aabb') {
+      this.body = new Rect( s.x, s.y, pos.x, pos.y );
+    } else {
+      this.body = new Circ( s.x * 0.5, pos.x, pos.y );
     }
     this.position = this.body.position;
-
   }
 
   public setActive(): void {
@@ -121,51 +137,41 @@ export class Physics {
       this.velocity.scale( this.cachedDampingFactor );
     }
     this.translate.copy(this.velocity).scale(second);
-    this.position.add(this.translate);
-    this.body.setPosition(this.position.x, this.position.y);
+    this.body.translate(this.translate);
   }
 
   public correctPosition(correction: Vec2): void {
-    if (!this.inverseMass)
-      return;
-    this.position.addScaledVector(correction, this.inverseMass);
-    this.body.setPosition(this.position.x, this.position.y);
+    if (!this.inverseMass) return;
+    this.translate.copy(correction).scale(this.inverseMass);
+    this.body.translate(this.translate);
   }
 
-  public setPosition(x: number, y: number ): void {
-    this.body.setPosition( x, y );
-  }
-
-  public setPositionFromVector( position: Vec2 ): void {
-    this.body.setPosition( position.x, position.y );
+  public setPosition(position: Vec2): void {
+    this.body.setPosition(position);
   }
 
   public getPosition(): Vec2 {
     return this.position;
   }
 
-  public setVelocity( x: number, y: number ): void {
-    this.velocity.setScalar( x, y );
-  }
-
-  public setVelocityFromVector( velocity: Vec2 ): void {
-    this.velocity.setScalar( velocity.x, velocity.y );
+  public setVelocity(velocity: Vec2): void {
+    this.velocity.copy(velocity);
   }
 
   public getVelocity(): Vec2 {
     return this.velocity;
   }
 
-  public setInitialVelocity( x: number, y: number ): void {
-    this.initialVelocity.setScalar( x, y );
+  public setInitialVelocity(velocity: Vec2): void {
+    this.initialVelocity.copy(velocity);
   }
 
   public getInitialVelocity(): Vec2 {
     return this.initialVelocity;
   }
 
-  public setGravity(x: number, y: number): void {
-    this.gravity.setScalar(x, y);
+  public setGravity(gravity: Vec2): void {
+    this.gravity.copy(gravity);
   }
 
   public setMass( mass: number ): void {
@@ -185,6 +191,14 @@ export class Physics {
     return this.restitution;
   }
 
+  public setFriction( friction: number ): void {
+    this.friction = Utils.clamp(friction, 0, 1);
+  }
+
+  public getFriction(): number {
+    return this.friction;
+  }
+
   public setDamping( damping: number ): void {
     this.damping = Utils.clamp(damping, 0, 1);
   }
@@ -197,11 +211,23 @@ export class Physics {
     return this.body;
   }
 
-  public setSize( width: number, height?: number ): void {
-    if (this.body instanceof Rect)
-      this.body.setSize( width, height ?? width );
-    else if (this.body instanceof Circ)
-      this.body.setRadius( width );
+  public setSize( sizeOrWidth: Vec2 | number, height?: number ): void {
+    if (sizeOrWidth instanceof Vec2) {
+      if (this.body instanceof Rect)
+        this.body.setSize( sizeOrWidth.x, sizeOrWidth.y );
+      else if (this.body instanceof Circ)
+        this.body.setRadius( sizeOrWidth.x );
+    } else {
+      if (this.body instanceof Rect)
+        this.body.setSize( sizeOrWidth, height ?? sizeOrWidth );
+      else if (this.body instanceof Circ)
+        this.body.setRadius( sizeOrWidth );
+    }
+  }
+
+  public setRadius( radius: number ): void {
+    if (this.body instanceof Circ)
+      this.body.setRadius( radius );
   }
 
   public setGrid( grid: Grid | null ): void {

@@ -28,7 +28,7 @@ export class Scene {
       return false;
     body.collisionSceneId = this.nextBodyId++;
     if (body.gravity.isOrigin())
-      body.setGravity(this.gravity.x, this.gravity.y);
+      body.setGravity(this.gravity);
     if (this.grid)
       body.setGrid(this.grid);
     this.bodies.push(body);
@@ -72,10 +72,10 @@ export class Scene {
     return this.grid;
   }
 
-  public setGravity(x: number, y: number): void {
-    this.gravity.setScalar(x, y);
+  public setGravity(gravity: Vec2): void {
+    this.gravity.copy(gravity);
     for (let i = 0; i < this.bodiesLength; i++)
-      this.bodies[i].setGravity(x, y);
+      this.bodies[i].setGravity(gravity);
   }
 
   public update(second: number): void {
@@ -168,10 +168,12 @@ export class Scene {
   }
 
   public testScene(scene: Scene): void {
+    const sceneBodiesLen = scene.bodiesLength;
     for(let k = 0 ; k < this.iterations ; k++) {
       if (this.grid) {
         this.populateBuckets();
-        for (const body2 of scene.bodies) {
+        for (let s = 0; s < sceneBodiesLen; s++) {
+          const body2 = scene.bodies[s];
           if (!body2.isActive()) continue;
           const cells2 = body2.body.gridCells;
           if (cells2[0] === -1) continue;
@@ -189,10 +191,12 @@ export class Scene {
           }
         }
       } else {
-        for(const body1 of this.bodies) {
+        for(let i = 0 ; i < this.bodiesLength ; i++) {
+          const body1 = this.bodies[i];
           if (!body1.isActive())
             continue;
-          for(const body2 of scene.bodies) {
+          for(let j = 0 ; j < sceneBodiesLen ; j++) {
+            const body2 = scene.bodies[j];
             if (!body2.isActive() || body1 === body2 || (body1.inverseMass === 0 && body2.inverseMass === 0))
               continue;
             CollisionDetection.test(body1, body2);

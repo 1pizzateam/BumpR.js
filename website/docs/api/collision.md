@@ -5,10 +5,10 @@ Narrow-phase collision detection, positional resolution, and elastic impulse sol
 `CollisionDetection` computes penetration vectors between pairs of bodies (`Circle vs Circle`, `Circle vs AABB`, `AABB vs AABB`), separates overlapping bodies along the contact normal according to inverse mass ratios, and computes linear impulse responses.
 
 ```javascript
-import { CollisionDetection, Physics } from '@1pizzateam/bumpr';
-
-const a = new Physics('circle', 20, undefined, 50, 50, 1.0);
-const b = new Physics('aabb', 40, 40, 70, 50, 1.0);
+import { CollisionDetection, Physics, Vec2 } from '@1pizzateam/bumpr';
+ 
+const a = new Physics(new Vec2(50, 50), new Vec2(), new Vec2(40, 40), 1.0, 1.0, 0.5, 'circle');
+const b = new Physics(new Vec2(70, 50), new Vec2(), new Vec2(40, 40), 1.0, 1.0, 0.5, 'aabb');
 
 // Perform full detection + position correction + impulse resolution:
 const hasCollided = CollisionDetection.test(a, b);
@@ -95,7 +95,7 @@ resolve(a: Physics, b: Physics): boolean
 
 ## CollisionDetection.computeImpulse()
 
-Compute and apply momentum impulse along the contact normal based on relative velocity, restitution, and masses.
+Compute and apply normal collision impulse and tangential Coulomb friction based on relative velocity, restitution, friction coefficients, and masses. Stabilizes steady contact with a resting velocity threshold.
 
 ```typescript
 computeImpulse(a: Physics, b: Physics): void

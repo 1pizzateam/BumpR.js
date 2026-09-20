@@ -37,7 +37,15 @@ describe('Public Library Exports', () => {
     expect(Utils).toBeDefined();
 
     const scene = new Scene();
-    const body = new Physics(0, 0, 10, 0, 10, 10, 1.0, 1.0, 0.5, 'circle');
+    const body = new Physics(
+      new Vec2(0, 0),
+      new Vec2(10, 0),
+      new Vec2(20, 20),
+      1.0,
+      1.0,
+      0.5,
+      'circle'
+    );
     expect(scene.addBody(body)).toBe(true);
     expect(scene.bodiesLength).toBe(1);
   });
@@ -57,8 +65,24 @@ describe('Public Library Exports', () => {
     expect(DistUtils).toBeDefined();
 
     const scene = new DistScene();
-    const bodyA = new DistPhysics(0, 0, 5, 0, 10, 10, 1.0, 1.0, 0.5, 'circle');
-    const bodyB = new DistPhysics(8, 0, -5, 0, 10, 10, 1.0, 1.0, 0.5, 'circle');
+    const bodyA = new DistPhysics(
+      new DistVec2(0, 0),
+      new DistVec2(5, 0),
+      new DistVec2(20, 20),
+      1.0,
+      1.0,
+      0.5,
+      'circle'
+    );
+    const bodyB = new DistPhysics(
+      new DistVec2(8, 0),
+      new DistVec2(-5, 0),
+      new DistVec2(20, 20),
+      1.0,
+      1.0,
+      0.5,
+      'circle'
+    );
 
     scene.addBody(bodyA);
     scene.addBody(bodyB);

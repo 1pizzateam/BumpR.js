@@ -25,14 +25,21 @@ const intros = {
     example: `import { Scene, Physics, Grid, Vec2 } from '@1pizzateam/bumpr';
 
 const scene = new Scene();
-scene.setGravity(0, 300);
+scene.setGravity(new Vec2(0, 300));
 
-const ball = new Physics('circle', 20, undefined, 100, 50, 1.0);
-ball.setVelocity(50, 0);
+const ball = new Physics(
+  new Vec2(100, 50),
+  new Vec2(50, 0),
+  new Vec2(40, 40),
+  1.0,
+  1.0,
+  0.5,
+  'circle'
+);
 scene.addBody(ball);
 
 // Optional: attach spatial hashing grid
-scene.setGrid(new Grid(new Vec2(0, 0), new Vec2(800, 600), new Vec2(8, 6)));
+scene.setGrid(new Grid(800, 600, 50));
 
 // In your render/game loop:
 function tick(dt) {
@@ -49,7 +56,7 @@ function tick(dt) {
         description: 'Add a `Physics` rigid body into the simulation scene.',
         params: ['- `body` — `Physics`. The rigid body instance to add.'],
         returns: '`boolean` — `true` if successfully added, `false` if already in a scene.',
-        example: `const ball = new Physics('circle', 15, undefined, 50, 50, 1.0);\nscene.addBody(ball);`,
+        example: `const ball = new Physics(new Vec2(50, 50), new Vec2(), new Vec2(30, 30), 1.0, 1.0, 0.5, 'circle');\nscene.addBody(ball);`,
       },
       removeBody: {
         description: 'Remove a `Physics` body from the scene in O(1) time using swap-with-last.',
@@ -75,12 +82,9 @@ function tick(dt) {
       },
       setGravity: {
         description: 'Set global scene gravity vector and propagate to all current member bodies.',
-        params: [
-          '- `x` — `number`. Horizontal gravity acceleration.',
-          '- `y` — `number`. Vertical gravity acceleration.',
-        ],
+        params: ['- `gravity` — `Vec2`. Gravity acceleration vector.'],
         returns: '`void`',
-        example: `scene.setGravity(0, 980); // Earth gravity in px/s²`,
+        example: `scene.setGravity(new Vec2(0, 980)); // Earth gravity in px/s²`,
       },
       update: {
         description: 'Advance position and apply forces/damping on all active dynamic bodies in the scene.',
@@ -134,25 +138,41 @@ function tick(dt) {
       '`Physics` pairs physical dynamics (Newtonian integration, forces, velocity damping, and coefficient of restitution) with geometric primitives (`Circ` or `Rect`) from Spock.js.',
       'A mass of `0` denotes a static, immovable obstacle (`inverseMass = 0`), which absorbs collisions without being pushed back.',
     ],
-    example: `import { Physics } from '@1pizzateam/bumpr';
+    example: `import { Physics, Vec2 } from '@1pizzateam/bumpr';
 
-// Dynamic circle (radius = 20, mass = 1.0)
-const ball = new Physics('circle', 20, undefined, 100, 100, 1.0);
-ball.setVelocity(200, 0);
-ball.setRestitution(0.85);
+// Dynamic circle (position, velocity, size, mass, damping, restitution, shape)
+const ball = new Physics(
+  new Vec2(100, 100),
+  new Vec2(200, 0),
+  new Vec2(40, 40),
+  1.0,
+  0.98,
+  0.85,
+  'circle'
+);
 
-// Static wall (width = 200, height = 20, mass = 0)
-const wall = new Physics('aabb', 200, 20, 100, 300, 0);`,
+// Static wall (mass = 0 denotes an immovable obstacle)
+const wall = new Physics(
+  new Vec2(100, 300),
+  new Vec2(0, 0),
+  new Vec2(200, 20),
+  0,
+  1.0,
+  0.5,
+  'aabb'
+);`,
     members: {
       constructor: {
-        description: 'Create a new `Physics` body.',
+        description: 'Create a new `Physics` body with vector-first arguments.',
         params: [
-          "- `type` — `'circle' | 'aabb'`. Geometric shape type.",
-          '- `width` — `number`. Radius if circle, or total width if AABB.',
-          '- `height` — `number | undefined`. Total height if AABB, omitted for circle.',
-          '- `x` — `number`. Initial horizontal position (default `0`).',
-          '- `y` — `number`. Initial vertical position (default `0`).',
-          '- `mass` — `number`. Rigid body mass (default `1.0`). Use `0` for static immovable obstacles.',
+          '- `position` — `Vec2`. Initial position (default `new Vec2()`).',
+          '- `velocity` — `Vec2`. Initial velocity in px/s (default `new Vec2()`).',
+          '- `size` — `Vec2`. Bounding dimensions (width, height; default `new Vec2(20, 20)`). For circles, radius is `size.x * 0.5`.',
+          '- `mass` — `number`. Body mass in kg (default `1.0`). `0` marks a static body.',
+          '- `damping` — `number`. Air resistance / velocity damping per second in `[0, 1]` (default `0.8`).',
+          '- `restitution` — `number`. Bounciness in `[0, 1]` (default `0`).',
+          "- `shape` — `'circle' | 'aabb' | 'rectangle'`. Collision geometry (default `'circle'`).",
+          '- `friction` — `number` (optional). Coulomb friction coefficient in `[0, 1]` (defaults to `0` for circle, `0.6` for AABB).',
         ],
         returns: 'A new `Physics` instance.',
       },
@@ -177,18 +197,23 @@ const wall = new Physics('aabb', 200, 20, 100, 300, 0);`,
         returns: '`void`',
       },
       setPosition: {
-        description: 'Explicitly set the body position coordinates.',
-        params: ['- `x` — `number`. Horizontal position.', '- `y` — `number`. Vertical position.'],
+        description: 'Explicitly set the body position vector.',
+        params: ['- `position` — `Vec2`. New position vector.'],
         returns: '`void`',
       },
       setVelocity: {
-        description: 'Explicitly set linear velocity vector components.',
-        params: ['- `x` — `number`. Horizontal velocity.', '- `y` — `number`. Vertical velocity.'],
+        description: 'Explicitly set linear velocity vector.',
+        params: ['- `velocity` — `Vec2`. New velocity vector.'],
         returns: '`void`',
       },
       setInitialVelocity: {
         description: 'Record reference initial velocity for subsequent `reset()` calls.',
-        params: ['- `x` — `number`. Horizontal initial velocity.', '- `y` — `number`. Vertical initial velocity.'],
+        params: ['- `velocity` — `Vec2`. Initial velocity vector.'],
+        returns: '`void`',
+      },
+      setGravity: {
+        description: 'Set custom gravity acceleration vector for this body.',
+        params: ['- `gravity` — `Vec2`. Gravity vector.'],
         returns: '`void`',
       },
       setMass: {
@@ -207,6 +232,15 @@ const wall = new Physics('aabb', 200, 20, 100, 300, 0);`,
       },
       getRestitution: {
         description: 'Get coefficient of restitution.',
+        returns: '`number`',
+      },
+      setFriction: {
+        description: 'Set coefficient of Coulomb surface friction, clamped between `0.0` (frictionless) and `1.0` (high friction).',
+        params: ['- `friction` — `number`. Friction coefficient in `[0.0, 1.0]`.'],
+        returns: '`void`',
+      },
+      getFriction: {
+        description: 'Get coefficient of Coulomb surface friction.',
         returns: '`number`',
       },
       setDamping: {
@@ -264,10 +298,10 @@ const wall = new Physics('aabb', 200, 20, 100, 300, 0);`,
     body: [
       '`CollisionDetection` computes penetration vectors between pairs of bodies (`Circle vs Circle`, `Circle vs AABB`, `AABB vs AABB`), separates overlapping bodies along the contact normal according to inverse mass ratios, and computes linear impulse responses.',
     ],
-    example: `import { CollisionDetection, Physics } from '@1pizzateam/bumpr';
-
-const a = new Physics('circle', 20, undefined, 50, 50, 1.0);
-const b = new Physics('aabb', 40, 40, 70, 50, 1.0);
+    example: `import { CollisionDetection, Physics, Vec2 } from '@1pizzateam/bumpr';
+ 
+const a = new Physics(new Vec2(50, 50), new Vec2(), new Vec2(40, 40), 1.0, 1.0, 0.5, 'circle');
+const b = new Physics(new Vec2(70, 50), new Vec2(), new Vec2(40, 40), 1.0, 1.0, 0.5, 'aabb');
 
 // Perform full detection + position correction + impulse resolution:
 const hasCollided = CollisionDetection.test(a, b);`,
@@ -297,7 +331,7 @@ const hasCollided = CollisionDetection.test(a, b);`,
         returns: '`boolean` — `true` if position was corrected, `false` if zero correction.',
       },
       computeImpulse: {
-        description: 'Compute and apply momentum impulse along the contact normal based on relative velocity, restitution, and masses.',
+        description: 'Compute and apply normal collision impulse and tangential Coulomb friction based on relative velocity, restitution, friction coefficients, and masses. Stabilizes steady contact with a resting velocity threshold.',
         params: ['- `a` — `Physics`. First body.', '- `b` — `Physics`. Second body.'],
         returns: '`void`',
       },

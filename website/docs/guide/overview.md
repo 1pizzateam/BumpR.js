@@ -7,7 +7,8 @@
 - **Linear Dynamics**: Accurate simulation of velocity, acceleration, gravity, damping, and instantaneous impulses.
 - **Versatile Shapes**: Narrow-phase detection between Circles (`Circ`) and Axis-Aligned Bounding Boxes (`Rect`).
 - **Corner Voronoi Handling**: Diagonal hits against rectangular corners project outwards along true radial normals rather than sticking or catching.
-- **Elastic Impulses**: Realistic bounce calculations taking into account both bodies' restitution coefficients and inverse mass ratios.
+- **Elastic Impulses & Friction**: Realistic bounce calculations taking into account both bodies' restitution coefficients and inverse mass ratios, accompanied by a 2D Coulomb tangential friction solver that prevents unnatural sliding.
+- **Resting Contact Stabilization**: Thresholded contact resolution eliminates micro-bouncing jitter for stable stacks and resting bodies.
 - **Static Obstacles**: Bodies with mass `0` behave as immovable infinite-mass obstacles (floors, walls, platforms).
 - **Spatial Hash Acceleration**: Native integration with `@1pizzateam/spock`'s `Grid` reduces pairwise checks from $O(N^2)$ to $O(\text{activeCells})$.
 - **Zero Allocations in Hot Paths**: Collision detection vectors and intermediate math structures are reused across iterations to eliminate garbage collection pauses.
@@ -38,26 +39,42 @@ The simulation pipeline consists of three core components:
 ## Quick Start
 
 ```js
-import { Scene, Physics } from '@1pizzateam/bumpr';
+import { Scene, Physics, Vec2 } from '@1pizzateam/bumpr';
+import { Player } from '@1pizzateam/loopr';
 
 // 1. Create a scene
 const scene = new Scene();
-scene.setGravity(0, 300);
+scene.setGravity(new Vec2(0, 300));
 
 // 2. Create dynamic and static bodies
-const ball = new Physics('circle', 16, undefined, 100, 20, 1.0);
-ball.setVelocity(40, 0);
-ball.setRestitution(0.8);
+const ball = new Physics(
+  new Vec2(100, 20),
+  new Vec2(40, 0),
+  new Vec2(32, 32),
+  1.0,
+  1.0,
+  0.8,
+  'circle'
+);
 scene.addBody(ball);
 
-const obstacle = new Physics('aabb', 120, 20, 100, 200, 0.0); // static
+const obstacle = new Physics(
+  new Vec2(100, 200),
+  new Vec2(0, 0),
+  new Vec2(120, 20),
+  0.0, // static obstacle
+  1.0,
+  0.5,
+  'aabb'
+);
 scene.addBody(obstacle);
 
-// 3. Step the world on every frame
-function onFrame(deltaSeconds) {
-  scene.update(deltaSeconds);
+// 3. Step the world on every frame with LoopR
+const player = new Player((delta) => {
+  scene.update(delta);
   scene.test();
-}
+});
+player.start();
 ```
 
 ## Next Steps
