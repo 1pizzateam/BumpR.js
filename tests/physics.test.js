@@ -644,5 +644,520 @@ describe('Physics Engine', () => {
       expect(sensor.isSensor).toBe(true);
     });
   });
+
+  describe('Collision Filtering (Layers, Masks, Categories, Groups)', () => {
+    test('Default filtering configuration collides with everything', () => {
+      const a = new Physics();
+      const b = new Physics();
+
+      expect(a.collisionCategory).toBe(0x0001);
+      expect(a.collisionMask).toBe(0xFFFF);
+      expect(a.collisionGroup).toBe(0);
+      expect(a.getCollisionCategory()).toBe(0x0001);
+      expect(a.getCollisionMask()).toBe(0xFFFF);
+      expect(a.getCollisionGroup()).toBe(0);
+
+      expect(a.canCollideWith(b)).toBe(true);
+      expect(b.canCollideWith(a)).toBe(true);
+    });
+
+    test('Setters and constructor parameters update category, mask, and group', () => {
+      const body = new Physics();
+      body.setCollisionCategory(0x0004);
+      body.setCollisionMask(0x0002);
+      body.setCollisionGroup(-3);
+
+      expect(body.getCollisionCategory()).toBe(0x0004);
+      expect(body.getCollisionMask()).toBe(0x0002);
+      expect(body.getCollisionGroup()).toBe(-3);
+
+      const customBody = new Physics(
+        new Vec2(0, 0),
+        new Vec2(0, 0),
+        new Vec2(20, 20),
+        1,
+        0.8,
+        0,
+        'circle',
+        0,
+        false,
+        0x0008,
+        0x0001,
+        5
+      );
+      expect(customBody.getCollisionCategory()).toBe(0x0008);
+      expect(customBody.getCollisionMask()).toBe(0x0001);
+      expect(customBody.getCollisionGroup()).toBe(5);
+    });
+
+    test('Category and mask filtering requires bidirectional agreement', () => {
+      const player = new Physics();
+      player.setCollisionCategory(0x0002);
+      player.setCollisionMask(0x0001 | 0x0004); // Collides with Wall (1) and Enemy (4)
+
+      const bullet = new Physics();
+      bullet.setCollisionCategory(0x0008);
+      bullet.setCollisionMask(0x0004); // Bullet only collides with Enemy (4)
+
+      // Player and bullet: player excludes bullet (8), bullet excludes player (2)
+      expect(player.canCollideWith(bullet)).toBe(false);
+      expect(bullet.canCollideWith(player)).toBe(false);
+
+      // Asymmetric mask: A includes B, but B excludes A
+      const friendlyWall = new Physics();
+      friendlyWall.setCollisionCategory(0x0001);
+      friendlyWall.setCollisionMask(0x0002); // Wall accepts player
+
+      const rogueBullet = new Physics();
+      rogueBullet.setCollisionCategory(0x0008);
+      rogueBullet.setCollisionMask(0x0001); // Bullet accepts wall, but wall excludes bullet (8)
+
+      expect(rogueBullet.canCollideWith(friendlyWall)).toBe(false);
+      expect(friendlyWall.canCollideWith(rogueBullet)).toBe(false);
+    });
+
+    test('Collision group index overrides category/mask filtering', () => {
+      const ragdollPart1 = new Physics();
+      const ragdollPart2 = new Physics();
+
+      // Identical negative group never collides
+      ragdollPart1.setCollisionGroup(-1);
+      ragdollPart2.setCollisionGroup(-1);
+      expect(ragdollPart1.canCollideWith(ragdollPart2)).toBe(false);
+      expect(ragdollPart2.canCollideWith(ragdollPart1)).toBe(false);
+
+      // Identical positive group always collides, even if masks are 0
+      const teamA1 = new Physics();
+      const teamA2 = new Physics();
+      teamA1.setCollisionGroup(2);
+      teamA1.setCollisionMask(0x0000); // 0 mask would normally reject
+      teamA2.setCollisionGroup(2);
+      teamA2.setCollisionMask(0x0000);
+      expect(teamA1.canCollideWith(teamA2)).toBe(true);
+
+      // Different non-zero groups fall back to category/mask check
+      const obj1 = new Physics();
+      const obj2 = new Physics();
+      obj1.setCollisionGroup(1);
+      obj1.setCollisionCategory(0x0002);
+      obj1.setCollisionMask(0x0004);
+
+      obj2.setCollisionGroup(2);
+      obj2.setCollisionCategory(0x0004);
+      obj2.setCollisionMask(0x0002);
+
+      expect(obj1.canCollideWith(obj2)).toBe(true);
+
+      // Different groups with non-matching mask
+      obj2.setCollisionMask(0x0001);
+      expect(obj1.canCollideWith(obj2)).toBe(false);
+    });
+  });
+
+  describe('Explicit Body Types (dynamic | static | kinematic)', () => {
+    test('Default body types inferred from mass and velocity', () => {
+      const dynamicBody = new Physics(new Vec2(), new Vec2(10, 0), new Vec2(20, 20), 2.0);
+      expect(dynamicBody.getBodyType()).toBe('dynamic');
+      expect(dynamicBody.isDynamic()).toBe(true);
+      expect(dynamicBody.isStatic()).toBe(false);
+      expect(dynamicBody.isKinematic()).toBe(false);
+
+      const staticBody = new Physics(new Vec2(), new Vec2(0, 0), new Vec2(20, 20), 0);
+      expect(staticBody.getBodyType()).toBe('static');
+      expect(staticBody.isStatic()).toBe(true);
+      expect(staticBody.isDynamic()).toBe(false);
+      expect(staticBody.isKinematic()).toBe(false);
+      expect(staticBody.getMass()).toBe(0);
+
+      const kinematicBody = new Physics(new Vec2(), new Vec2(50, 0), new Vec2(20, 20), 0);
+      expect(kinematicBody.getBodyType()).toBe('kinematic');
+      expect(kinematicBody.isKinematic()).toBe(true);
+      expect(kinematicBody.isDynamic()).toBe(false);
+      expect(kinematicBody.isStatic()).toBe(false);
+    });
+
+    test('Explicit bodyType argument in constructor', () => {
+      const explicitStatic = new Physics(
+        new Vec2(10, 10),
+        new Vec2(100, 50),
+        new Vec2(20, 20),
+        5.0,
+        0.8,
+        0,
+        'circle',
+        0,
+        false,
+        0x0001,
+        0xFFFF,
+        0,
+        'static'
+      );
+      expect(explicitStatic.isStatic()).toBe(true);
+      expect(explicitStatic.getMass()).toBe(0);
+      expect(explicitStatic.velocity.isOrigin()).toBe(true);
+      expect(explicitStatic.getInitialVelocity().isOrigin()).toBe(true);
+
+      const explicitKinematic = new Physics(
+        new Vec2(10, 10),
+        new Vec2(100, 50),
+        new Vec2(20, 20),
+        5.0,
+        0.8,
+        0,
+        'circle',
+        0,
+        false,
+        0x0001,
+        0xFFFF,
+        0,
+        'kinematic'
+      );
+      expect(explicitKinematic.isKinematic()).toBe(true);
+      expect(explicitKinematic.getMass()).toBe(0);
+      expect(explicitKinematic.velocity.x).toBe(100);
+
+      const explicitDynamicZeroMass = new Physics(
+        new Vec2(10, 10),
+        new Vec2(0, 0),
+        new Vec2(20, 20),
+        0,
+        0.8,
+        0,
+        'circle',
+        0,
+        false,
+        0x0001,
+        0xFFFF,
+        0,
+        'dynamic'
+      );
+      expect(explicitDynamicZeroMass.isDynamic()).toBe(true);
+      expect(explicitDynamicZeroMass.getMass()).toBe(1.0);
+    });
+
+    test('setBodyType transitions correctly between types', () => {
+      const body = new Physics(new Vec2(), new Vec2(10, 20), new Vec2(20, 20), 2.0);
+      expect(body.isDynamic()).toBe(true);
+
+      body.setBodyType('kinematic');
+      expect(body.isKinematic()).toBe(true);
+      expect(body.getMass()).toBe(0);
+      expect(body.velocity.x).toBe(10);
+
+      body.setBodyType('static');
+      expect(body.isStatic()).toBe(true);
+      expect(body.getMass()).toBe(0);
+      expect(body.velocity.isOrigin()).toBe(true);
+
+      body.setBodyType('dynamic');
+      expect(body.isDynamic()).toBe(true);
+      expect(body.getMass()).toBe(1.0);
+    });
+
+    test('setMass transitions bodyType when mass becomes 0 or positive', () => {
+      const body = new Physics(new Vec2(), new Vec2(0, 0), new Vec2(20, 20), 5.0);
+      expect(body.isDynamic()).toBe(true);
+
+      body.setMass(0);
+      expect(body.isStatic()).toBe(true);
+
+      body.setMass(10);
+      expect(body.isDynamic()).toBe(true);
+      expect(body.getMass()).toBe(10);
+
+      body.setVelocity(new Vec2(100, 0));
+      body.setMass(0);
+      expect(body.isKinematic()).toBe(true);
+    });
+
+    test('Kinematic body motion ignores gravity, damping, and external forces', () => {
+      const platform = new Physics(
+        new Vec2(0, 0),
+        new Vec2(100, 0),
+        new Vec2(50, 10),
+        0,
+        0.5, // damping would normally reduce velocity
+        0,
+        'aabb',
+        0,
+        false,
+        0x0001,
+        0xFFFF,
+        0,
+        'kinematic'
+      );
+      platform.setGravity(new Vec2(0, 980));
+
+      // External force and impulse should be ignored
+      platform.applyForce(new Vec2(500, 500));
+      platform.applyImpulseVector(new Vec2(300, 300));
+      expect(platform.force.isOrigin()).toBe(true);
+      expect(platform.impulse.isOrigin()).toBe(true);
+
+      // Positional correction ignored
+      const initialPos = platform.position.clone();
+      platform.correctPosition(new Vec2(10, 10));
+      expect(platform.position.x).toBe(initialPos.x);
+
+      // Integration: moves by velocity * dt without damping or gravity
+      platform.applyForces(0.1);
+      expect(platform.velocity.x).toBe(100);
+      platform.updatePosition(0.1);
+      expect(platform.position.x).toBeCloseTo(10, 2);
+      expect(platform.position.y).toBeCloseTo(0, 2);
+      expect(platform.velocity.x).toBe(100);
+      expect(platform.velocity.y).toBe(0);
+
+      // reset restores initialVelocity
+      platform.setVelocity(new Vec2(200, 50));
+      platform.reset();
+      expect(platform.velocity.x).toBe(100);
+      expect(platform.velocity.y).toBe(0);
+    });
+
+    test('Static body does not move and reset preserves zero velocity', () => {
+      const wall = new Physics(
+        new Vec2(50, 50),
+        new Vec2(0, 0),
+        new Vec2(20, 100),
+        0,
+        0.8,
+        0,
+        'aabb',
+        0,
+        false,
+        0x0001,
+        0xFFFF,
+        0,
+        'static'
+      );
+      wall.setGravity(new Vec2(0, 980));
+
+      wall.applyForce(new Vec2(500, 0));
+      wall.applyImpulseVector(new Vec2(500, 0));
+      expect(wall.force.isOrigin()).toBe(true);
+      expect(wall.impulse.isOrigin()).toBe(true);
+
+      wall.updatePosition(1.0);
+      expect(wall.position.x).toBe(50);
+      expect(wall.position.y).toBe(50);
+      expect(wall.velocity.isOrigin()).toBe(true);
+
+      wall.reset();
+      expect(wall.velocity.isOrigin()).toBe(true);
+    });
+
+    test('isStationary evaluates resting and zero-velocity states accurately', () => {
+      const staticBody = new Physics(new Vec2(), new Vec2(), new Vec2(20, 20), 0, 1, 0, 'circle', 0, false, 1, 1, 0, 'static');
+      expect(staticBody.isStationary()).toBe(true);
+
+      const movingKinematic = new Physics(new Vec2(), new Vec2(50, 0), new Vec2(20, 20), 0, 1, 0, 'circle', 0, false, 1, 1, 0, 'kinematic');
+      expect(movingKinematic.isStationary()).toBe(false);
+
+      const pausedKinematic = new Physics(new Vec2(), new Vec2(0, 0), new Vec2(20, 20), 0, 1, 0, 'circle', 0, false, 1, 1, 0, 'kinematic');
+      expect(pausedKinematic.isStationary()).toBe(true);
+
+      const activeDynamic = new Physics(new Vec2(), new Vec2(10, 0), new Vec2(20, 20), 1.0);
+      expect(activeDynamic.isStationary()).toBe(false);
+
+      activeDynamic.sleep();
+      expect(activeDynamic.isStationary()).toBe(true);
+    });
+  });
+
+  describe('Collision Ignore Management', () => {
+    test('ignoreCollisionWith, restoreCollisionWith, and isIgnoringCollisionWith', () => {
+      const bodyA = new Physics(new Vec2(), new Vec2(), new Vec2(20, 20), 1.0);
+      const bodyB = new Physics(new Vec2(), new Vec2(), new Vec2(20, 20), 1.0);
+
+      expect(bodyA.isIgnoringCollisionWith(bodyB)).toBe(false);
+      expect(bodyA.canCollideWith(bodyB)).toBe(true);
+
+      bodyA.ignoreCollisionWith(bodyB);
+      expect(bodyA.isIgnoringCollisionWith(bodyB)).toBe(true);
+      expect(bodyA.canCollideWith(bodyB)).toBe(false);
+
+      bodyA.restoreCollisionWith(bodyB);
+      expect(bodyA.isIgnoringCollisionWith(bodyB)).toBe(false);
+      expect(bodyA.canCollideWith(bodyB)).toBe(true);
+    });
+  });
+
+  describe('Bullet / Continuous Collision Detection (CCD)', () => {
+    test('isBullet defaults to false and can be configured via constructor or setters', () => {
+      const body = new Physics();
+      expect(body.isBullet).toBe(false);
+      expect(body.getBullet()).toBe(false);
+      expect(body.getIsBullet()).toBe(false);
+
+      body.setBullet(true);
+      expect(body.isBullet).toBe(true);
+      expect(body.getBullet()).toBe(true);
+      expect(body.getIsBullet()).toBe(true);
+
+      const bulletBody = new Physics(
+        new Vec2(),
+        new Vec2(),
+        new Vec2(10, 10),
+        1.0,
+        0.8,
+        0,
+        'circle',
+        0,
+        false,
+        1,
+        0xFFFF,
+        0,
+        'dynamic',
+        true
+      );
+      expect(bulletBody.isBullet).toBe(true);
+      expect(bulletBody.getBullet()).toBe(true);
+      expect(bulletBody.getIsBullet()).toBe(true);
+    });
+
+    test('sweep method queries Raycast.sweepBody', () => {
+      const bullet = new Physics(new Vec2(0, 0), new Vec2(), new Vec2(10, 10), 1, 0, 0, 'circle', 0, false, 1, 0xFFFF, 0, 'dynamic', true);
+      const wall = new Physics(new Vec2(50, 0), new Vec2(), new Vec2(20, 20), 0, 0, 0, 'aabb', 0, false, 1, 0xFFFF, 0, 'static');
+
+      const hit = bullet.sweep(new Vec2(0, 0), new Vec2(100, 0), wall);
+      expect(hit).not.toBeNull();
+      expect(hit.body).toBe(wall);
+      expect(hit.fraction).toBeLessThan(1);
+    });
+  });
+
+  describe('Damage and Sleep Helpers', () => {
+    test('damage getters, setters, and applyDamage', () => {
+      const body = new Physics();
+      expect(body.getDamageDealt()).toBe(1);
+      expect(body.getDamageTaken()).toBe(0);
+      expect(body.applyDamage()).toBe(false);
+
+      body.setDamageDealt(25);
+      expect(body.getDamageDealt()).toBe(25);
+
+      const attacker = new Physics();
+      attacker.setDamageDealt(50);
+      body.collision(new Vec2(), attacker);
+      expect(body.getDamageTaken()).toBe(50);
+
+      expect(body.applyDamage()).toBe(50);
+      expect(body.getDamageTaken()).toBe(0);
+      expect(body.applyDamage()).toBe(false);
+    });
+
+    test('setSleepStepsThreshold configures threshold', () => {
+      const body = new Physics();
+      body.setSleepStepsThreshold(120);
+      expect(body.getSleepStepsThreshold()).toBe(120);
+    });
+  });
+
+  describe('Spatial Overlap and Containment Queries', () => {
+    describe('containsPoint', () => {
+      test('Circle containsPoint accurately tests interior, boundary, exterior, and inactive', () => {
+        const circle = new Physics(new Vec2(100, 100), new Vec2(), new Vec2(40, 40), 1, 1, 0, 'circle'); // radius = 20
+        expect(circle.containsPoint(new Vec2(100, 100))).toBe(true); // center
+        expect(circle.containsPoint(new Vec2(115, 100))).toBe(true); // inside
+        expect(circle.containsPoint(new Vec2(120, 100))).toBe(true); // boundary
+        expect(circle.containsPoint(new Vec2(121, 100))).toBe(false); // outside
+        expect(circle.containsPoint(new Vec2(200, 200))).toBe(false);
+
+        circle.setActive(false);
+        expect(circle.containsPoint(new Vec2(100, 100))).toBe(false); // inactive returns false
+      });
+
+      test('AABB containsPoint accurately tests interior, boundary, exterior, and inactive', () => {
+        const aabb = new Physics(new Vec2(100, 100), new Vec2(), new Vec2(40, 60), 1, 1, 0, 'aabb'); // halfSize = (20, 30)
+        expect(aabb.containsPoint(new Vec2(100, 100))).toBe(true); // center
+        expect(aabb.containsPoint(new Vec2(110, 120))).toBe(true); // inside
+        expect(aabb.containsPoint(new Vec2(120, 130))).toBe(true); // corner boundary
+        expect(aabb.containsPoint(new Vec2(121, 100))).toBe(false); // outside X
+        expect(aabb.containsPoint(new Vec2(100, 131))).toBe(false); // outside Y
+
+        aabb.setActive(false);
+        expect(aabb.containsPoint(new Vec2(100, 100))).toBe(false);
+      });
+    });
+
+    describe('overlapsCircle', () => {
+      test('Circle vs Circle overlap detection', () => {
+        const circle = new Physics(new Vec2(100, 100), new Vec2(), new Vec2(40, 40), 1, 1, 0, 'circle'); // r = 20
+
+        expect(circle.overlapsCircle(new Vec2(100, 100), 10)).toBe(true); // concentric
+        expect(circle.overlapsCircle(new Vec2(125, 100), 10)).toBe(true); // overlapping (d=25 <= 30)
+        expect(circle.overlapsCircle(new Vec2(130, 100), 10)).toBe(true); // edge touching (d=30 <= 30)
+        expect(circle.overlapsCircle(new Vec2(135, 100), 10)).toBe(false); // separating (d=35 > 30)
+        expect(circle.overlapsCircle(new Vec2(100, 100), -5)).toBe(false); // negative radius
+
+        circle.setActive(false);
+        expect(circle.overlapsCircle(new Vec2(100, 100), 10)).toBe(false);
+      });
+
+      test('AABB vs Circle overlap detection', () => {
+        const aabb = new Physics(new Vec2(100, 100), new Vec2(), new Vec2(40, 40), 1, 1, 0, 'aabb'); // corners [80, 80] to [120, 120]
+
+        expect(aabb.overlapsCircle(new Vec2(100, 100), 5)).toBe(true); // center inside
+        expect(aabb.overlapsCircle(new Vec2(125, 100), 10)).toBe(true); // overlapping right face
+        expect(aabb.overlapsCircle(new Vec2(130, 130), 15)).toBe(true); // overlapping bottom-right corner (dist=14.14 <= 15)
+        expect(aabb.overlapsCircle(new Vec2(130, 130), 10)).toBe(false); // misses corner (dist=14.14 > 10)
+        expect(aabb.overlapsCircle(new Vec2(200, 200), 10)).toBe(false); // far outside
+
+        aabb.setActive(false);
+        expect(aabb.overlapsCircle(new Vec2(100, 100), 5)).toBe(false);
+      });
+    });
+
+    describe('overlapsAabb', () => {
+      test('AABB vs AABB overlap detection including inverted coordinates', () => {
+        const aabb = new Physics(new Vec2(100, 100), new Vec2(), new Vec2(40, 40), 1, 1, 0, 'aabb'); // [80, 80] to [120, 120]
+
+        expect(aabb.overlapsAabb(new Vec2(90, 90), new Vec2(110, 110))).toBe(true); // fully inside
+        expect(aabb.overlapsAabb(new Vec2(110, 110), new Vec2(150, 150))).toBe(true); // overlapping corner
+        expect(aabb.overlapsAabb(new Vec2(120, 80), new Vec2(140, 120))).toBe(true); // touching edge
+        expect(aabb.overlapsAabb(new Vec2(125, 80), new Vec2(150, 120))).toBe(false); // separated
+        // Inverted min/max
+        expect(aabb.overlapsAabb(new Vec2(110, 110), new Vec2(90, 90))).toBe(true);
+
+        aabb.setActive(false);
+        expect(aabb.overlapsAabb(new Vec2(90, 90), new Vec2(110, 110))).toBe(false);
+      });
+
+      test('Circle vs AABB overlap detection', () => {
+        const circle = new Physics(new Vec2(100, 100), new Vec2(), new Vec2(40, 40), 1, 1, 0, 'circle'); // r = 20
+
+        expect(circle.overlapsAabb(new Vec2(90, 90), new Vec2(110, 110))).toBe(true); // box inside circle
+        expect(circle.overlapsAabb(new Vec2(50, 50), new Vec2(150, 150))).toBe(true); // box encloses circle
+        expect(circle.overlapsAabb(new Vec2(115, 90), new Vec2(150, 110))).toBe(true); // box cuts circle right edge
+        expect(circle.overlapsAabb(new Vec2(116, 116), new Vec2(150, 150))).toBe(false); // box outside diagonal
+        // Corner intersection
+        expect(circle.overlapsAabb(new Vec2(112, 112), new Vec2(150, 150))).toBe(true);
+
+        circle.setActive(false);
+        expect(circle.overlapsAabb(new Vec2(90, 90), new Vec2(110, 110))).toBe(false);
+      });
+    });
+
+    describe('Geometry Getters (shape, radius, halfSize)', () => {
+      test('Circle shape, radius, and halfSize', () => {
+        const circle = new Physics(new Vec2(50, 50), new Vec2(), new Vec2(40, 40), 1, 1, 0, 'circle');
+        expect(circle.shape).toBe('circle');
+        expect(circle.radius).toBe(20);
+        expect(circle.halfSize.x).toBe(20);
+        expect(circle.halfSize.y).toBe(20);
+      });
+
+      test('AABB shape, radius, and halfSize', () => {
+        const aabb = new Physics(new Vec2(50, 50), new Vec2(), new Vec2(60, 40), 1, 1, 0, 'aabb');
+        expect(aabb.shape).toBe('aabb');
+        expect(aabb.radius).toBe(30);
+        expect(aabb.halfSize.x).toBe(30);
+        expect(aabb.halfSize.y).toBe(20);
+      });
+    });
+  });
 });
+
+
 

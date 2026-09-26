@@ -145,4 +145,33 @@ describe('CircleVSAabb Collisions', () => {
       expect(CircleVSAabb.detect(circlePosY, circleRadius, boxPos, boxHalfSize).isOrigin()).toBe(true);
     });
   });
+
+  describe('CircleVSAabb.getPenetration()', () => {
+    test('Calculates penetration vector when distSq > 0', () => {
+      // radius 10, delta (3, 4), distSq 25 (dist = 5). Penetration = 10 - 5 = 5. Scale = 5/5 = 1.
+      const pen = CircleVSAabb.getPenetration(10, new Vec2(3, 4), 25);
+      expect(pen.x).toBe(3);
+      expect(pen.y).toBe(4);
+    });
+
+    test('Calculates internal penetration along shallowest axis when distSq = 0', () => {
+      // Internal penetration with bhs: half-width 20, half-height 20, radius 5
+      // relX = 5, relY = 0 => overlapX = (20 - 5 + 5) = 20, overlapY = (20 - 0 + 5) = 25
+      const bhs = new Vec2(20, 20);
+      const penX = CircleVSAabb.getPenetration(5, new Vec2(5, 0), 0, bhs);
+      expect(penX.x).toBe(20);
+      expect(penX.y).toBe(0);
+
+      // relX = 0, relY = -8 => overlapX = 25, overlapY = (20 - 8 + 5) = 17
+      const penY = CircleVSAabb.getPenetration(5, new Vec2(0, -8), 0, bhs);
+      expect(penY.x).toBe(0);
+      expect(penY.y).toBe(-17);
+    });
+
+    test('Returns origin vector when distSq = 0 and bhs is omitted', () => {
+      const pen = CircleVSAabb.getPenetration(10, new Vec2(0, 0));
+      expect(pen.isOrigin()).toBe(true);
+    });
+  });
 });
+

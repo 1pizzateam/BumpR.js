@@ -3,23 +3,32 @@ import * as BumprEs6 from '../build/es6/bumpr.js';
 import {
   CollisionDetection as DistCollisionDetection,
   Physics as DistPhysics,
+  Raycast as DistRaycast,
   Scene as DistScene,
-  Shape as DistShape
+  Shape as DistShape,
+  DistanceConstraint as DistDistanceConstraint,
+  Joint as DistJoint
 } from '../build/bumpr.mjs';
 import {
   CollisionDetection,
   Physics,
+  Raycast,
   Scene,
-  Shape
+  Shape,
+  DistanceConstraint,
+  Joint
 } from '../build/es6/bumpr.js';
 import { Vec2 } from '@1pizzateam/spock';
 
 describe('Public Library Exports', () => {
-  test('ES6 source exports only BumpR modules (Scene, Physics, CollisionDetection, Shape) and does not re-export Spock primitives', () => {
+  test('ES6 source exports only BumpR modules (Scene, Physics, CollisionDetection, Shape, Raycast, DistanceConstraint, Joint) and does not re-export Spock primitives', () => {
     expect(Scene).toBeDefined();
     expect(Physics).toBeDefined();
     expect(CollisionDetection).toBeDefined();
     expect(Shape).toBeDefined();
+    expect(Raycast).toBeDefined();
+    expect(DistanceConstraint).toBeDefined();
+    expect(Joint).toBeDefined();
     expect(Shape.circle).toBe('circle');
     expect(Shape.aabb).toBe('aabb');
 
@@ -40,6 +49,9 @@ describe('Public Library Exports', () => {
       0.5,
       'circle'
     );
+    expect(body.isDynamic()).toBe(true);
+    body.setBodyType('kinematic');
+    expect(body.isKinematic()).toBe(true);
     expect(scene.addBody(body)).toBe(true);
     expect(scene.bodiesLength).toBe(1);
   });
@@ -49,6 +61,9 @@ describe('Public Library Exports', () => {
     expect(DistPhysics).toBeDefined();
     expect(DistCollisionDetection).toBeDefined();
     expect(DistShape).toBeDefined();
+    expect(DistRaycast).toBeDefined();
+    expect(DistDistanceConstraint).toBeDefined();
+    expect(DistJoint).toBeDefined();
     expect(DistShape.circle).toBe('circle');
     expect(DistShape.aabb).toBe('aabb');
 
@@ -79,6 +94,8 @@ describe('Public Library Exports', () => {
       'circle'
     );
 
+    expect(bodyA.isDynamic()).toBe(true);
+    expect(bodyB.isDynamic()).toBe(true);
     scene.addBody(bodyA);
     scene.addBody(bodyB);
 

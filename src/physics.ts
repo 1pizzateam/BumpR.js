@@ -1,7 +1,9 @@
 import type { Grid } from '@1pizzateam/spock';
 import { Circ, Rect, Utils, Vec2 } from '@1pizzateam/spock';
+import { Raycast, type RaycastHit } from './raycast.js';
 
 export type BodyCollisionCallback = (other: Physics, normal: Vec2, impulse: Vec2) => void;
+export type BodyType = 'dynamic' | 'static' | 'kinematic';
 
 export class Physics {
 
@@ -14,6 +16,7 @@ export class Physics {
   impulse         : Vec2;
   resultingAcc    : Vec2;
 
+  public bodyType : BodyType = 'dynamic';
   damping     : number = 0.8;
   mass        : number = 1.0;
   inverseMass : number = 1.0;
@@ -40,9 +43,15 @@ export class Physics {
   idleSteps : number = 0;
 
   isSensor : boolean = false;
+  isBullet : boolean = false;
+
+  collisionCategory : number = 0x0001;
+  collisionMask : number = 0xFFFF;
+  collisionGroup : number = 0;
 
   public onCollision: BodyCollisionCallback | null = null;
   private collisionListeners: BodyCollisionCallback[] = [];
+  private ignoredBodies: Set<Physics> | null = null;
 
   /**
    * Create a new rigid body using vector-first parameters.
@@ -55,17 +64,27 @@ export class Physics {
    * @param shape - Geometric shape ('circle', 'aabb', 'rectangle'). Defaults to 'circle'.
    * @param friction - Surface friction coefficient in [0, 1]. Defaults to 0.0 for circle, 0.6 for AABB.
    * @param isSensor - Whether this body is a sensor/trigger (detects overlap without physical resolution). Defaults to false.
+   * @param collisionCategory - Bitfield category for collision filtering (e.g. 0x0001). Defaults to 0x0001.
+   * @param collisionMask - Bitfield mask for categories this body can collide with. Defaults to 0xFFFF.
+   * @param collisionGroup - Group index for override filtering (negative never collides, positive always collides). Defaults to 0.
+   * @param bodyType - Explicit rigid body simulation type ('dynamic' | 'static' | 'kinematic'). Inferred from mass/velocity if omitted.
+   * @param isBullet - Whether Continuous Collision Detection (CCD) is enabled to prevent tunneling at high velocities. Defaults to false.
    */
   constructor(
-    position    : Vec2 = new Vec2(),
-    velocity    : Vec2 = new Vec2(),
-    size        : Vec2 = new Vec2(20, 20),
-    mass        : number = 1.0,
-    damping     : number = 0.8,
-    restitution : number = 0,
-    shape       : 'circle' | 'aabb' | 'rectangle' = 'circle',
-    friction?   : number,
-    isSensor    : boolean = false
+    position          : Vec2 = new Vec2(),
+    velocity          : Vec2 = new Vec2(),
+    size              : Vec2 = new Vec2(20, 20),
+    mass              : number = 1.0,
+    damping           : number = 0.8,
+    restitution       : number = 0,
+    shape             : 'circle' | 'aabb' | 'rectangle' = 'circle',
+    friction?         : number,
+    isSensor          : boolean = false,
+    collisionCategory : number = 0x0001,
+    collisionMask     : number = 0xFFFF,
+    collisionGroup    : number = 0,
+    bodyType?         : BodyType,
+    isBullet          : boolean = false
   ) {
     const pos = position ? position.clone() : new Vec2();
     this.velocity = velocity ? velocity.clone() : new Vec2();
@@ -77,8 +96,31 @@ export class Physics {
     this.impulse         = new Vec2();
     this.resultingAcc    = new Vec2();
 
-    this.mass         = Math.max(0, mass);
-    this.inverseMass  = !this.mass ? 0 : 1 / this.mass;
+    if (bodyType !== undefined) {
+      this.bodyType = bodyType;
+      if (bodyType === 'static') {
+        this.mass = 0;
+        this.inverseMass = 0;
+        this.velocity.origin();
+        this.initialVelocity.origin();
+      } else if (bodyType === 'kinematic') {
+        this.mass = 0;
+        this.inverseMass = 0;
+      } else {
+        this.mass = Math.max(0, mass);
+        if (this.mass === 0)
+          this.mass = 1.0;
+        this.inverseMass = 1 / this.mass;
+      }
+    } else {
+      this.mass = Math.max(0, mass);
+      this.inverseMass = !this.mass ? 0 : 1 / this.mass;
+      if (this.mass === 0)
+        this.bodyType = this.velocity.isOrigin() ? 'static' : 'kinematic';
+      else
+        this.bodyType = 'dynamic';
+    }
+
     this.damping      = Utils.clamp(damping, 0, 1);
     this.restitution  = Utils.clamp(restitution, 0, 1);
 
@@ -87,18 +129,22 @@ export class Physics {
       : (shape === 'rectangle' || shape === 'aabb' ? 0.6 : 0.0);
 
     this.isSensor     = isSensor;
+    this.isBullet     = isBullet;
+
+    this.collisionCategory = collisionCategory;
+    this.collisionMask = collisionMask;
+    this.collisionGroup = collisionGroup;
 
     const s = size ? size.clone() : new Vec2(20, 20);
-    if (shape === 'rectangle' || shape === 'aabb') {
-      this.body = new Rect( s.x, s.y, pos.x, pos.y );
-    } else {
-      this.body = new Circ( s.x * 0.5, pos.x, pos.y );
-    }
+    if (shape === 'rectangle' || shape === 'aabb')
+      this.body = new Rect( s, pos );
+    else
+      this.body = new Circ( s.x * 0.5, pos );
     this.position = this.body.position;
   }
 
-  public setActive(): void {
-    this.active = true;
+  public setActive(active: boolean = true): void {
+    this.active = active;
   }
 
   public setInactive(): void {
@@ -115,7 +161,8 @@ export class Physics {
   }
 
   public sleep(): void {
-    if (!this.canSleep) return;
+    if (!this.canSleep)
+      return;
     this.isSleeping = true;
     this.velocity.origin();
     this.translate.origin();
@@ -158,27 +205,30 @@ export class Physics {
   }
 
   public applyForce(force: Vec2): void {
+    if (this.bodyType !== 'dynamic')
+      return;
     this.force.add(force);
     this.wakeUp();
   }
 
   public applyImpulseVector(impulse: Vec2): void {
+    if (this.bodyType !== 'dynamic')
+      return;
     this.impulse.add(impulse);
     this.wakeUp();
   }
 
-  public updatePosition( second: number ): Vec2 {
-    this.translate.origin();
-    if (!this.active || second <= 0)
-      return this.position;
+  public prepareStep( second: number ): boolean {
+    if (!this.active || second <= 0 || this.bodyType === 'static')
+      return false;
 
     if (!this.force.isOrigin() || !this.impulse.isOrigin())
       this.wakeUp();
 
     if (this.isSleeping)
-      return this.position;
+      return false;
 
-    if (this.inverseMass)
+    if (this.inverseMass && this.bodyType === 'dynamic')
       this.applyImpulse();
 
     if (this.canSleep) {
@@ -187,20 +237,40 @@ export class Physics {
         this.idleSteps++;
         if (this.idleSteps >= this.sleepStepsThreshold) {
           this.sleep();
-          return this.position;
+          return false;
         }
-      } else {
+      } else
         this.idleSteps = 0;
+    }
+
+    if (this.bodyType === 'dynamic') {
+      if (this.inverseMass)
+        this.applyForces( second );
+      if (this.damping < 1) {
+        if (this.cachedSecond !== second || this.cachedDamping !== this.damping) {
+          this.cachedSecond = second;
+          this.cachedDamping = this.damping;
+          this.cachedDampingFactor = this.damping ** second;
+        }
+        this.velocity.scale( this.cachedDampingFactor );
       }
     }
 
-    if (this.inverseMass)
-      this.applyForces( second );
-    this.applyVelocity( second );
+    return !this.velocity.isOrigin();
+  }
+
+  public updatePosition( second: number ): Vec2 {
+    this.translate.origin();
+    if (this.prepareStep(second)) {
+      this.translate.scaleVector(this.velocity, second);
+      this.body.translate(this.translate);
+    }
     return this.position;
   }
 
   public applyForces( second: number ): void {
+    if (this.bodyType !== 'dynamic')
+      return;
     this.resultingAcc.copy( this.gravity ); // initialize resulting acceleration for this frame
     if(!this.force.isOrigin()) {
       this.resultingAcc.addScaledVector( this.force, this.inverseMass );
@@ -210,32 +280,20 @@ export class Physics {
       this.velocity.addScaledVector( this.resultingAcc, second );
   }
 
-  private applyImpulse() : void {
-    if (this.impulse.isOrigin())
+  public applyImpulse() : void {
+    if (this.bodyType !== 'dynamic' || this.impulse.isOrigin())
       return;
     this.velocity.addScaledVector( this.impulse, this.inverseMass );
     this.impulse.origin();
   }
 
-  private applyVelocity( second: number ): void {
-    if (this.velocity.isOrigin())
-      return;
-    if(this.damping < 1) {
-      if (this.cachedSecond !== second || this.cachedDamping !== this.damping) {
-        this.cachedSecond = second;
-        this.cachedDamping = this.damping;
-        this.cachedDampingFactor = this.damping ** second;
-      }
-      this.velocity.scale( this.cachedDampingFactor );
-    }
-    this.translate.copy(this.velocity).scale(second);
-    this.body.translate(this.translate);
-  }
+
 
   public correctPosition(correction: Vec2): void {
     this.wakeUp();
-    if (!this.inverseMass) return;
-    this.translate.copy(correction).scale(this.inverseMass);
+    if (!this.inverseMass || this.bodyType !== 'dynamic')
+      return;
+    this.translate.scaleVector(correction, this.inverseMass);
     this.body.translate(this.translate);
   }
 
@@ -273,10 +331,51 @@ export class Physics {
   public setMass( mass: number ): void {
     this.mass = Math.max(0, mass);
     this.inverseMass = !this.mass ? 0 : 1 / this.mass;
+    if (this.mass === 0 && this.bodyType === 'dynamic')
+      this.bodyType = this.velocity.isOrigin() ? 'static' : 'kinematic';
+    else if (this.mass > 0)
+      this.bodyType = 'dynamic';
   }
 
   public getMass(): number {
     return this.mass;
+  }
+
+  public setBodyType(type: BodyType): void {
+    this.bodyType = type;
+    if (type === 'static') {
+      this.mass = 0;
+      this.inverseMass = 0;
+      this.velocity.origin();
+      this.initialVelocity.origin();
+    } else if (type === 'kinematic') {
+      this.mass = 0;
+      this.inverseMass = 0;
+    } else if (type === 'dynamic') {
+      if (this.mass === 0)
+        this.mass = 1.0;
+      this.inverseMass = 1 / this.mass;
+    }
+  }
+
+  public getBodyType(): BodyType {
+    return this.bodyType;
+  }
+
+  public isStatic(): boolean {
+    return this.bodyType === 'static';
+  }
+
+  public isKinematic(): boolean {
+    return this.bodyType === 'kinematic';
+  }
+
+  public isDynamic(): boolean {
+    return this.bodyType === 'dynamic';
+  }
+
+  public isStationary(): boolean {
+    return this.isSleeping || this.bodyType === 'static' || (this.bodyType === 'kinematic' && this.velocity.isOrigin());
   }
 
   public setRestitution( restitution: number ): void {
@@ -308,22 +407,27 @@ export class Physics {
   }
 
   public setSize( sizeOrWidth: Vec2 | number, height?: number ): void {
-    if (sizeOrWidth instanceof Vec2) {
-      if (this.body instanceof Rect)
-        this.body.setSize( sizeOrWidth.x, sizeOrWidth.y );
-      else if (this.body instanceof Circ)
-        this.body.setRadius( sizeOrWidth.x );
-    } else {
-      if (this.body instanceof Rect)
-        this.body.setSize( sizeOrWidth, height ?? sizeOrWidth );
-      else if (this.body instanceof Circ)
-        this.body.setRadius( sizeOrWidth );
-    }
+    if (this.body.shape === 'aabb')
+      (this.body as Rect).setSize( sizeOrWidth as any, height );
+    else if (this.body.shape === 'circle')
+      (this.body as Circ).setRadius( sizeOrWidth instanceof Vec2 ? sizeOrWidth.x : sizeOrWidth );
+  }
+
+  public get shape(): 'circle' | 'aabb' | 'rectangle' {
+    return this.body.shape as 'circle' | 'aabb' | 'rectangle';
+  }
+
+  public get radius(): number {
+    return this.body.shape === 'circle' ? (this.body as Circ).radius : (this.body.shape === 'aabb' ? (this.body as Rect).halfSize.x : 0);
+  }
+
+  public get halfSize(): Vec2 {
+    return (this.body as Rect | Circ).halfSize;
   }
 
   public setRadius( radius: number ): void {
-    if (this.body instanceof Circ)
-      this.body.setRadius( radius );
+    if (this.body.shape === 'circle')
+      (this.body as Circ).setRadius( radius );
   }
 
   public setGrid( grid: Grid | null ): void {
@@ -364,18 +468,16 @@ export class Physics {
   }
 
   public addCollisionListener(listener: BodyCollisionCallback): void {
-    if (this.collisionListeners.indexOf(listener) === -1) {
+    if (this.collisionListeners.indexOf(listener) === -1)
       this.collisionListeners.push(listener);
-    }
   }
 
   public removeCollisionListener(listener: BodyCollisionCallback): boolean {
     const idx = this.collisionListeners.indexOf(listener);
-    if (idx !== -1) {
-      this.collisionListeners.splice(idx, 1);
-      return true;
-    }
-    return false;
+    if (idx === -1)
+      return false;
+    this.collisionListeners.splice(idx, 1);
+    return true;
   }
 
   public clearCollisionListeners(): void {
@@ -394,6 +496,77 @@ export class Physics {
     return this.isSensor;
   }
 
+  public setCollisionCategory(category: number): void {
+    this.collisionCategory = category;
+  }
+
+  public getCollisionCategory(): number {
+    return this.collisionCategory;
+  }
+
+  public setCollisionMask(mask: number): void {
+    this.collisionMask = mask;
+  }
+
+  public getCollisionMask(): number {
+    return this.collisionMask;
+  }
+
+  public setCollisionGroup(group: number): void {
+    this.collisionGroup = group;
+  }
+
+  public getCollisionGroup(): number {
+    return this.collisionGroup;
+  }
+
+  public ignoreCollisionWith(other: Physics): void {
+    if (!this.ignoredBodies)
+      this.ignoredBodies = new Set();
+    this.ignoredBodies.add(other);
+  }
+
+  public restoreCollisionWith(other: Physics): void {
+    if (this.ignoredBodies) {
+      this.ignoredBodies.delete(other);
+      if (this.ignoredBodies.size === 0)
+        this.ignoredBodies = null;
+    }
+  }
+
+  public isIgnoringCollisionWith(other: Physics): boolean {
+    return this.ignoredBodies !== null && this.ignoredBodies.has(other);
+  }
+
+  public canCollideWith(other: Physics): boolean {
+    if (this.ignoredBodies && this.ignoredBodies.has(other))
+      return false;
+    if (this.collisionGroup !== 0 && this.collisionGroup === other.collisionGroup)
+      return this.collisionGroup > 0;
+    return (this.collisionCategory & other.collisionMask) !== 0 &&
+           (other.collisionCategory & this.collisionMask) !== 0;
+  }
+
+  public setBullet(bullet: boolean): void {
+    this.isBullet = bullet;
+  }
+
+  public getBullet(): boolean {
+    return this.isBullet;
+  }
+
+  public getIsBullet(): boolean {
+    return this.isBullet;
+  }
+
+  public raycast(start: Vec2, end: Vec2): RaycastHit | null {
+    return Raycast.raycastBody(start, end, this);
+  }
+
+  public sweep(start: Vec2, end: Vec2, other: Physics): RaycastHit | null {
+    return Raycast.sweepBody(start, end, this, other);
+  }
+
   public collision (impulsePerInverseMass: Vec2, object: Physics, normal?: Vec2): void {
     this.wakeUp();
     if(this.inverseMass)
@@ -402,23 +575,60 @@ export class Physics {
     if (this.onCollision || this.collisionListeners.length > 0) {
       const n = normal ? normal.clone() : new Vec2();
       const imp = impulsePerInverseMass.clone();
-      if (this.onCollision) {
+      if (this.onCollision)
         this.onCollision(object, n, imp);
-      }
-      for (let i = 0; i < this.collisionListeners.length; i++) {
+      for (let i = 0; i < this.collisionListeners.length; i++)
         this.collisionListeners[i](object, n, imp);
-      }
     }
   }
 
   public reset(): void {
-    this.velocity.copy(this.initialVelocity);
     this.translate.origin();
     this.force.origin();
     this.impulse.origin();
     this.resultingAcc.origin();
     this.damageTaken = 0;
     this.wakeUp();
+    if (this.bodyType === 'static') {
+      this.velocity.origin();
+      this.initialVelocity.origin();
+    } else
+      this.velocity.copy(this.initialVelocity);
+  }
+
+  /**
+   * Test whether a point lies inside this active body.
+   * @param point - Point in world coordinates.
+   * @returns true if the point is inside the body.
+   */
+  public containsPoint(point: Vec2): boolean {
+    if (!this.active)
+      return false;
+    return this.body.isIn(point);
+  }
+
+  /**
+   * Test whether this active body overlaps a circle defined by center and radius.
+   * @param center - Circle center in world coordinates.
+   * @param radius - Circle radius.
+   * @returns true if overlapping.
+   */
+  public overlapsCircle(center: Vec2, radius: number): boolean {
+    if (!this.active || radius < 0)
+      return false;
+    return this.body.overlapsCircle(center, radius);
+  }
+
+  /**
+   * Test whether this active body overlaps an Axis-Aligned Bounding Box (AABB).
+   * @param min - Minimum corner (or first corner).
+   * @param max - Maximum corner (or second corner).
+   * @returns true if overlapping.
+   */
+  public overlapsAabb(min: Vec2, max: Vec2): boolean {
+    if (!this.active)
+      return false;
+    return (this.body as Rect | Circ).overlapsBounds(min, max);
   }
 
   public draw(context: CanvasRenderingContext2D, fillColor: string, strokeColor: string, strokeWidth: number): void {

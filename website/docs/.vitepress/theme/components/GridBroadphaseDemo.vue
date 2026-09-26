@@ -85,8 +85,8 @@ onMounted(() => {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     const cellSize = Math.max(40, Math.floor(w / 8));
-    grid = new Grid(w, h, cellSize);
-    totalCellCount.value = grid.len.x * grid.len.y;
+    grid = new Grid(new Vec2(w, h), cellSize);
+    totalCellCount.value = grid.totalCells;
     scene.setGrid(grid);
     reset();
   }
@@ -115,7 +115,7 @@ onMounted(() => {
     for (let i = 0; i < scene.bodiesLength; i++) {
       const b = scene.bodies[i];
       const pos = b.position;
-      const r = b.body.radius;
+      const r = b.radius;
       if (pos.x - r < 5) {
         tempPos.setScalar(5 + r, pos.y);
         b.setPosition(tempPos);
@@ -182,7 +182,7 @@ onMounted(() => {
       ctx.font = '10px ui-monospace, SFMono-Regular, monospace';
       ctx.fillStyle = isDark ? '#5c5f66' : '#adb5bd';
       ctx.textAlign = 'left';
-      const total = cols * rows;
+      const total = grid.totalCells;
       for (let i = 0; i < total; i++) {
         const cx = (i % cols) * size + 4;
         const cy = Math.floor(i / cols) * size + 12;

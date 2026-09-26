@@ -6,6 +6,11 @@ import RestitutionDemo from './components/RestitutionDemo.vue';
 import GridBroadphaseDemo from './components/GridBroadphaseDemo.vue';
 import CollisionShapesDemo from './components/CollisionShapesDemo.vue';
 import PhysicsDemo from './components/PhysicsDemo.vue';
+import RaycastDemo from './components/RaycastDemo.vue';
+import CcdDemo from './components/CcdDemo.vue';
+import ConstraintDemo from './components/ConstraintDemo.vue';
+import BodyTypesDemo from './components/BodyTypesDemo.vue';
+import SpatialQueriesDemo from './components/SpatialQueriesDemo.vue';
 import './demo.css';
 
 export default {
@@ -23,5 +28,10 @@ export default {
     app.component('GridBroadphaseDemo', GridBroadphaseDemo);
     app.component('CollisionShapesDemo', CollisionShapesDemo);
     app.component('PhysicsDemo', PhysicsDemo);
+    app.component('RaycastDemo', RaycastDemo);
+    app.component('CcdDemo', CcdDemo);
+    app.component('ConstraintDemo', ConstraintDemo);
+    app.component('BodyTypesDemo', BodyTypesDemo);
+    app.component('SpatialQueriesDemo', SpatialQueriesDemo);
   },
 };

@@ -23,12 +23,11 @@ const ball = new Physics(
 scene.addBody(ball);
 
 // Optional: attach spatial hashing grid
-scene.setGrid(new Grid(800, 600, 50));
+scene.setGrid(new Grid(new Vec2(800, 600), 50));
 
-// In your render/game loop:
+// In your render/game loop (deterministic fixed-timestep accumulator):
 function tick(dt) {
-  scene.update(dt);
-  scene.test();
+  scene.step(dt);
 }
 ```
 
@@ -146,7 +145,7 @@ setGrid(grid: Grid | null): void
 ```javascript
 import { Grid, Vec2 } from '@1pizzateam/spock';
 
-scene.setGrid(new Grid(new Vec2(0, 0), new Vec2(1000, 1000), new Vec2(10, 10)));
+scene.setGrid(new Grid(new Vec2(1000, 1000), 10));
 ```
 
 ---
@@ -215,6 +214,161 @@ update(second: number): void
 
 ```javascript
 scene.update(1 / 60);
+```
+
+---
+
+## Scene.setFixedDeltaTime()
+
+Configure the fixed simulation delta time for deterministic stepping (default `1 / 60`).
+
+```typescript
+setFixedDeltaTime(dt: number): void
+```
+
+### Parameters
+
+- `dt` — `number`. Fixed delta time in seconds (minimum `0.0001`).
+
+### Returns
+
+`void`
+
+### Example
+
+```javascript
+scene.setFixedDeltaTime(1 / 120);
+```
+
+---
+
+## Scene.getFixedDeltaTime()
+
+Get current fixed simulation delta time in seconds.
+
+```typescript
+getFixedDeltaTime(): number
+```
+
+### Returns
+
+`number`
+
+---
+
+## Scene.setMaxSubSteps()
+
+Set maximum sub-steps per frame to prevent the spiral of death during heavy lag spikes (default `5`).
+
+```typescript
+setMaxSubSteps(maxSubSteps: number): void
+```
+
+### Parameters
+
+- `maxSubSteps` — `number`. Maximum discrete simulation steps per frame (minimum `1`).
+
+### Returns
+
+`void`
+
+### Example
+
+```javascript
+scene.setMaxSubSteps(8);
+```
+
+---
+
+## Scene.getMaxSubSteps()
+
+Get maximum sub-steps per frame.
+
+```typescript
+getMaxSubSteps(): number
+```
+
+### Returns
+
+`number`
+
+---
+
+## Scene.getAccumulator()
+
+Get accumulated residual frame delta time waiting for the next fixed simulation step.
+
+```typescript
+getAccumulator(): number
+```
+
+### Returns
+
+`number`
+
+---
+
+## Scene.resetAccumulator()
+
+Reset the residual accumulated frame delta time back to zero.
+
+```typescript
+resetAccumulator(): void
+```
+
+### Returns
+
+`void`
+
+---
+
+## Scene.getAlpha()
+
+Get the interpolation fraction alpha between 0.0 and 1.0 representing progress between the previous and next fixed physics tick. Ideal for renderer frame interpolation on variable refresh monitors.
+
+```typescript
+getAlpha(): number
+```
+
+### Returns
+
+`number` — Normalized fraction `accumulator / fixedDeltaTime` in `[0, 1)`.
+
+### Example
+
+```javascript
+const alpha = scene.getAlpha(); // use to interpolate render positions
+```
+
+---
+
+## Scene.step()
+
+Advance physics simulation using a deterministic fixed-timestep accumulator. Consumes delta time in discrete chunks of fixedDeltaTime, calling update() and test(). Clamps accumulated time to prevent spiral of death.
+
+```typescript
+step(deltaTime: number): number
+```
+
+### Parameters
+
+- `deltaTime` — `number`. Elapsed frame delta time in seconds (e.g. from requestAnimationFrame).
+
+### Returns
+
+`number` — Number of fixed physics sub-steps executed this call.
+
+### Example
+
+```javascript
+// In your game/render loop:
+function tick(time) {
+  const dt = (time - lastTime) / 1000;
+  lastTime = time;
+  const subSteps = scene.step(dt);
+  // Optional: interpolate rendering using scene.getAlpha()
+  requestAnimationFrame(tick);
+}
 ```
 
 ---
@@ -466,4 +620,405 @@ drawGrid(context: CanvasRenderingContext2D, fillColor: string, strokeColor: stri
 
 ```javascript
 scene.drawGrid(ctx, 'rgba(255,255,255,0.1)', 1);
+```
+
+---
+
+## Scene.addConstraint()
+
+Add a `DistanceConstraint` into the scene. Disables mutual collision between connected bodies if `collideConnected = false`.
+
+```typescript
+addConstraint(constraint: DistanceConstraint): boolean
+```
+
+### Parameters
+
+- `constraint` — `DistanceConstraint`. The constraint to add.
+
+### Returns
+
+`boolean` — `true` if added, `false` if already in the scene.
+
+### Example
+
+```javascript
+scene.addConstraint(rod);
+```
+
+---
+
+## Scene.removeConstraint()
+
+Remove a `DistanceConstraint` from the scene and restores collision between connected bodies.
+
+```typescript
+removeConstraint(constraint: DistanceConstraint): boolean
+```
+
+### Parameters
+
+- `constraint` — `DistanceConstraint`. The constraint to remove.
+
+### Returns
+
+`boolean` — `true` if found and removed.
+
+### Example
+
+```javascript
+scene.removeConstraint(rod);
+```
+
+---
+
+## Scene.getConstraints()
+
+Get array of all constraints registered in the scene.
+
+```typescript
+getConstraints(): DistanceConstraint[]
+```
+
+### Returns
+
+`DistanceConstraint[]`
+
+---
+
+## Scene.getConstraintsCount()
+
+Get the total number of constraints in the scene.
+
+```typescript
+getConstraintsCount(): number
+```
+
+### Returns
+
+`number`
+
+---
+
+## Scene.clearConstraints()
+
+Remove all constraints and restore collisions between all connected bodies.
+
+```typescript
+clearConstraints(): void
+```
+
+### Returns
+
+`void`
+
+---
+
+## Scene.solveConstraints()
+
+Solve all active constraints by projecting positions and damping normal relative velocities.
+
+```typescript
+solveConstraints(): void
+```
+
+### Returns
+
+`void`
+
+---
+
+## Scene.drawConstraints()
+
+Render all active constraints in the scene onto a 2D canvas context.
+
+```typescript
+drawConstraints(context: CanvasRenderingContext2D, strokeColor: string = '#888888', strokeWidth: number = 2): void
+```
+
+### Parameters
+
+- `context` — `CanvasRenderingContext2D`. Target canvas context.
+- `strokeColor` — `string` (optional, default `"#888888"`). Line stroke style.
+- `strokeWidth` — `number` (optional, default `2`). Line width.
+
+### Returns
+
+`void`
+
+---
+
+## Scene.raycast()
+
+Cast a segment from start to end through the scene and return the closest hit, or null if nothing was struck.
+
+```typescript
+raycast(start: Vec2, end: Vec2, optionsOrMask?: number | RaycastOptions): RaycastHit | null
+```
+
+### Parameters
+
+- `start` — `Vec2`. Starting point of the segment.
+- `end` — `Vec2`. Ending point of the segment.
+- `optionsOrMask` — `number | RaycastOptions` (optional). Category bitmask (defaults to `0xFFFF`) or `{ mask, ignoreSensors }` options object.
+
+### Returns
+
+`RaycastHit | null` — Nearest impact information `{ body, point, normal, fraction }`, or `null`.
+
+### Example
+
+```javascript
+const hit = scene.raycast(muzzlePos, targetPos, 0x0004);
+if (hit) {
+  console.log('Struck', hit.body, 'at', hit.point, 'normal', hit.normal);
+}
+```
+
+---
+
+## Scene.raycastAll()
+
+Cast a segment from start to end and return all intersected bodies, sorted by fraction ascending.
+
+```typescript
+raycastAll(start: Vec2, end: Vec2, optionsOrMask?: number | RaycastOptions): RaycastHit[]
+```
+
+### Parameters
+
+- `start` — `Vec2`. Starting point of the segment.
+- `end` — `Vec2`. Ending point of the segment.
+- `optionsOrMask` — `number | RaycastOptions` (optional). Category bitmask or options object.
+
+### Returns
+
+`RaycastHit[]` — Array of all impacts sorted nearest-first.
+
+### Example
+
+```javascript
+const hits = scene.raycastAll(start, end, { ignoreSensors: true });
+```
+
+---
+
+## Scene.setCcdSubSteps()
+
+Set maximum Continuous Collision Detection (CCD) substeps per frame for fast-moving bullet bodies (default `3`).
+
+```typescript
+setCcdSubSteps(subSteps: number): void
+```
+
+### Parameters
+
+- `subSteps` — `number`. Maximum number of CCD substeps (minimum 1).
+
+### Returns
+
+`void`
+
+### Example
+
+```javascript
+scene.setCcdSubSteps(4);
+```
+
+---
+
+## Scene.getCcdSubSteps()
+
+Get current maximum CCD substeps per frame.
+
+```typescript
+getCcdSubSteps(): number
+```
+
+### Returns
+
+`number`
+
+---
+
+## Scene.sweepBody()
+
+Sweep a moving rigid body along a line segment against all obstacles in the scene and return the nearest impact, or null if clear.
+
+```typescript
+sweepBody(start: Vec2, end: Vec2, movingBody: Physics, optionsOrMask?: number | RaycastOptions): RaycastHit | null
+```
+
+### Parameters
+
+- `start` — `Vec2`. Starting position.
+- `end` — `Vec2`. Target position.
+- `movingBody` — `Physics`. Body being swept.
+- `optionsOrMask` — `number | RaycastOptions` (optional). Category bitmask or options object.
+
+### Returns
+
+`RaycastHit | null`
+
+### Example
+
+```javascript
+const hit = scene.sweepBody(startPos, endPos, bullet);
+```
+
+---
+
+## Scene.sweepBodyAll()
+
+Sweep a moving rigid body along a line segment and return all intersected obstacles, sorted by impact fraction ascending.
+
+```typescript
+sweepBodyAll(start: Vec2, end: Vec2, movingBody: Physics, optionsOrMask?: number | RaycastOptions): RaycastHit[]
+```
+
+### Parameters
+
+- `start` — `Vec2`. Starting position.
+- `end` — `Vec2`. Target position.
+- `movingBody` — `Physics`. Body being swept.
+- `optionsOrMask` — `number | RaycastOptions` (optional). Category bitmask or options object.
+
+### Returns
+
+`RaycastHit[]`
+
+### Example
+
+```javascript
+const hits = scene.sweepBodyAll(startPos, endPos, bullet);
+```
+
+---
+
+## Scene.queryPoint()
+
+Find all active bodies in the scene containing a point in world coordinates.
+
+```typescript
+queryPoint(point: Vec2, optionsOrMask?: number | SpatialQueryOptions): Physics[]
+```
+
+### Parameters
+
+- `point` — `Vec2`. Query point in world coordinates.
+- `optionsOrMask` — `number | SpatialQueryOptions` (optional). Category bitmask or `{ mask, ignoreSensors }` options object.
+
+### Returns
+
+`Physics[]` — Array of matching bodies containing the point.
+
+### Example
+
+```javascript
+const clickedBodies = scene.queryPoint(mouseWorldPos);
+```
+
+---
+
+## Scene.queryPointFirst()
+
+Find the first active body in the scene containing a point in world coordinates.
+
+```typescript
+queryPointFirst(point: Vec2, optionsOrMask?: number | SpatialQueryOptions): Physics | null
+```
+
+### Parameters
+
+- `point` — `Vec2`. Query point in world coordinates.
+- `optionsOrMask` — `number | SpatialQueryOptions` (optional). Category bitmask or options object.
+
+### Returns
+
+`Physics | null` — The first matching body, or `null` if none found.
+
+### Example
+
+```javascript
+const hoveredBody = scene.queryPointFirst(mouseWorldPos);
+```
+
+---
+
+## Scene.queryCircle()
+
+Find all active bodies in the scene overlapping a circle (e.g. area-of-effect blast or proximity check).
+
+```typescript
+queryCircle(center: Vec2, radius: number, optionsOrMask?: number | SpatialQueryOptions): Physics[]
+```
+
+### Parameters
+
+- `center` — `Vec2`. Circle center in world coordinates.
+- `radius` — `number`. Circle radius.
+- `optionsOrMask` — `number | SpatialQueryOptions` (optional). Category bitmask or options object.
+
+### Returns
+
+`Physics[]` — Array of matching bodies overlapping the circle.
+
+### Example
+
+```javascript
+const blastedEnemies = scene.queryCircle(explosionPos, 150, { mask: ENEMY_CATEGORY });
+```
+
+---
+
+## Scene.queryCircleFirst()
+
+Find the first active body in the scene overlapping a circle.
+@param center - Circle center in world coordinates.
+@param radius - Circle radius.
+@param optionsOrMask - Optional category bitmask or query options.
+@returns The first matching body, or null if none found.
+
+```typescript
+queryCircleFirst(center: Vec2, radius: number, optionsOrMask?: number | SpatialQueryOptions): Physics | null
+```
+
+---
+
+## Scene.queryAabb()
+
+Find all active bodies in the scene overlapping an Axis-Aligned Bounding Box (AABB) (e.g. selection marquee or camera frustum).
+
+```typescript
+queryAabb(min: Vec2, max: Vec2, optionsOrMask?: number | SpatialQueryOptions): Physics[]
+```
+
+### Parameters
+
+- `min` — `Vec2`. Minimum corner (or first corner).
+- `max` — `Vec2`. Maximum corner (or second corner).
+- `optionsOrMask` — `number | SpatialQueryOptions` (optional). Category bitmask or options object.
+
+### Returns
+
+`Physics[]` — Array of matching bodies overlapping the AABB.
+
+### Example
+
+```javascript
+const selectedUnits = scene.queryAabb(dragStart, dragEnd);
+```
+
+---
+
+## Scene.queryAabbFirst()
+
+Find the first active body in the scene overlapping an Axis-Aligned Bounding Box (AABB).
+@param min - Minimum corner (or first corner).
+@param max - Maximum corner (or second corner).
+@param optionsOrMask - Optional category bitmask or query options.
+@returns The first matching body, or null if none found.
+
+```typescript
+queryAabbFirst(min: Vec2, max: Vec2, optionsOrMask?: number | SpatialQueryOptions): Physics | null
 ```

@@ -51,7 +51,7 @@
     "node": ">= 22"
   },
   "dependencies": {
-    "@1pizzateam/spock": "4.1.0"
+    "@1pizzateam/spock": "4.2.0"
   },
   "devDependencies": {
     "@types/jest": "29.5.14",

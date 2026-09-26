@@ -24,14 +24,14 @@ let respawnTimer = 0;
 const floorAngle = 9.5 * (Math.PI / 180); // ~9.5 degrees incline
 const floorCos = Math.cos(floorAngle);
 const floorSin = Math.sin(floorAngle);
-const floorTangent = { x: floorCos, y: floorSin };   // Tangent pointing downward-right
-const floorNormal = { x: floorSin, y: -floorCos };   // Normal pointing upward into the arena
+const floorTangent = new Vec2(floorCos, floorSin);   // Tangent pointing downward-right
+const floorNormal = new Vec2(floorSin, -floorCos);   // Normal pointing upward into the arena
 const floorThickness = 24;
 
-let floorCenter = { x: 0, y: 0 };
+const floorCenter = new Vec2();
 let floorLength = 0;
-let floorP1 = { x: 0, y: 0 };
-let floorP2 = { x: 0, y: 0 };
+const floorP1 = new Vec2();
+const floorP2 = new Vec2();
 
 // Dynamic color palette for hundreds of small balls
 const BALL_PALETTE = [
@@ -149,24 +149,21 @@ function spawnExplosion(count = 45) {
 
 function updateFloorGeometry() {
   floorLength = Math.min(width - 64, 840);
-  floorCenter = {
-    x: width / 2,
-    y: height - 105,
-  };
+  floorCenter.setScalar(width / 2, height - 105);
   const halfL = floorLength / 2;
-  floorP1 = {
-    x: floorCenter.x - halfL * floorCos,
-    y: floorCenter.y - halfL * floorSin,
-  };
-  floorP2 = {
-    x: floorCenter.x + halfL * floorCos,
-    y: floorCenter.y + halfL * floorSin,
-  };
+  floorP1.setScalar(
+    floorCenter.x - halfL * floorCos,
+    floorCenter.y - halfL * floorSin
+  );
+  floorP2.setScalar(
+    floorCenter.x + halfL * floorCos,
+    floorCenter.y + halfL * floorSin
+  );
 }
 
 function testAngledFloor(b, dt = 0.016) {
   const pos = b.position;
-  const r = b.body.radius;
+  const r = b.radius;
 
   // Vector from P1 to body center
   const vx = pos.x - floorP1.x;
@@ -296,7 +293,7 @@ function setupScene() {
 
   // Attach spatial hash grid for high-performance broad-phase culling
   const cellSize = Math.max(30, Math.floor(width / 18));
-  grid = new Grid(width, height, cellSize);
+  grid = new Grid(new Vec2(width, height), cellSize);
   scene.setGrid(grid);
 
   // Clear transient particles
@@ -443,7 +440,7 @@ onMounted(() => {
     // Refresh grid size
     if (scene) {
       const cellSize = Math.max(30, Math.floor(width / 18));
-      grid = new Grid(width, height, cellSize);
+      grid = new Grid(new Vec2(width, height), cellSize);
       scene.setGrid(grid);
     }
   }
@@ -469,7 +466,7 @@ onMounted(() => {
       if (!b) continue;
 
       const pos = b.position;
-      const r = b.body.radius;
+      const r = b.radius;
 
       // Disappear when reaching the bottom of the screen (bottom is open, not a floor)
       if (pos.y - r > height) {
@@ -617,7 +614,7 @@ onMounted(() => {
     for (let i = 0; i < scene.bodiesLength; i++) {
       const b = scene.bodies[i];
       const pos = b.position;
-      const r = b.body.radius;
+      const r = b.radius;
       const color = b.color || '#ff6b6b';
 
       // Fast high-quality spherical bead drawing

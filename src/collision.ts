@@ -10,9 +10,7 @@ export enum Shape { circle = 'circle', aabb = 'aabb' };
 
 export const CollisionDetection = {
 
-  ab                     : new Vec2(),
-  effectiveVelocityA     : new Vec2(),
-  effectiveVelocityB     : new Vec2(),
+  relativeVelocity       : new Vec2(),
   penetration            : new Vec2(),
   contactNormal          : new Vec2(),
   contactTangent         : new Vec2(),
@@ -34,13 +32,15 @@ export const CollisionDetection = {
   test( a: Physics, b: Physics, sceneCallback?: (a: Physics, b: Physics, normal: Vec2, impulse: Vec2) => void, iteration: number = 0 ): boolean {
     if (a.isSleeping && b.isSleeping)
       return false;
+    if (!a.canCollideWith(b))
+      return false;
     if (iteration > 0 && (a.isSensor || b.isSensor))
       return false;
     this.detect( a.body, b.body );
     if (this.penetration.isOrigin())
       return false;
     if (a.isSensor || b.isSensor) {
-      this.contactNormal.copy(this.penetration).normalize();
+      this.contactNormal.normalizeVector(this.penetration);
       this.zeroImpulse.origin();
       a.collision( this.zeroImpulse, b, this.contactNormal );
       if (sceneCallback)
@@ -77,8 +77,7 @@ export const CollisionDetection = {
       return false;
 
     // compute correction
-    this.correction.copy(this.penetration)
-                   .scale( this.percent / this.totalInverseMass );
+    this.correction.scaleVector(this.penetration, this.percent / this.totalInverseMass);
 
     if(this.correction.isOrigin())
       return false;
@@ -92,49 +91,54 @@ export const CollisionDetection = {
   },
 
   computeImpulse( a: Physics, b: Physics, sceneCallback?: (a: Physics, b: Physics, normal: Vec2, impulse: Vec2) => void ): void {
-    this.contactNormal.copy(this.penetration).normalize();
+    this.contactNormal.normalizeVector(this.penetration);
+    this.applyContactImpulse( a, b, this.contactNormal, sceneCallback );
+  },
 
-    this.effectiveVelocityA.copy(a.velocity);
-    if (a.inverseMass && !a.impulse.isOrigin()) {
-      this.effectiveVelocityA.addScaledVector(a.impulse, a.inverseMass);
-    }
-    this.effectiveVelocityB.copy(b.velocity);
-    if (b.inverseMass && !b.impulse.isOrigin()) {
-      this.effectiveVelocityB.addScaledVector(b.impulse, b.inverseMass);
-    }
+  applyContactImpulse( a: Physics, b: Physics, normal: Vec2, sceneCallback?: (a: Physics, b: Physics, normal: Vec2, impulse: Vec2) => void ): void {
+    this.totalInverseMass = a.inverseMass + b.inverseMass;
+    if (this.totalInverseMass === 0)
+      return;
+    this.contactNormal.copy(normal);
 
-    this.ab.copy(this.effectiveVelocityA).subtract(this.effectiveVelocityB);
-    const separatingVelocity = this.ab.dotProduct(this.contactNormal);
-    if( separatingVelocity < 0 ) {
-      const restitution = Math.abs(separatingVelocity) < this.restingThreshold
-        ? 0
-        : Math.max( a.restitution, b.restitution );
-      const deltaVelocity = -separatingVelocity * ( 1 + restitution );
-      this.impulse = deltaVelocity / this.totalInverseMass;
-      this.impulsePerInverseMass.copy(this.contactNormal).scale(this.impulse);
+    this.relativeVelocity.subVectors(a.velocity, b.velocity);
+    if (a.inverseMass && !a.impulse.isOrigin())
+      this.relativeVelocity.addScaledVector(a.impulse, a.inverseMass);
+    if (b.inverseMass && !b.impulse.isOrigin())
+      this.relativeVelocity.subtractScaledVector(b.impulse, b.inverseMass);
 
-      const friction = Math.min( a.friction, b.friction );
-      if (friction > 0) {
-        this.contactTangent.setScalar( -this.contactNormal.y, this.contactNormal.x );
-        const relativeTangentVelocity = this.ab.dotProduct(this.contactTangent);
-        if (relativeTangentVelocity !== 0) {
-          const desiredTangentImpulse = -relativeTangentVelocity / this.totalInverseMass;
-          const maxFrictionImpulse = friction * this.impulse;
-          this.tangentImpulse = Utils.clamp(desiredTangentImpulse, -maxFrictionImpulse, maxFrictionImpulse);
-          this.impulsePerInverseMass.addScaledVector(this.contactTangent, this.tangentImpulse);
-        }
+    const separatingVelocity = this.relativeVelocity.dotProduct(this.contactNormal);
+    if (separatingVelocity >= 0)
+      return;
+
+    const restitution = Math.abs(separatingVelocity) < this.restingThreshold
+      ? 0
+      : Math.max( a.restitution, b.restitution );
+    const deltaVelocity = -separatingVelocity * ( 1 + restitution );
+    this.impulse = deltaVelocity / this.totalInverseMass;
+    this.impulsePerInverseMass.scaleVector(this.contactNormal, this.impulse);
+
+    const friction = Math.min( a.friction, b.friction );
+    if (friction > 0) {
+      this.contactTangent.perpVector(this.contactNormal);
+      const relativeTangentVelocity = this.relativeVelocity.dotProduct(this.contactTangent);
+      if (relativeTangentVelocity !== 0) {
+        const desiredTangentImpulse = -relativeTangentVelocity / this.totalInverseMass;
+        const maxFrictionImpulse = friction * this.impulse;
+        this.tangentImpulse = Utils.clampToExtent(desiredTangentImpulse, maxFrictionImpulse);
+        this.impulsePerInverseMass.addScaledVector(this.contactTangent, this.tangentImpulse);
       }
-
-      a.collision( this.impulsePerInverseMass, b, this.contactNormal );
-      if (sceneCallback)
-        sceneCallback( a, b, this.contactNormal.clone(), this.impulsePerInverseMass.clone() );
-
-      this.impulsePerInverseMass.opposite();
-      this.contactNormal.opposite();
-      b.collision( this.impulsePerInverseMass, a, this.contactNormal );
-      this.impulsePerInverseMass.opposite();
-      this.contactNormal.opposite();
     }
+
+    a.collision( this.impulsePerInverseMass, b, this.contactNormal );
+    if (sceneCallback)
+      sceneCallback( a, b, this.contactNormal.clone(), this.impulsePerInverseMass.clone() );
+
+    this.impulsePerInverseMass.opposite();
+    this.contactNormal.opposite();
+    b.collision( this.impulsePerInverseMass, a, this.contactNormal );
+    this.impulsePerInverseMass.opposite();
+    this.contactNormal.opposite();
   }
 
 };

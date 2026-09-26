@@ -21,7 +21,7 @@
     "vitepress": "1.6.4"
   },
   "dependencies": {
-    "@1pizzateam/spock": "4.1.0",
+    "@1pizzateam/spock": "4.2.0",
     "@1pizzateam/loopr": "2.1.0"
   }
 }

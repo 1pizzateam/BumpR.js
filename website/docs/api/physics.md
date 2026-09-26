@@ -40,7 +40,7 @@ const wall = new Physics(
 Create a new `Physics` body with vector-first arguments.
 
 ```typescript
-new Physics(position    : Vec2 = new Vec2(), velocity    : Vec2 = new Vec2(), size        : Vec2 = new Vec2(20, 20), mass        : number = 1.0, damping     : number = 0.8, restitution : number = 0, shape       : 'circle' | 'aabb' | 'rectangle' = 'circle', friction?   : number, isSensor    : boolean = false)
+new Physics(position          : Vec2 = new Vec2(), velocity          : Vec2 = new Vec2(), size              : Vec2 = new Vec2(20, 20), mass              : number = 1.0, damping           : number = 0.8, restitution       : number = 0, shape             : 'circle' | 'aabb' | 'rectangle' = 'circle', friction?         : number, isSensor          : boolean = false, collisionCategory : number = 0x0001, collisionMask     : number = 0xFFFF, collisionGroup    : number = 0, bodyType?         : BodyType, isBullet          : boolean = false)
 ```
 
 ### Parameters
@@ -54,6 +54,9 @@ new Physics(position    : Vec2 = new Vec2(), velocity    : Vec2 = new Vec2(), si
 - `shape` — `'circle' | 'aabb' | 'rectangle'`. Collision geometry (default `'circle'`).
 - `friction` — `number` (optional). Coulomb friction coefficient in `[0, 1]` (defaults to `0` for circle, `0.6` for AABB).
 - `isSensor` — `boolean` (optional). Whether this body acts as a sensor/trigger collider (default `false`).
+- `collisionCategory` — `number` (optional). Bitfield category for collision filtering (default `0x0001`).
+- `collisionMask` — `number` (optional). Bitfield mask of categories this body can collide with (default `0xFFFF`).
+- `collisionGroup` — `number` (optional). Group index for override filtering (negative never collides, positive always collides; default `0`).
 
 ### Returns
 
@@ -66,7 +69,7 @@ A new `Physics` instance.
 Activate body in simulation.
 
 ```typescript
-setActive(): void
+setActive(active: boolean = true): void
 ```
 
 ### Returns
@@ -291,6 +294,16 @@ applyImpulseVector(impulse: Vec2): void
 
 ---
 
+## Physics.prepareStep()
+
+
+
+```typescript
+prepareStep(second: number): boolean
+```
+
+---
+
 ## Physics.updatePosition()
 
 Integrate accumulated impulses, apply velocity damping, and update geometric shape position.
@@ -316,6 +329,24 @@ updatePosition(second: number): Vec2
 ```typescript
 applyForces(second: number): void
 ```
+
+---
+
+## Physics.applyImpulse()
+
+Apply an instantaneous linear velocity impulse vector to the body.
+
+```typescript
+applyImpulse(): void
+```
+
+### Parameters
+
+- `impulse` — `Vec2`. Impulse vector in px·kg/s.
+
+### Returns
+
+`void`
 
 ---
 
@@ -441,7 +472,7 @@ setGravity(gravity: Vec2): void
 
 ## Physics.setMass()
 
-Set body mass. Sets `inverseMass = 1 / mass` (or `0` when `mass = 0`).
+Set body mass. Sets `inverseMass = 1 / mass` (or `0` when `mass = 0`). Automatically syncs `bodyType` to `static`/`kinematic` if mass is 0, or `dynamic` if mass > 0.
 
 ```typescript
 setMass(mass: number): void
@@ -468,6 +499,100 @@ getMass(): number
 ### Returns
 
 `number` — Current mass.
+
+---
+
+## Physics.setBodyType()
+
+Set explicit rigid body type (`dynamic` | `static` | `kinematic`). Configures mass and velocity constraints accordingly.
+
+```typescript
+setBodyType(type: BodyType): void
+```
+
+### Parameters
+
+- `type` — `BodyType`. Body type (`dynamic`, `static`, or `kinematic`).
+
+### Returns
+
+`void`
+
+### Example
+
+```javascript
+platform.setBodyType('kinematic');
+```
+
+---
+
+## Physics.getBodyType()
+
+Get the current rigid body simulation type.
+
+```typescript
+getBodyType(): BodyType
+```
+
+### Returns
+
+`BodyType` — `'dynamic' | 'static' | 'kinematic'`.
+
+---
+
+## Physics.isStatic()
+
+Check whether the body is static (zero inverse mass, zero velocity, immovable).
+
+```typescript
+isStatic(): boolean
+```
+
+### Returns
+
+`boolean`
+
+---
+
+## Physics.isKinematic()
+
+Check whether the body is kinematic (moves along velocity, unaffected by gravity/forces/impulses).
+
+```typescript
+isKinematic(): boolean
+```
+
+### Returns
+
+`boolean`
+
+---
+
+## Physics.isDynamic()
+
+Check whether the body is dynamic (positive mass, moves under Newtonian physics and collisions).
+
+```typescript
+isDynamic(): boolean
+```
+
+### Returns
+
+`boolean`
+
+---
+
+## Physics.isStationary()
+
+Check whether the body is currently stationary (static, sleeping, or kinematic with zero velocity). Used for broad-phase pruning.
+
+```typescript
+isStationary(): boolean
+```
+
+### Returns
+
+`boolean`
 
 ---
 
@@ -812,6 +937,295 @@ getIsSensor(): boolean
 
 ---
 
+## Physics.setCollisionCategory()
+
+Set the bitfield category of this body (power of 2, e.g. 0x0002).
+
+```typescript
+setCollisionCategory(category: number): void
+```
+
+### Parameters
+
+- `category` — `number`. Bitfield category integer.
+
+### Returns
+
+`void`
+
+---
+
+## Physics.getCollisionCategory()
+
+Get the bitfield category of this body.
+
+```typescript
+getCollisionCategory(): number
+```
+
+### Returns
+
+`number`
+
+---
+
+## Physics.setCollisionMask()
+
+Set the bitfield collision mask defining which categories this body is allowed to collide with.
+
+```typescript
+setCollisionMask(mask: number): void
+```
+
+### Parameters
+
+- `mask` — `number`. Bitfield mask integer.
+
+### Returns
+
+`void`
+
+---
+
+## Physics.getCollisionMask()
+
+Get the bitfield collision mask of this body.
+
+```typescript
+getCollisionMask(): number
+```
+
+### Returns
+
+`number`
+
+---
+
+## Physics.setCollisionGroup()
+
+Set the collision group index (negative never collides with same group, positive always collides with same group, 0 uses category/mask).
+
+```typescript
+setCollisionGroup(group: number): void
+```
+
+### Parameters
+
+- `group` — `number`. Group index integer.
+
+### Returns
+
+`void`
+
+---
+
+## Physics.getCollisionGroup()
+
+Get the collision group index of this body.
+
+```typescript
+getCollisionGroup(): number
+```
+
+### Returns
+
+`number`
+
+---
+
+## Physics.ignoreCollisionWith()
+
+Explicitly disable collision detection and resolution with another specific body.
+
+```typescript
+ignoreCollisionWith(other: Physics): void
+```
+
+### Parameters
+
+- `other` — `Physics`. Body to ignore.
+
+### Returns
+
+`void`
+
+### Example
+
+```javascript
+bodyA.ignoreCollisionWith(bodyB);
+```
+
+---
+
+## Physics.restoreCollisionWith()
+
+Restore collision detection and resolution with a previously ignored body.
+
+```typescript
+restoreCollisionWith(other: Physics): void
+```
+
+### Parameters
+
+- `other` — `Physics`. Body to restore collision with.
+
+### Returns
+
+`void`
+
+### Example
+
+```javascript
+bodyA.restoreCollisionWith(bodyB);
+```
+
+---
+
+## Physics.isIgnoringCollisionWith()
+
+Check whether collision with another specific body is currently ignored.
+
+```typescript
+isIgnoringCollisionWith(other: Physics): boolean
+```
+
+### Parameters
+
+- `other` — `Physics`. Other body to check.
+
+### Returns
+
+`boolean` — `true` if ignored.
+
+---
+
+## Physics.canCollideWith()
+
+Check whether this body can collide with another body based on ignored bodies, group indices, and category/mask bitfields.
+
+```typescript
+canCollideWith(other: Physics): boolean
+```
+
+### Parameters
+
+- `other` — `Physics`. Other body to test.
+
+### Returns
+
+`boolean` — `true` if bodies are permitted to collide.
+
+### Example
+
+```javascript
+if (bullet.canCollideWith(enemy)) { /* ... */ }
+```
+
+---
+
+## Physics.setBullet()
+
+Enable or disable Continuous Collision Detection (CCD) for this dynamic body to prevent tunneling through thin colliders at high speed.
+
+```typescript
+setBullet(bullet: boolean): void
+```
+
+### Parameters
+
+- `bullet` — `boolean`. Whether this body is simulated with CCD.
+
+### Returns
+
+`void`
+
+### Example
+
+```javascript
+fastProjectile.setBullet(true);
+```
+
+---
+
+## Physics.getBullet()
+
+Check whether this body has CCD enabled.
+
+```typescript
+getBullet(): boolean
+```
+
+### Returns
+
+`boolean`
+
+---
+
+## Physics.getIsBullet()
+
+Alias for `getBullet()`.
+
+```typescript
+getIsBullet(): boolean
+```
+
+### Returns
+
+`boolean`
+
+---
+
+## Physics.raycast()
+
+Cast a segment from start to end against this body and return hit details if intersected.
+
+```typescript
+raycast(start: Vec2, end: Vec2): RaycastHit | null
+```
+
+### Parameters
+
+- `start` — `Vec2`. Starting point of the segment.
+- `end` — `Vec2`. Ending point of the segment.
+
+### Returns
+
+`RaycastHit | null` — Hit details or `null` if missed or body is inactive.
+
+### Example
+
+```javascript
+const hit = obstacle.raycast(origin, target);
+```
+
+---
+
+## Physics.sweep()
+
+Sweep this body along a line segment from start to end against an obstacle body and return hit information.
+
+```typescript
+sweep(start: Vec2, end: Vec2, other: Physics): RaycastHit | null
+```
+
+### Parameters
+
+- `start` — `Vec2`. Starting point.
+- `end` — `Vec2`. Target point.
+- `other` — `Physics`. Obstacle body to test against.
+
+### Returns
+
+`RaycastHit | null`
+
+### Example
+
+```javascript
+const hit = bullet.sweep(startPos, endPos, wall);
+```
+
+---
+
 ## Physics.collision()
 
 
@@ -833,6 +1247,80 @@ reset(): void
 ### Returns
 
 `void`
+
+---
+
+## Physics.containsPoint()
+
+Test whether a point in world coordinates is inside this active body.
+
+```typescript
+containsPoint(point: Vec2): boolean
+```
+
+### Parameters
+
+- `point` — `Vec2`. World coordinate query point.
+
+### Returns
+
+`boolean` — `true` if the point is inside the body.
+
+### Example
+
+```javascript
+const isHovered = player.containsPoint(mouseWorldPos);
+```
+
+---
+
+## Physics.overlapsCircle()
+
+Test whether this active body overlaps a circle defined by center and radius.
+
+```typescript
+overlapsCircle(center: Vec2, radius: number): boolean
+```
+
+### Parameters
+
+- `center` — `Vec2`. Circle center in world coordinates.
+- `radius` — `number`. Circle radius.
+
+### Returns
+
+`boolean` — `true` if overlapping.
+
+### Example
+
+```javascript
+if (enemy.overlapsCircle(blastOrigin, blastRadius)) { /* apply damage */ }
+```
+
+---
+
+## Physics.overlapsAabb()
+
+Test whether this active body overlaps an Axis-Aligned Bounding Box (AABB).
+
+```typescript
+overlapsAabb(min: Vec2, max: Vec2): boolean
+```
+
+### Parameters
+
+- `min` — `Vec2`. Minimum corner (or first corner).
+- `max` — `Vec2`. Maximum corner (or second corner).
+
+### Returns
+
+`boolean` — `true` if overlapping.
+
+### Example
+
+```javascript
+if (body.overlapsAabb(cameraMin, cameraMax)) { /* render */ }
+```
 
 ---
 

@@ -110,3 +110,24 @@ computeImpulse(a: Physics, b: Physics, sceneCallback?: (a: Physics, b: Physics, 
 ### Returns
 
 `void`
+
+---
+
+## CollisionDetection.applyContactImpulse()
+
+Calculate and apply normal impulse and Coulomb tangential friction between two bodies given a contact normal vector.
+
+```typescript
+applyContactImpulse(a: Physics, b: Physics, normal: Vec2, sceneCallback?: (a: Physics, b: Physics, normal: Vec2, impulse: Vec2) => void): void
+```
+
+### Parameters
+
+- `a` — `Physics`. First body.
+- `b` — `Physics`. Second body.
+- `normal` — `Vec2`. Outward contact normal pointing from b to a.
+- `sceneCallback` — `SceneCollisionCallback | null` (optional). Scene callback invoked with collision details.
+
+### Returns
+
+`void`

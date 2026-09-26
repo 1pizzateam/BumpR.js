@@ -15,6 +15,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 // it sits at the repository root.
 function localEntry() {
   const entry = [
+    path.resolve(here, '../../../src/bumpr.ts'),
     path.resolve(here, '../../dist/bumpr.js'),
     path.resolve(here, '../../../dist/bumpr.js'),
   ].find(candidate => fs.existsSync(candidate));
@@ -38,6 +39,11 @@ export default defineConfig({
     resolve: { alias },
   },
   head: [
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: `${base}favicon.svg` }],
+    ['link', { rel: 'icon', type: 'image/png', sizes: '32x32', href: `${base}favicon-32x32.png` }],
+    ['link', { rel: 'icon', type: 'image/png', sizes: '16x16', href: `${base}favicon-16x16.png` }],
+    ['link', { rel: 'icon', type: 'image/x-icon', href: `${base}favicon.ico` }],
+    ['link', { rel: 'apple-touch-icon', sizes: '180x180', href: `${base}apple-touch-icon.png` }],
     ['meta', { name: 'theme-color', content: '#ff6b6b' }],
   ],
   themeConfig: {
@@ -62,6 +68,8 @@ export default defineConfig({
           { text: 'Scene', link: '/api/scene' },
           { text: 'Physics', link: '/api/physics' },
           { text: 'CollisionDetection', link: '/api/collision' },
+          { text: 'Raycast', link: '/api/raycast' },
+          { text: 'DistanceConstraint', link: '/api/constraint' },
         ],
       },
       {

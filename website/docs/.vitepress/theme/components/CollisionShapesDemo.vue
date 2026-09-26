@@ -92,18 +92,16 @@ function setupBodies() {
 
 function impulse() {
   if (!bodyA || !bodyB) return;
-  const targetX = bodyB.body.position.x;
-  const targetY = bodyB.body.position.y;
   // Subtle lateral jitter so repeated pushes from same spot test different collision angles
-  const jitterX = (Math.random() - 0.5) * 16;
-  const jitterY = (Math.random() - 0.5) * 16;
-  const dx = (targetX + jitterX) - bodyA.body.position.x;
-  const dy = (targetY + jitterY) - bodyA.body.position.y;
-  const len = Math.hypot(dx, dy);
+  const target = new Vec2(
+    bodyB.position.x + (Math.random() - 0.5) * 16,
+    bodyB.position.y + (Math.random() - 0.5) * 16
+  );
+  const dir = new Vec2().subVectors(target, bodyA.position);
   const speed = 140;
 
-  if (len > 0.001) {
-    bodyA.velocity.setScalar((dx / len) * speed, (dy / len) * speed);
+  if (dir.getMagnitude(true) > 1e-4) {
+    bodyA.velocity.copy(dir.normalize()).scale(speed);
   } else {
     bodyA.velocity.setScalar(speed, 0);
   }
@@ -146,21 +144,21 @@ onMounted(() => {
 
       // Boundaries for bodyA
       const r = 30;
-      if (bodyA.body.position.x < r) {
-        tempPos.setScalar(r, bodyA.body.position.y);
+      if (bodyA.position.x < r) {
+        tempPos.setScalar(r, bodyA.position.y);
         bodyA.setPosition(tempPos);
         bodyA.velocity.x = Math.abs(bodyA.velocity.x);
-      } else if (bodyA.body.position.x > w - r) {
-        tempPos.setScalar(w - r, bodyA.body.position.y);
+      } else if (bodyA.position.x > w - r) {
+        tempPos.setScalar(w - r, bodyA.position.y);
         bodyA.setPosition(tempPos);
         bodyA.velocity.x = -Math.abs(bodyA.velocity.x);
       }
-      if (bodyA.body.position.y < r) {
-        tempPos.setScalar(bodyA.body.position.x, r);
+      if (bodyA.position.y < r) {
+        tempPos.setScalar(bodyA.position.x, r);
         bodyA.setPosition(tempPos);
         bodyA.velocity.y = Math.abs(bodyA.velocity.y);
-      } else if (bodyA.body.position.y > h - r) {
-        tempPos.setScalar(bodyA.body.position.x, h - r);
+      } else if (bodyA.position.y > h - r) {
+        tempPos.setScalar(bodyA.position.x, h - r);
         bodyA.setPosition(tempPos);
         bodyA.velocity.y = -Math.abs(bodyA.velocity.y);
       }

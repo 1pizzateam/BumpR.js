@@ -132,9 +132,9 @@ onMounted(() => {
     for (let i = 0; i < scene.bodiesLength; i++) {
       const b = scene.bodies[i];
       const pos = b.position;
-      const isCircle = b.body.shape === 'circle';
-      const rx = isCircle ? b.body.radius : b.body.halfSize.x;
-      const ry = isCircle ? b.body.radius : b.body.halfSize.y;
+      const isCircle = b.shape === 'circle';
+      const rx = isCircle ? b.radius : b.halfSize.x;
+      const ry = isCircle ? b.radius : b.halfSize.y;
 
       let newX = pos.x;
       let newY = pos.y;

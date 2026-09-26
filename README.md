@@ -1,17 +1,19 @@
 [![License: MIT](https://img.shields.io/npm/l/@1pizzateam/bumpr.svg)](https://opensource.org/licenses/MIT)
 [![npm version](https://badge.fury.io/js/%401pizzateam%2Fbumpr.svg)](https://www.npmjs.com/package/@1pizzateam/bumpr)
-![Jest:coverage](https://img.shields.io/badge/Jest:coverage-100%25-brightgreen.svg)
+![Jest:coverage](https://img.shields.io/badge/Jest:coverage-99%25-brightgreen.svg)
 
 ## Synopsis
 
-[BumpR.js](https://github.com/1pizzateam/BumpR.js) is a 2D physics engine written in TypeScript.
+[BumpR.js](https://github.com/1pizzateam/BumpR.js) is an open source 2D physics and collision detection engine written in TypeScript.
+Rigid body dynamics, narrow-phase collisions, continuous collision detection (CCD), distance constraints, joints, raycasting, and spatial queries.
 
 - Very lightweight
+- Thoroughly tested
 - Works in browsers and Node.js
 
 ## Motivation
 
-The main purpose of this library is to provide a comprehensive and lightweight 2D physics engine.
+The main purpose of this library is to provide a fast, robust, and vector-first physics tool for games and interactive web applications.
 
 ## Installation
 

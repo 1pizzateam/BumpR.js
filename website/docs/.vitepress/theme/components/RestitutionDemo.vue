@@ -75,9 +75,9 @@ onMounted(() => {
     // Floor collision for each ball
     for (let i = 0; i < balls.length; i++) {
       const b = balls[i];
-      const r = b.body.radius;
-      if (b.body.position.y + r >= floorY) {
-        tempPos.setScalar(b.body.position.x, floorY - r);
+      const r = b.radius;
+      if (b.position.y + r >= floorY) {
+        tempPos.setScalar(b.position.x, floorY - r);
         b.setPosition(tempPos);
         b.velocity.y = -Math.abs(b.velocity.y) * b.restitution;
         if (Math.abs(b.velocity.y) < 10) b.velocity.y = 0;
@@ -103,8 +103,8 @@ onMounted(() => {
 
     for (let i = 0; i < balls.length; i++) {
       const b = balls[i];
-      const pos = b.body.position;
-      const r = b.body.radius;
+      const pos = b.position;
+      const r = b.radius;
 
       ctx.beginPath();
       ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);

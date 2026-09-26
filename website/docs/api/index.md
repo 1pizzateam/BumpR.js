@@ -7,6 +7,9 @@ import {
   Scene,
   Physics,
   CollisionDetection,
+  Raycast,
+  DistanceConstraint,
+  Joint,
   Shape
 } from '@1pizzateam/bumpr';
 import {
@@ -23,6 +26,8 @@ import {
 - [Scene](/api/scene): Spatial world manager holding bodies, controlling gravity, stepping integration, and testing collisions.
 - [Physics](/api/physics): Rigid body physics instance handling linear momentum, impulse, velocity damping, restitution, and Spock geometric shapes.
 - [CollisionDetection](/api/collision): Narrow-phase dispatch, contact normal computation, positional de-penetration, and elastic collision response solver.
+- [Raycast](/api/raycast): Fast segment queries against Circle, AABB, and Scene rigid bodies.
+- [DistanceConstraint / Joint](/api/constraint): Distance constraints, rigid rods, ropes, and damped elastic spring joints connecting rigid bodies.
 
 ### Narrow-Phase Collisions
 - [Circle vs Circle](/api/circlevscircle): Fast Euclidean radial distance detection and penetration extraction.

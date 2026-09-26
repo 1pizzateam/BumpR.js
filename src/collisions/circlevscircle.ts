@@ -6,12 +6,14 @@ export const CircleVSCircle = {
   ab: new Vec2(),
 
   detect( apos: Vec2, radiusA: number, bpos: Vec2, radiusB: number ): Vec2 {
-    this.ab.copy(apos).subtract(bpos);
-    const rr = radiusA + radiusB;
+    this.ab.subVectors(apos, bpos);
     const dSq = this.ab.getMagnitude(true);
-    if(rr * rr - dSq > 0)
-      return this.getPenetration(rr, dSq); // collision detected
-    return this.ab.origin();
+    const rr = radiusA + radiusB;
+
+    if (dSq >= rr * rr)
+      return this.ab.origin();
+
+    return this.getPenetration(rr, dSq); // collision detected
   },
 
   getPenetration(rr: number, dSq: number): Vec2 {

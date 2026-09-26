@@ -20,12 +20,24 @@ features:
   - icon: 🎯
     title: Precise Narrow-Phase
     details: Exact collision detection for Circle vs Circle, Circle vs AABB (with Voronoi corners), and AABB vs AABB.
+  - icon: 🛡️
+    title: Continuous Collision Detection
+    details: Bullet mode with swept Minkowski queries prevents high-speed projectiles from tunneling through thin colliders.
+  - icon: 🔗
+    title: Constraints & Springs
+    details: Connect bodies with rigid rods, flexible ropes, and harmonic damped springs using projected Gauss-Seidel relaxation.
+  - icon: 🏗️
+    title: Body Types & Sensors
+    details: Explicit dynamic, static, and kinematic bodies alongside non-solid sensor trigger zones with category filtering.
+  - icon: ⏱️
+    title: Fixed-Timestep Accumulator
+    details: Deterministic sub-stepping with spiral-of-death clamping and alpha interpolation for high-refresh monitors.
+  - icon: 🔦
+    title: Raycasting & Spatial Queries
+    details: Line-of-sight raycasts, point containment checks, and radial/bounding-box spatial queries for interactive games.
   - icon: 🌐
     title: Spatial Hash Broad-Phase
     details: Built-in integration with Spock Grid, accelerating collision queries down to active spatial cells.
-  - icon: 🚀
-    title: Zero-Allocation Hot Paths
-    details: Preallocated math vectors and reusable calculation structures eliminate garbage collection pauses during simulation loops.
 ---
 
 <PhysicsDemo />
@@ -40,7 +52,7 @@ const scene = new Scene();
 scene.setGravity(new Vec2(0, 400)); // 400 px/s² downward
 
 // 2. Attach spatial hash Grid for broad-phase culling (efficient for 50+ bodies)
-const grid = new Grid(800, 480, 40);
+const grid = new Grid(new Vec2(800, 480), 40);
 scene.setGrid(grid);
 
 // 3. Helper to spawn lively, bouncy balls with tuned physics properties

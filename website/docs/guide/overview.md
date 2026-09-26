@@ -8,32 +8,35 @@
 - **Versatile Shapes**: Narrow-phase detection between Circles (`Circ`) and Axis-Aligned Bounding Boxes (`Rect`).
 - **Corner Voronoi Handling**: Diagonal hits against rectangular corners project outwards along true radial normals rather than sticking or catching.
 - **Elastic Impulses & Friction**: Realistic bounce calculations taking into account both bodies' restitution coefficients and inverse mass ratios, accompanied by a 2D Coulomb tangential friction solver that prevents unnatural sliding.
-- **Resting Contact Stabilization**: Thresholded contact resolution eliminates micro-bouncing jitter for stable stacks and resting bodies.
-- **Static Obstacles**: Bodies with mass `0` behave as immovable infinite-mass obstacles (floors, walls, platforms).
+- **Resting Contact Stabilization & Sleeping**: Thresholded contact resolution eliminates micro-bouncing jitter; idle bodies automatically enter sleep state to save CPU.
+- **Explicit Body Types**: First-class support for `dynamic`, `static` (immovable), and `kinematic` (scripted velocity pushing dynamic bodies with infinite momentum) bodies.
+- **Continuous Collision Detection (CCD)**: Bullet mode with swept Minkowski queries prevents fast-moving projectiles from tunneling through thin obstacles.
+- **Distance Constraints & Joints**: Connect bodies with rigid rods (`createRod`), flexible ropes (`createRope`), or harmonic damped springs (`createSpring`).
+- **Deterministic Fixed-Timestep Accumulator**: `scene.step(deltaTime)` decouples simulation time from render frame rates, offering alpha interpolation (`getAlpha()`) for smooth rendering on high-refresh monitors.
+- **Raycasting & Spatial Queries**: Line-of-sight raycasting (`scene.raycast`), point containment (`scene.queryPoint`), and area queries (`scene.queryCircle`, `scene.queryAabb`).
+- **Collision Filtering & Sensors**: 16-bit category/mask bitfields, group indices, and non-solid sensor trigger zones.
 - **Spatial Hash Acceleration**: Native integration with `@1pizzateam/spock`'s `Grid` reduces pairwise checks from $O(N^2)$ to $O(\text{activeCells})$.
 - **Zero Allocations in Hot Paths**: Collision detection vectors and intermediate math structures are reused across iterations to eliminate garbage collection pauses.
 
 ## Architecture
 
-The simulation pipeline consists of three core components:
-
 ```
-┌────────────────────────────────────────────────────────┐
-│                        Scene                           │
-│  - Holds rigid bodies                                  │
-│  - Propagates gravity                                  │
-│  - Coordinates Spatial Hash Grid broad-phase           │
-└──────────────────────────┬─────────────────────────────┘
-                           │
-            ┌──────────────┴──────────────┐
-            ▼                             ▼
-┌───────────────────────┐     ┌────────────────────────┐
-│        Physics        │     │  CollisionDetection    │
-│  - Position & Velocity│     │  - Broadphase test     │
-│  - Mass & Damping     │────▶│  - Narrowphase detect  │
-│  - Impulse integration│     │  - Positional resolve  │
-│  - Geometric shape    │     │  - Impulse computation │
-└───────────────────────┘     └────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────┐
+│                                Scene                                   │
+│  - Rigid bodies & constraints management                               │
+│  - Deterministic fixed-timestep accumulator (scene.step)               │
+│  - Spatial hash grid broad-phase, raycasting, & spatial queries        │
+│  - TOI sub-stepping for Continuous Collision Detection (CCD)           │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+        ┌───────────────────────────┼──────────────────────────┐
+        ▼                           ▼                          ▼
+┌───────────────┐          ┌─────────────────┐        ┌──────────────────┐
+│    Physics    │          │ CollisionDetect │        │ DistanceConstrain│
+│ - Body types  │─────────▶│ - Broadphase    │◀───────│ - Rods / Ropes   │
+│ - Mass/Force  │          │ - Narrowphase   │        │ - Damped Springs │
+│ - Velocity/CCD│          │ - Impulse solver│        │ - Gauss-Seidel   │
+└───────────────┘          └─────────────────┘        └──────────────────┘
 ```
 
 ## Quick Start
@@ -70,10 +73,9 @@ const obstacle = new Physics(
 );
 scene.addBody(obstacle);
 
-// 3. Step the world on every frame with LoopR
+// 3. Step the world on every frame with LoopR (fixed-timestep accumulator)
 const player = new Player((delta) => {
-  scene.update(delta);
-  scene.test();
+  scene.step(delta);
 });
 player.start();
 ```

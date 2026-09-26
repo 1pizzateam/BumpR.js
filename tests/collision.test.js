@@ -394,4 +394,63 @@ describe('Collision Detection & Impulse Response', () => {
       expect(callCount).toBe(1);
     });
   });
+
+  describe('Collision Filtering in CollisionDetection.test', () => {
+    test('test() returns false and skips detection when filtered by mask', () => {
+      const a = new Physics(new Vec2(100, 100), new Vec2(10, 0), new Vec2(40, 40), 1, 1, 0, 'circle');
+      const b = new Physics(new Vec2(110, 100), new Vec2(-10, 0), new Vec2(40, 40), 1, 1, 0, 'circle');
+
+      a.setCollisionCategory(0x0002);
+      a.setCollisionMask(0x0001); // Only collides with 0x0001
+
+      b.setCollisionCategory(0x0004);
+      b.setCollisionMask(0x0001); // Only collides with 0x0001
+
+      let callbackFired = false;
+      a.onCollision = () => { callbackFired = true; };
+
+      const result = CollisionDetection.test(a, b);
+      expect(result).toBe(false);
+      expect(callbackFired).toBe(false);
+      expect(a.impulse.isOrigin()).toBe(true);
+    });
+
+    test('test() respects negative group index', () => {
+      const part1 = new Physics(new Vec2(50, 50), new Vec2(), new Vec2(40, 40), 1, 1, 0, 'circle');
+      const part2 = new Physics(new Vec2(50, 50), new Vec2(), new Vec2(40, 40), 1, 1, 0, 'circle');
+
+      part1.setCollisionGroup(-5);
+      part2.setCollisionGroup(-5);
+
+      const result = CollisionDetection.test(part1, part2);
+      expect(result).toBe(false);
+    });
+
+    test('test() returns false when both bodies are sleeping', () => {
+      const b1 = new Physics(new Vec2(50, 50), new Vec2(), new Vec2(40, 40), 1, 1, 0, 'circle');
+      const b2 = new Physics(new Vec2(55, 50), new Vec2(), new Vec2(40, 40), 1, 1, 0, 'circle');
+      b1.sleep();
+      b2.sleep();
+      expect(CollisionDetection.test(b1, b2)).toBe(false);
+    });
+
+    test('applyContactImpulse early returns when totalInverseMass is 0', () => {
+      const s1 = new Physics(new Vec2(0, 0), new Vec2(), new Vec2(20, 20), 0, 1, 0, 'aabb');
+      const s2 = new Physics(new Vec2(10, 0), new Vec2(), new Vec2(20, 20), 0, 1, 0, 'aabb');
+      CollisionDetection.applyContactImpulse(s1, s2, new Vec2(1, 0));
+      expect(s1.impulse.isOrigin()).toBe(true);
+      expect(s2.impulse.isOrigin()).toBe(true);
+    });
+
+    test('resolve() returns false when correction is zero', () => {
+      const b1 = new Physics(new Vec2(50, 50), new Vec2(), new Vec2(40, 40), 1, 1, 0, 'circle');
+      const b2 = new Physics(new Vec2(55, 50), new Vec2(), new Vec2(40, 40), 1, 1, 0, 'circle');
+      CollisionDetection.detect(b1.body, b2.body);
+      const originalPercent = CollisionDetection.percent;
+      CollisionDetection.percent = 0;
+      expect(CollisionDetection.resolve(b1, b2)).toBe(false);
+      CollisionDetection.percent = originalPercent;
+    });
+  });
 });
+

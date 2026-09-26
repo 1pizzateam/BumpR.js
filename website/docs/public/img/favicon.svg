@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <radialGradient id="bumprRedGrad" cx="30%" cy="28%" r="72%">
+      <stop offset="0%" stop-color="#ff9999"/>
+      <stop offset="25%" stop-color="#ff6b6b"/>
+      <stop offset="75%" stop-color="#e03131"/>
+      <stop offset="100%" stop-color="#b02525"/>
+    </radialGradient>
+    <radialGradient id="bumprBlueGrad" cx="30%" cy="28%" r="72%">
+      <stop offset="0%" stop-color="#a5d8ff"/>
+      <stop offset="25%" stop-color="#5b8cff"/>
+      <stop offset="75%" stop-color="#3b5bdb"/>
+      <stop offset="100%" stop-color="#2b44b8"/>
+    </radialGradient>
+  </defs>
+  <style>
+    .arena-boundary {
+      stroke: #ff6b6b;
+      stroke-opacity: 0.35;
+      stroke-width: 1.5;
+      fill: none;
+    }
+    .arena-grid {
+      stroke: #ff6b6b;
+      stroke-opacity: 0.12;
+      stroke-width: 1;
+    }
+    @media (prefers-color-scheme: dark) {
+      .arena-boundary { stroke-opacity: 0.5; }
+      .arena-grid { stroke-opacity: 0.18; }
+    }
+    
+    @keyframes bounceRed {
+      0%, 100% { transform: translate(-3.5px, -1px); }
+      48%, 52% { transform: translate(3px, 1px); }
+    }
+    @keyframes bounceBlue {
+      0%, 100% { transform: translate(3.5px, 1px); }
+      48%, 52% { transform: translate(-2.5px, -1px); }
+    }
+    @keyframes shockwave {
+      0%, 38% { transform: scale(0.2); opacity: 0; }
+      48% { opacity: 1; }
+      50% { transform: scale(1); opacity: 0.85; }
+      68% { transform: scale(1.6); opacity: 0; }
+      100% { transform: scale(0.2); opacity: 0; }
+    }
+    .red-circle {
+      animation: bounceRed 2.4s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+      transform-origin: 23px 29px;
+    }
+    .blue-circle {
+      animation: bounceBlue 2.4s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+      transform-origin: 43px 35px;
+    }
+    .impact-flash {
+      animation: shockwave 2.4s ease-out infinite;
+      transform-origin: 33px 32px;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .red-circle, .blue-circle, .impact-flash {
+        animation: none !important;
+      }
+    }
+  
+  </style>
+
+  <!-- Outer circular arena boundary -->
+  <circle class="arena-boundary" cx="32" cy="32" r="30"/>
+  <!-- Arena grid accents -->
+  <line class="arena-grid" x1="14" y1="32" x2="50" y2="32"/>
+  <line class="arena-grid" x1="32" y1="14" x2="32" y2="50"/>
+
+  <!-- Impact Shockwave -->
+  <g class="impact-flash">
+    <circle cx="33" cy="32" r="7.5" fill="none" stroke="#ff6b6b" stroke-width="1.8" stroke-opacity="0.85"/>
+    <circle cx="33" cy="32" r="13" fill="none" stroke="#ff6b6b" stroke-width="1.2" stroke-opacity="0.45"/>
+    <circle cx="33" cy="32" r="2.5" fill="#ffffff" fill-opacity="0.9"/>
+  </g>
+
+  <!-- Red Circle (Body A) -->
+  <g class="red-circle">
+    <circle cx="23" cy="29" r="15" fill="url(#bumprRedGrad)" stroke="#ff8787" stroke-width="1.5"/>
+  </g>
+
+  <!-- Blue Circle (Body B) -->
+  <g class="blue-circle">
+    <circle cx="43" cy="35" r="11.5" fill="url(#bumprBlueGrad)" stroke="#74c0fc" stroke-width="1.3"/>
+  </g>
+</svg>

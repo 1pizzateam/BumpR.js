@@ -2,31 +2,22 @@ import { Vec2 } from '@1pizzateam/spock';
 
 export const AabbVSAabb = {
 
-  ab         : new Vec2(),
-  penetration: new Vec2(),
+  ab    : new Vec2(),
+  absAb : new Vec2(),
+  pen   : new Vec2(),
 
-  detect( apos: Vec2,
-          ahs : Vec2,
-          bpos: Vec2,
-          bhs : Vec2 ): Vec2 {
-    this.ab.copy(apos).subtract(bpos);
-    if (this.penetration.copy(this.ab)
-                        .absolute()
-                        .opposite()
-                        .add(ahs)
-                        .add(bhs)
-                        .isPositive())
+  detect( apos: Vec2, ahs : Vec2, bpos: Vec2, bhs : Vec2 ): Vec2 {
+    this.ab.subVectors(apos, bpos);
+    this.absAb.absoluteVector(this.ab);
+    this.pen.addVectors(ahs, bhs).subtract(this.absAb);
+
+    if (this.pen.x > 0 && this.pen.y > 0)
       return this.getPenetration();
-    return this.penetration.origin();
+    return this.pen.origin();
   },
 
   getPenetration(): Vec2 {
-    // pick the shallowest projection axis
-    const minAxis = this.penetration.getMinAxis();
-    this.penetration.setOppositeAxis(minAxis, 0.0);
-    if(this.penetration[minAxis] && this.ab[minAxis] < 0)
-      this.penetration[minAxis] = -this.penetration[minAxis];
-    return this.penetration;
+    return this.pen.projectToMinAxis(this.ab);
   }
 };
 
