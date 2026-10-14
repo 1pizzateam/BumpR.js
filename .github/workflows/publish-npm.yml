@@ -1,0 +1,62 @@
+name: Publish to npm
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch: # manual retry from master
+
+permissions:
+  contents: read
+  id-token: write # OIDC for trusted publishing and provenance
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # needed to check the tag is on master
+
+      - name: Check tag is on master
+        if: github.event_name == 'release'
+        run: git merge-base --is-ancestor "$GITHUB_SHA" origin/master || { echo "Tag ${GITHUB_REF_NAME} is not on master"; exit 1; }
+
+      - name: Check manual run is on master
+        if: github.event_name == 'workflow_dispatch'
+        run: '[ "$GITHUB_REF" = "refs/heads/master" ] || { echo "Manual publish is only allowed from master"; exit 1; }'
+
+      - name: Check tag matches package version
+        if: github.event_name == 'release'
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if [ "${GITHUB_REF_NAME}" != "v${VERSION}" ]; then
+            echo "Tag ${GITHUB_REF_NAME} != v${VERSION} (package.json)"
+            exit 1
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+
+      - name: Upgrade npm
+        run: npm install -g npm@latest # trusted publishing needs npm >= 11.5.1
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build library
+        run: npm run build:lib
+
+      - name: Run library tests
+        run: npm run test
+
+      - name: Verify package contents (dry run)
+        run: npm publish --dry-run --access public
+
+      - name: Publish package to npm
+        run: npm publish --access public --provenance
