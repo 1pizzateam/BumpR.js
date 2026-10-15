@@ -56,7 +56,9 @@ jobs:
         run: npm run test
 
       - name: Verify package contents (dry run)
-        run: npm publish --dry-run --access public
+        run: |
+          npm publish --dry-run --access public
+          npm pack --dry-run --json | node .github/scripts/check-package-files.mjs
 
       - name: Publish package to npm
         run: npm publish --access public --provenance
