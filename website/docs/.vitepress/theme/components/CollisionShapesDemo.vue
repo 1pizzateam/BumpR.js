@@ -10,7 +10,9 @@ const colliding = ref(false);
 const modes = [
   { id: 'circlevsaabb', label: 'Circle vs AABB' },
   { id: 'circlevscircle', label: 'Circle vs Circle' },
+  { id: 'circlevstriangle', label: 'Circle vs Triangle' },
   { id: 'aabbvsaabb', label: 'AABB vs AABB' },
+  { id: 'aabbvstriangle', label: 'AABB vs Triangle' },
 ];
 
 let bodyA = null;
@@ -68,6 +70,44 @@ function setupBodies() {
       0.9,
       'aabb'
     ); // static box in the center
+  } else if (currentMode.value === 'circlevstriangle') {
+    bodyA = new Physics(
+      new Vec2(cx + 95, cy + 25),
+      new Vec2(-120, -35),
+      new Vec2(40, 40),
+      1.0,
+      1.0,
+      0.9,
+      'circle'
+    );
+    bodyB = new Physics(
+      new Vec2(cx, cy),
+      new Vec2(0, 0),
+      new Vec2(56, 56),
+      0.0,
+      1.0,
+      0.9,
+      'triangle-nw'
+    );
+  } else if (currentMode.value === 'aabbvstriangle') {
+    bodyA = new Physics(
+      new Vec2(cx + 95, cy + 25),
+      new Vec2(-120, -35),
+      new Vec2(32, 32),
+      1.0,
+      1.0,
+      0.9,
+      'aabb'
+    );
+    bodyB = new Physics(
+      new Vec2(cx, cy),
+      new Vec2(0, 0),
+      new Vec2(56, 56),
+      0.0,
+      1.0,
+      0.9,
+      'triangle-nw'
+    );
   } else {
     bodyA = new Physics(
       new Vec2(cx - 95, cy - 15),

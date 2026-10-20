@@ -541,6 +541,44 @@ scene.setIteration(4);
 
 ---
 
+## Scene.setPositionCorrection()
+
+Set positional penetration correction factor in `[0, 1]` (default `0.99`). Use `1` for 100% immediate de-penetration against solid walls.
+
+```typescript
+setPositionCorrection(percent: number): void
+```
+
+### Parameters
+
+- `percent` — `number`. Fraction of penetration depth resolved per step in `[0, 1]`.
+
+### Returns
+
+`void`
+
+### Example
+
+```javascript
+scene.setPositionCorrection(1);
+```
+
+---
+
+## Scene.getPositionCorrection()
+
+Get current positional penetration correction factor.
+
+```typescript
+getPositionCorrection(): number
+```
+
+### Returns
+
+`number`
+
+---
+
 ## Scene.setDeduplicationMode()
 
 
@@ -753,14 +791,14 @@ drawConstraints(context: CanvasRenderingContext2D, strokeColor: string = '#88888
 Cast a segment from start to end through the scene and return the closest hit, or null if nothing was struck.
 
 ```typescript
-raycast(start: Vec2, end: Vec2, optionsOrMask?: number | RaycastOptions): RaycastHit | null
+raycast(start: Vec2, end: Vec2, options?: RaycastOptions): RaycastHit | null
 ```
 
 ### Parameters
 
 - `start` — `Vec2`. Starting point of the segment.
 - `end` — `Vec2`. Ending point of the segment.
-- `optionsOrMask` — `number | RaycastOptions` (optional). Category bitmask (defaults to `0xFFFF`) or `{ mask, ignoreSensors }` options object.
+- `options` — `RaycastOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.
 
 ### Returns
 
@@ -769,10 +807,36 @@ raycast(start: Vec2, end: Vec2, optionsOrMask?: number | RaycastOptions): Raycas
 ### Example
 
 ```javascript
-const hit = scene.raycast(muzzlePos, targetPos, 0x0004);
+const hit = scene.raycast(muzzlePos, targetPos, { mask: 0x0004 });
 if (hit) {
   console.log('Struck', hit.body, 'at', hit.point, 'normal', hit.normal);
 }
+```
+
+---
+
+## Scene.hasLineOfSight()
+
+Test whether a segment from start to end has an unobstructed line of sight, early-exiting with zero allocations on the first blocking collider.
+
+```typescript
+hasLineOfSight(start: Vec2, end: Vec2, options?: RaycastOptions): boolean
+```
+
+### Parameters
+
+- `start` — `Vec2`. Starting point of the segment.
+- `end` — `Vec2`. Ending point of the segment.
+- `options` — `RaycastOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.
+
+### Returns
+
+`boolean` — `true` if no matching body intersects the segment.
+
+### Example
+
+```javascript
+const visible = scene.hasLineOfSight(enemyPos, playerPos, { mask: CAT_WALL });
 ```
 
 ---
@@ -782,14 +846,14 @@ if (hit) {
 Cast a segment from start to end and return all intersected bodies, sorted by fraction ascending.
 
 ```typescript
-raycastAll(start: Vec2, end: Vec2, optionsOrMask?: number | RaycastOptions): RaycastHit[]
+raycastAll(start: Vec2, end: Vec2, options?: RaycastOptions): RaycastHit[]
 ```
 
 ### Parameters
 
 - `start` — `Vec2`. Starting point of the segment.
 - `end` — `Vec2`. Ending point of the segment.
-- `optionsOrMask` — `number | RaycastOptions` (optional). Category bitmask or options object.
+- `options` — `RaycastOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.
 
 ### Returns
 
@@ -846,7 +910,7 @@ getCcdSubSteps(): number
 Sweep a moving rigid body along a line segment against all obstacles in the scene and return the nearest impact, or null if clear.
 
 ```typescript
-sweepBody(start: Vec2, end: Vec2, movingBody: Physics, optionsOrMask?: number | RaycastOptions): RaycastHit | null
+sweepBody(start: Vec2, end: Vec2, movingBody: Physics, options?: RaycastOptions): RaycastHit | null
 ```
 
 ### Parameters
@@ -854,7 +918,7 @@ sweepBody(start: Vec2, end: Vec2, movingBody: Physics, optionsOrMask?: number | 
 - `start` — `Vec2`. Starting position.
 - `end` — `Vec2`. Target position.
 - `movingBody` — `Physics`. Body being swept.
-- `optionsOrMask` — `number | RaycastOptions` (optional). Category bitmask or options object.
+- `options` — `RaycastOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.
 
 ### Returns
 
@@ -873,7 +937,7 @@ const hit = scene.sweepBody(startPos, endPos, bullet);
 Sweep a moving rigid body along a line segment and return all intersected obstacles, sorted by impact fraction ascending.
 
 ```typescript
-sweepBodyAll(start: Vec2, end: Vec2, movingBody: Physics, optionsOrMask?: number | RaycastOptions): RaycastHit[]
+sweepBodyAll(start: Vec2, end: Vec2, movingBody: Physics, options?: RaycastOptions): RaycastHit[]
 ```
 
 ### Parameters
@@ -881,7 +945,7 @@ sweepBodyAll(start: Vec2, end: Vec2, movingBody: Physics, optionsOrMask?: number
 - `start` — `Vec2`. Starting position.
 - `end` — `Vec2`. Target position.
 - `movingBody` — `Physics`. Body being swept.
-- `optionsOrMask` — `number | RaycastOptions` (optional). Category bitmask or options object.
+- `options` — `RaycastOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.
 
 ### Returns
 
@@ -900,13 +964,13 @@ const hits = scene.sweepBodyAll(startPos, endPos, bullet);
 Find all active bodies in the scene containing a point in world coordinates.
 
 ```typescript
-queryPoint(point: Vec2, optionsOrMask?: number | SpatialQueryOptions): Physics[]
+queryPoint(point: Vec2, options?: SpatialQueryOptions): Physics[]
 ```
 
 ### Parameters
 
 - `point` — `Vec2`. Query point in world coordinates.
-- `optionsOrMask` — `number | SpatialQueryOptions` (optional). Category bitmask or `{ mask, ignoreSensors }` options object.
+- `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.
 
 ### Returns
 
@@ -925,13 +989,13 @@ const clickedBodies = scene.queryPoint(mouseWorldPos);
 Find the first active body in the scene containing a point in world coordinates.
 
 ```typescript
-queryPointFirst(point: Vec2, optionsOrMask?: number | SpatialQueryOptions): Physics | null
+queryPointFirst(point: Vec2, options?: SpatialQueryOptions): Physics | null
 ```
 
 ### Parameters
 
 - `point` — `Vec2`. Query point in world coordinates.
-- `optionsOrMask` — `number | SpatialQueryOptions` (optional). Category bitmask or options object.
+- `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.
 
 ### Returns
 
@@ -950,14 +1014,14 @@ const hoveredBody = scene.queryPointFirst(mouseWorldPos);
 Find all active bodies in the scene overlapping a circle (e.g. area-of-effect blast or proximity check).
 
 ```typescript
-queryCircle(center: Vec2, radius: number, optionsOrMask?: number | SpatialQueryOptions): Physics[]
+queryCircle(center: Vec2, radius: number, options?: SpatialQueryOptions): Physics[]
 ```
 
 ### Parameters
 
 - `center` — `Vec2`. Circle center in world coordinates.
 - `radius` — `number`. Circle radius.
-- `optionsOrMask` — `number | SpatialQueryOptions` (optional). Category bitmask or options object.
+- `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.
 
 ### Returns
 
@@ -974,13 +1038,25 @@ const blastedEnemies = scene.queryCircle(explosionPos, 150, { mask: ENEMY_CATEGO
 ## Scene.queryCircleFirst()
 
 Find the first active body in the scene overlapping a circle.
-@param center - Circle center in world coordinates.
-@param radius - Circle radius.
-@param optionsOrMask - Optional category bitmask or query options.
-@returns The first matching body, or null if none found.
 
 ```typescript
-queryCircleFirst(center: Vec2, radius: number, optionsOrMask?: number | SpatialQueryOptions): Physics | null
+queryCircleFirst(center: Vec2, radius: number, options?: SpatialQueryOptions): Physics | null
+```
+
+### Parameters
+
+- `center` — `Vec2`. Circle center in world coordinates.
+- `radius` — `number`. Circle radius.
+- `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.
+
+### Returns
+
+`Physics | null` — The first matching body, or `null` if none found.
+
+### Example
+
+```javascript
+const blocked = scene.queryCircleFirst(padPos, 24, { mask: CAT_ENEMY, ignoreBody: selfBody });
 ```
 
 ---
@@ -990,14 +1066,14 @@ queryCircleFirst(center: Vec2, radius: number, optionsOrMask?: number | SpatialQ
 Find all active bodies in the scene overlapping an Axis-Aligned Bounding Box (AABB) (e.g. selection marquee or camera frustum).
 
 ```typescript
-queryAabb(min: Vec2, max: Vec2, optionsOrMask?: number | SpatialQueryOptions): Physics[]
+queryAabb(min: Vec2, max: Vec2, options?: SpatialQueryOptions): Physics[]
 ```
 
 ### Parameters
 
 - `min` — `Vec2`. Minimum corner (or first corner).
 - `max` — `Vec2`. Maximum corner (or second corner).
-- `optionsOrMask` — `number | SpatialQueryOptions` (optional). Category bitmask or options object.
+- `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.
 
 ### Returns
 
@@ -1014,11 +1090,17 @@ const selectedUnits = scene.queryAabb(dragStart, dragEnd);
 ## Scene.queryAabbFirst()
 
 Find the first active body in the scene overlapping an Axis-Aligned Bounding Box (AABB).
-@param min - Minimum corner (or first corner).
-@param max - Maximum corner (or second corner).
-@param optionsOrMask - Optional category bitmask or query options.
-@returns The first matching body, or null if none found.
 
 ```typescript
-queryAabbFirst(min: Vec2, max: Vec2, optionsOrMask?: number | SpatialQueryOptions): Physics | null
+queryAabbFirst(min: Vec2, max: Vec2, options?: SpatialQueryOptions): Physics | null
 ```
+
+### Parameters
+
+- `min` — `Vec2`. Minimum corner (or first corner).
+- `max` — `Vec2`. Maximum corner (or second corner).
+- `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.
+
+### Returns
+
+`Physics | null` — The first matching body, or `null` if none found.

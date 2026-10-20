@@ -1,3 +1,21 @@
+Version 1.1.0 (October 20th 2026)
+-----------------------------
+ * Update `@1pizzateam/spock` dependency to v4.4.0
+ * Right-Triangle Colliders & Narrow-Phase Solvers:
+   - Added `'triangle-nw'`, `'triangle-ne'`, `'triangle-sw'`, and `'triangle-se'` shapes (`Shape.triangleNW`, `Shape.triangleNE`, `Shape.triangleSW`, `Shape.triangleSE`, `isTriangleShape`, `BodyShape`) backed by `RightTriangle` from `@1pizzateam/spock`.
+   - Added `CircleVSTriangle` and `AabbVSTriangle` narrow-phase penetration solvers in `CollisionDetection.detect`.
+   - Added `Raycast.sweepCircleTriangle`, `Raycast.sweepAabbTriangle`, and `Raycast.raycastSegment` (delegating to `raycastSegment` from `@1pizzateam/spock`) with reusable `scratchHit` (`RayHit2D`) to avoid intermediate allocations during swept CCD queries.
+ * Scene Spatial Queries, Line-of-Sight & Configuration:
+   - Added `scene.hasLineOfSight(start, end, options?)` with zero-allocation early exit on the first blocking collider.
+   - Added `scene.setPositionCorrection(percent)` and `scene.getPositionCorrection()` to configure per-scene positional penetration correction without mutating global `CollisionDetection.percent`.
+   - Added `category` and `ignoreBody` filtering options to `SpatialQueryOptions` and `RaycastOptions`, backed by a reusable `queryFilter` object in `Scene`.
+   - Removed legacy `number` bitmask union and `typeof === 'number'` runtime branching from `Scene` spatial query and raycast methods (`raycast`, `raycastAll`, `sweepBody`, `sweepBodyAll`, `queryPoint`, `queryPointFirst`, `queryCircle`, `queryCircleFirst`, `queryAabb`, `queryAabbFirst`).
+ * Physics Body Enhancements & Vector-Only API:
+   - Made `Physics.setSize(size: Vec2)` strictly accept `Vec2`, removing scalar overloads and `instanceof` branching.
+   - Added allocation-free `target?: Vec2` parameter support to `getPosition(target?)`, `getVelocity(target?)`, `getInitialVelocity(target?)`, `getGravity(target?)`, and `getSize(target?)`.
+   - Updated `Physics.overlapsCircle(center, radius)` to reuse a static `Circ` scratch instance when delegating to `body.overlapsCircle(circ)`.
+   - Made `Physics.canCollideWith(other)` check `ignoredBodies` symmetrically on both bodies, and cleared queued `impulse` on `setVelocity(velocity)`.
+
 Version 1.0.0 (September 25th 2026)
 -----------------------------
  * Update 1pizzateam/spock dependency to v4.2.0

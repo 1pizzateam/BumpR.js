@@ -1,4 +1,4 @@
-import { Vec2 } from '@1pizzateam/spock';
+import { Utils, Vec2 } from '@1pizzateam/spock';
 import type { Physics } from './physics';
 
 export interface DistanceConstraintOptions {
@@ -48,8 +48,8 @@ export class DistanceConstraint {
     this.distance = options?.distance !== undefined ? Math.max(0, options.distance) : initialDist;
     this.minDistance = options?.minDistance !== undefined ? Math.max(0, options.minDistance) : this.distance;
     this.maxDistance = options?.maxDistance !== undefined ? Math.max(this.minDistance, options.maxDistance) : this.distance;
-    this.stiffness = options?.stiffness !== undefined ? Math.max(0, Math.min(1, options.stiffness)) : 1.0;
-    this.damping = options?.damping !== undefined ? Math.max(0, Math.min(1, options.damping)) : 0.1;
+    this.stiffness = options?.stiffness !== undefined ? Utils.clamp(options.stiffness, 0, 1) : 1.0;
+    this.damping = options?.damping !== undefined ? Utils.clamp(options.damping, 0, 1) : 0.1;
     this.collideConnected = options?.collideConnected ?? false;
   }
 
@@ -142,7 +142,7 @@ export class DistanceConstraint {
   }
 
   public setStiffness(stiffness: number): void {
-    this.stiffness = Math.max(0, Math.min(1, stiffness));
+    this.stiffness = Utils.clamp(stiffness, 0, 1);
   }
 
   public getStiffness(): number {
@@ -150,7 +150,7 @@ export class DistanceConstraint {
   }
 
   public setDamping(damping: number): void {
-    this.damping = Math.max(0, Math.min(1, damping));
+    this.damping = Utils.clamp(damping, 0, 1);
   }
 
   public getDamping(): number {
@@ -176,8 +176,7 @@ export class DistanceConstraint {
   public getCurrentDistance(): number {
     this.getWorldAnchorA(this.pA);
     this.getWorldAnchorB(this.pB);
-    this.delta.subVectors(this.pB, this.pA);
-    return this.delta.getMagnitude();
+    return this.pA.getDistance(this.pB);
   }
 
   public solve(): void {

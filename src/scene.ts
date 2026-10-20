@@ -1,5 +1,5 @@
 import type { Grid } from '@1pizzateam/spock';
-import { Vec2, Accumulator } from '@1pizzateam/spock';
+import { Accumulator, Utils, Vec2 } from '@1pizzateam/spock';
 import { CollisionDetection } from './collision';
 import type { Physics } from './physics';
 import { Raycast, type RaycastHit, type RaycastOptions } from './raycast';
@@ -7,7 +7,7 @@ import type { DistanceConstraint } from './constraint';
 
 export type DeduplicationMode = 'auto' | 'cell' | 'pair';
 export type SceneCollisionCallback = (bodyA: Physics, bodyB: Physics, normal: Vec2, impulse: Vec2) => void;
-export type SpatialQueryOptions = { mask?: number; ignoreSensors?: boolean };
+export type SpatialQueryOptions = { mask?: number; category?: number; ignoreSensors?: boolean; ignoreBody?: Physics };
 
 export class Scene {
 
@@ -15,6 +15,7 @@ export class Scene {
   bodiesLength : number;
   gravity : Vec2;
   iterations : number;
+  positionCorrection : number = 0.99;
   grid : Grid | null;
   private nextBodyId : number = 1;
   private constraints : DistanceConstraint[] = [];
@@ -329,11 +330,14 @@ export class Scene {
     this.collectCandidatePairs();
     const hasCallback = this.onCollision !== null || this.collisionListeners.length > 0;
     const callback = hasCallback ? this.boundDispatchCollision : undefined;
+    const prevPercent = CollisionDetection.percent;
+    CollisionDetection.percent = this.positionCorrection;
     for (let k = 0; k < this.iterations; k++) {
       this.solveConstraints();
       for (let p = 0; p < this.candidatePairsCount; p++)
         CollisionDetection.test(this.candidatePairs[p * 2], this.candidatePairs[p * 2 + 1], callback, k);
     }
+    CollisionDetection.percent = prevPercent;
     this.clearCandidatePairs();
   }
 
@@ -400,10 +404,13 @@ export class Scene {
       this.testSceneTarget = scene;
       callback = this.boundDispatchTestScene;
     }
+    const prevPercent = CollisionDetection.percent;
+    CollisionDetection.percent = this.positionCorrection;
     for (let k = 0; k < this.iterations; k++) {
       for (let p = 0; p < this.candidatePairsCount; p++)
         CollisionDetection.test(this.candidatePairs[p * 2], this.candidatePairs[p * 2 + 1], callback, k);
     }
+    CollisionDetection.percent = prevPercent;
     this.testSceneTarget = null;
     this.clearCandidatePairs();
   }
@@ -442,6 +449,14 @@ export class Scene {
 
   public setIteration(iterations: number): void {
     this.iterations = iterations;
+  }
+
+  public setPositionCorrection(percent: number): void {
+    this.positionCorrection = Utils.clamp(percent, 0, 1);
+  }
+
+  public getPositionCorrection(): number {
+    return this.positionCorrection;
   }
 
   public setDeduplicationMode(mode: DeduplicationMode): void {
@@ -533,37 +548,51 @@ export class Scene {
     }
   }
 
-  private parseSpatialQueryOptions(optionsOrMask?: number | SpatialQueryOptions | RaycastOptions): { mask: number; ignoreSensors: boolean } {
-    let mask = 0xFFFF;
-    let ignoreSensors = false;
-    if (typeof optionsOrMask === 'number')
-      mask = optionsOrMask;
-    else if (optionsOrMask) {
-      if (optionsOrMask.mask !== undefined)
-        mask = optionsOrMask.mask;
-      if (optionsOrMask.ignoreSensors !== undefined)
-        ignoreSensors = optionsOrMask.ignoreSensors;
-    }
-    return { mask, ignoreSensors };
+  private queryFilter = {
+    mask: 0xFFFF,
+    category: 0xFFFF,
+    ignoreSensors: false,
+    ignoreBody: null as Physics | null
+  };
+
+  private parseSpatialQueryOptions(options?: SpatialQueryOptions | RaycastOptions): {
+    mask: number;
+    category: number;
+    ignoreSensors: boolean;
+    ignoreBody: Physics | null;
+  } {
+    const f = this.queryFilter;
+    f.mask = options?.mask ?? 0xFFFF;
+    f.category = options?.category ?? 0xFFFF;
+    f.ignoreSensors = options?.ignoreSensors ?? false;
+    f.ignoreBody = options?.ignoreBody ?? null;
+    return f;
   }
 
-  private passesSpatialFilter(body: Physics, mask: number, ignoreSensors: boolean): boolean {
-    return body.isActive() && (!ignoreSensors || !body.isSensor) && (body.collisionCategory & mask) !== 0;
+  private passesSpatialFilter(body: Physics): boolean {
+    const f = this.queryFilter;
+    return (
+      body !== f.ignoreBody &&
+      body.isActive() &&
+      (!f.ignoreSensors || !body.isSensor) &&
+      (body.collisionCategory & f.mask) !== 0 &&
+      (body.collisionMask & f.category) !== 0
+    );
   }
 
   public raycast(
     start: Vec2,
     end: Vec2,
-    optionsOrMask?: number | RaycastOptions
+    options?: RaycastOptions
   ): RaycastHit | null {
-    const { mask, ignoreSensors } = this.parseSpatialQueryOptions(optionsOrMask);
+    this.parseSpatialQueryOptions(options);
 
     let closestHit: RaycastHit | null = null;
     let minFraction = 1.0;
 
     for (let i = 0; i < this.bodiesLength; i++) {
       const body = this.bodies[i];
-      if (!this.passesSpatialFilter(body, mask, ignoreSensors))
+      if (!this.passesSpatialFilter(body))
         continue;
 
       const hit = body.raycast(start, end);
@@ -576,17 +605,35 @@ export class Scene {
     return closestHit;
   }
 
+  public hasLineOfSight(
+    start: Vec2,
+    end: Vec2,
+    options?: RaycastOptions
+  ): boolean {
+    this.parseSpatialQueryOptions(options);
+
+    for (let i = 0; i < this.bodiesLength; i++) {
+      const body = this.bodies[i];
+      if (!this.passesSpatialFilter(body))
+        continue;
+      if (body.body.raycast(start, end, Raycast.scratchHit))
+        return false;
+    }
+
+    return true;
+  }
+
   public raycastAll(
     start: Vec2,
     end: Vec2,
-    optionsOrMask?: number | RaycastOptions
+    options?: RaycastOptions
   ): RaycastHit[] {
-    const { mask, ignoreSensors } = this.parseSpatialQueryOptions(optionsOrMask);
+    this.parseSpatialQueryOptions(options);
     const hits: RaycastHit[] = [];
 
     for (let i = 0; i < this.bodiesLength; i++) {
       const body = this.bodies[i];
-      if (!this.passesSpatialFilter(body, mask, ignoreSensors))
+      if (!this.passesSpatialFilter(body))
         continue;
 
       const hit = body.raycast(start, end);
@@ -610,16 +657,16 @@ export class Scene {
     start: Vec2,
     end: Vec2,
     movingBody: Physics,
-    optionsOrMask?: number | RaycastOptions
+    options?: RaycastOptions
   ): RaycastHit | null {
-    const { mask, ignoreSensors } = this.parseSpatialQueryOptions(optionsOrMask);
+    this.parseSpatialQueryOptions(options);
 
     let closestHit: RaycastHit | null = null;
     let minFraction = 1.0;
 
     for (let i = 0; i < this.bodiesLength; i++) {
       const body = this.bodies[i];
-      if (body === movingBody || !this.passesSpatialFilter(body, mask, ignoreSensors))
+      if (body === movingBody || !this.passesSpatialFilter(body))
         continue;
       if (!movingBody.canCollideWith(body))
         continue;
@@ -638,14 +685,14 @@ export class Scene {
     start: Vec2,
     end: Vec2,
     movingBody: Physics,
-    optionsOrMask?: number | RaycastOptions
+    options?: RaycastOptions
   ): RaycastHit[] {
-    const { mask, ignoreSensors } = this.parseSpatialQueryOptions(optionsOrMask);
+    this.parseSpatialQueryOptions(options);
     const hits: RaycastHit[] = [];
 
     for (let i = 0; i < this.bodiesLength; i++) {
       const body = this.bodies[i];
-      if (body === movingBody || !this.passesSpatialFilter(body, mask, ignoreSensors))
+      if (body === movingBody || !this.passesSpatialFilter(body))
         continue;
       if (!movingBody.canCollideWith(body))
         continue;
@@ -662,15 +709,15 @@ export class Scene {
   /**
    * Find all active bodies in the scene containing a point.
    * @param point - Query point in world coordinates.
-   * @param optionsOrMask - Optional category bitmask or query options.
+   * @param options - Optional spatial query options.
    * @returns Array of matching bodies.
    */
-  public queryPoint(point: Vec2, optionsOrMask?: number | SpatialQueryOptions): Physics[] {
-    const { mask, ignoreSensors } = this.parseSpatialQueryOptions(optionsOrMask);
+  public queryPoint(point: Vec2, options?: SpatialQueryOptions): Physics[] {
+    this.parseSpatialQueryOptions(options);
     const results: Physics[] = [];
     for (let i = 0; i < this.bodiesLength; i++) {
       const body = this.bodies[i];
-      if (!this.passesSpatialFilter(body, mask, ignoreSensors))
+      if (!this.passesSpatialFilter(body))
         continue;
       if (body.containsPoint(point))
         results.push(body);
@@ -681,14 +728,14 @@ export class Scene {
   /**
    * Find the first active body in the scene containing a point.
    * @param point - Query point in world coordinates.
-   * @param optionsOrMask - Optional category bitmask or query options.
+   * @param options - Optional spatial query options.
    * @returns The first matching body, or null if none found.
    */
-  public queryPointFirst(point: Vec2, optionsOrMask?: number | SpatialQueryOptions): Physics | null {
-    const { mask, ignoreSensors } = this.parseSpatialQueryOptions(optionsOrMask);
+  public queryPointFirst(point: Vec2, options?: SpatialQueryOptions): Physics | null {
+    this.parseSpatialQueryOptions(options);
     for (let i = 0; i < this.bodiesLength; i++) {
       const body = this.bodies[i];
-      if (!this.passesSpatialFilter(body, mask, ignoreSensors))
+      if (!this.passesSpatialFilter(body))
         continue;
       if (body.containsPoint(point))
         return body;
@@ -700,15 +747,15 @@ export class Scene {
    * Find all active bodies in the scene overlapping a circle.
    * @param center - Circle center in world coordinates.
    * @param radius - Circle radius.
-   * @param optionsOrMask - Optional category bitmask or query options.
+   * @param options - Optional spatial query options.
    * @returns Array of matching bodies.
    */
-  public queryCircle(center: Vec2, radius: number, optionsOrMask?: number | SpatialQueryOptions): Physics[] {
-    const { mask, ignoreSensors } = this.parseSpatialQueryOptions(optionsOrMask);
+  public queryCircle(center: Vec2, radius: number, options?: SpatialQueryOptions): Physics[] {
+    this.parseSpatialQueryOptions(options);
     const results: Physics[] = [];
     for (let i = 0; i < this.bodiesLength; i++) {
       const body = this.bodies[i];
-      if (!this.passesSpatialFilter(body, mask, ignoreSensors))
+      if (!this.passesSpatialFilter(body))
         continue;
       if (body.overlapsCircle(center, radius))
         results.push(body);
@@ -720,14 +767,14 @@ export class Scene {
    * Find the first active body in the scene overlapping a circle.
    * @param center - Circle center in world coordinates.
    * @param radius - Circle radius.
-   * @param optionsOrMask - Optional category bitmask or query options.
+   * @param options - Optional spatial query options.
    * @returns The first matching body, or null if none found.
    */
-  public queryCircleFirst(center: Vec2, radius: number, optionsOrMask?: number | SpatialQueryOptions): Physics | null {
-    const { mask, ignoreSensors } = this.parseSpatialQueryOptions(optionsOrMask);
+  public queryCircleFirst(center: Vec2, radius: number, options?: SpatialQueryOptions): Physics | null {
+    this.parseSpatialQueryOptions(options);
     for (let i = 0; i < this.bodiesLength; i++) {
       const body = this.bodies[i];
-      if (!this.passesSpatialFilter(body, mask, ignoreSensors))
+      if (!this.passesSpatialFilter(body))
         continue;
       if (body.overlapsCircle(center, radius))
         return body;
@@ -739,15 +786,15 @@ export class Scene {
    * Find all active bodies in the scene overlapping an Axis-Aligned Bounding Box (AABB).
    * @param min - Minimum corner (or first corner).
    * @param max - Maximum corner (or second corner).
-   * @param optionsOrMask - Optional category bitmask or query options.
+   * @param options - Optional spatial query options.
    * @returns Array of matching bodies.
    */
-  public queryAabb(min: Vec2, max: Vec2, optionsOrMask?: number | SpatialQueryOptions): Physics[] {
-    const { mask, ignoreSensors } = this.parseSpatialQueryOptions(optionsOrMask);
+  public queryAabb(min: Vec2, max: Vec2, options?: SpatialQueryOptions): Physics[] {
+    this.parseSpatialQueryOptions(options);
     const results: Physics[] = [];
     for (let i = 0; i < this.bodiesLength; i++) {
       const body = this.bodies[i];
-      if (!this.passesSpatialFilter(body, mask, ignoreSensors))
+      if (!this.passesSpatialFilter(body))
         continue;
       if (body.overlapsAabb(min, max))
         results.push(body);
@@ -759,14 +806,14 @@ export class Scene {
    * Find the first active body in the scene overlapping an Axis-Aligned Bounding Box (AABB).
    * @param min - Minimum corner (or first corner).
    * @param max - Maximum corner (or second corner).
-   * @param optionsOrMask - Optional category bitmask or query options.
+   * @param options - Optional spatial query options.
    * @returns The first matching body, or null if none found.
    */
-  public queryAabbFirst(min: Vec2, max: Vec2, optionsOrMask?: number | SpatialQueryOptions): Physics | null {
-    const { mask, ignoreSensors } = this.parseSpatialQueryOptions(optionsOrMask);
+  public queryAabbFirst(min: Vec2, max: Vec2, options?: SpatialQueryOptions): Physics | null {
+    this.parseSpatialQueryOptions(options);
     for (let i = 0; i < this.bodiesLength; i++) {
       const body = this.bodies[i];
-      if (!this.passesSpatialFilter(body, mask, ignoreSensors))
+      if (!this.passesSpatialFilter(body))
         continue;
       if (body.overlapsAabb(min, max))
         return body;

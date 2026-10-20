@@ -2,7 +2,7 @@
 
 A 2D rigid body with mass, velocity, acceleration, restitution, damping, and geometry.
 
-`Physics` pairs physical dynamics (Newtonian integration, forces, velocity damping, and coefficient of restitution) with geometric primitives (`Circ` or `Rect`) from Spock.js.
+`Physics` pairs physical dynamics (Newtonian integration, forces, velocity damping, and coefficient of restitution) with geometric primitives (`Circ`, `Rect`, or `RightTriangle`) from Spock.js.
 
 A mass of `0` denotes a static, immovable obstacle (`inverseMass = 0`), which absorbs collisions without being pushed back.
 
@@ -40,7 +40,7 @@ const wall = new Physics(
 Create a new `Physics` body with vector-first arguments.
 
 ```typescript
-new Physics(position          : Vec2 = new Vec2(), velocity          : Vec2 = new Vec2(), size              : Vec2 = new Vec2(20, 20), mass              : number = 1.0, damping           : number = 0.8, restitution       : number = 0, shape             : 'circle' | 'aabb' | 'rectangle' = 'circle', friction?         : number, isSensor          : boolean = false, collisionCategory : number = 0x0001, collisionMask     : number = 0xFFFF, collisionGroup    : number = 0, bodyType?         : BodyType, isBullet          : boolean = false)
+new Physics(position          : Vec2 = new Vec2(), velocity          : Vec2 = new Vec2(), size              : Vec2 = new Vec2(20, 20), mass              : number = 1.0, damping           : number = 0.8, restitution       : number = 0, shape             : BodyShape = 'circle', friction?         : number, isSensor          : boolean = false, collisionCategory : number = 0x0001, collisionMask     : number = 0xFFFF, collisionGroup    : number = 0, bodyType?         : BodyType, isBullet          : boolean = false)
 ```
 
 ### Parameters
@@ -51,8 +51,8 @@ new Physics(position          : Vec2 = new Vec2(), velocity          : Vec2 = ne
 - `mass` — `number`. Body mass in kg (default `1.0`). `0` marks a static body.
 - `damping` — `number`. Air resistance / velocity damping per second in `[0, 1]` (default `0.8`).
 - `restitution` — `number`. Bounciness in `[0, 1]` (default `0`).
-- `shape` — `'circle' | 'aabb' | 'rectangle'`. Collision geometry (default `'circle'`).
-- `friction` — `number` (optional). Coulomb friction coefficient in `[0, 1]` (defaults to `0` for circle, `0.6` for AABB).
+- `shape` — `BodyShape` (`'circle' | 'aabb' | 'rectangle' | 'triangle-nw' | 'triangle-ne' | 'triangle-sw' | 'triangle-se'`). Collision geometry (default `'circle'`).
+- `friction` — `number` (optional). Coulomb friction coefficient in `[0, 1]` (defaults to `0` for circle, `0.6` for AABB/triangle).
 - `isSensor` — `boolean` (optional). Whether this body acts as a sensor/trigger collider (default `false`).
 - `collisionCategory` — `number` (optional). Bitfield category for collision filtering (default `0x0001`).
 - `collisionMask` — `number` (optional). Bitfield mask of categories this body can collide with (default `0xFFFF`).
@@ -388,17 +388,25 @@ setPosition(position: Vec2): void
 
 ## Physics.getPosition()
 
-
+Get the body position vector, optionally copying into a pre-allocated target.
 
 ```typescript
-getPosition(): Vec2
+getPosition(target?: Vec2): Vec2
 ```
+
+### Parameters
+
+- `target` — `Vec2` (optional). Pre-allocated target vector.
+
+### Returns
+
+`Vec2`
 
 ---
 
 ## Physics.setVelocity()
 
-Explicitly set linear velocity vector.
+Explicitly set linear velocity vector and clear queued impulse.
 
 ```typescript
 setVelocity(velocity: Vec2): void
@@ -416,11 +424,19 @@ setVelocity(velocity: Vec2): void
 
 ## Physics.getVelocity()
 
-
+Get the linear velocity vector, optionally copying into a pre-allocated target.
 
 ```typescript
-getVelocity(): Vec2
+getVelocity(target?: Vec2): Vec2
 ```
+
+### Parameters
+
+- `target` — `Vec2` (optional). Pre-allocated target vector.
+
+### Returns
+
+`Vec2`
 
 ---
 
@@ -444,11 +460,19 @@ setInitialVelocity(velocity: Vec2): void
 
 ## Physics.getInitialVelocity()
 
-
+Get the reference initial velocity vector, optionally copying into a pre-allocated target.
 
 ```typescript
-getInitialVelocity(): Vec2
+getInitialVelocity(target?: Vec2): Vec2
 ```
+
+### Parameters
+
+- `target` — `Vec2` (optional). Pre-allocated target vector.
+
+### Returns
+
+`Vec2`
 
 ---
 
@@ -467,6 +491,24 @@ setGravity(gravity: Vec2): void
 ### Returns
 
 `void`
+
+---
+
+## Physics.getGravity()
+
+Get the gravity acceleration vector, optionally copying into a pre-allocated target.
+
+```typescript
+getGravity(target?: Vec2): Vec2
+```
+
+### Parameters
+
+- `target` — `Vec2` (optional). Pre-allocated target vector.
+
+### Returns
+
+`Vec2`
 
 ---
 
@@ -694,34 +736,51 @@ getDamping(): number
 
 ## Physics.getBody()
 
-Get the underlying Spock geometric shape (`Circ` or `Rect`).
+Get the underlying Spock geometric shape (`Circ`, `Rect`, or `RightTriangle`).
 
 ```typescript
-getBody(): Rect | Circ
+getBody(): Rect | Circ | RightTriangle
 ```
 
 ### Returns
 
-`Circ | Rect`
+`Rect | Circ | RightTriangle`
 
 ---
 
 ## Physics.setSize()
 
-Update the dimensions of the underlying geometric shape.
+Update the dimensions of the underlying geometric shape using a `Vec2` size vector.
 
 ```typescript
-setSize(sizeOrWidth: Vec2 | number, height?: number): void
+setSize(size: Vec2): void
 ```
 
 ### Parameters
 
-- `width` — `number`. Radius if circle, width if AABB.
-- `height` — `number | undefined`. Height if AABB.
+- `size` — `Vec2`. Radius in `size.x` if circle, `(width, height)` if AABB or RightTriangle.
 
 ### Returns
 
 `void`
+
+---
+
+## Physics.getSize()
+
+Write the bounding `(width, height)` dimensions of this body into `target`.
+
+```typescript
+getSize(target: Vec2 = new Vec2()): Vec2
+```
+
+### Parameters
+
+- `target` — `Vec2` (optional). Pre-allocated target vector.
+
+### Returns
+
+`Vec2`
 
 ---
 

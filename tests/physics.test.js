@@ -275,7 +275,7 @@ describe('Physics Engine', () => {
     const circle = new Physics(new Vec2(), new Vec2(), new Vec2(30, 30), 1, 0.8, 0, 'circle');
     expect(circle.getBody()).toBeInstanceOf(Circ);
     expect(circle.getBody().radius).toBe(15);
-    circle.setSize(25);
+    circle.setSize(new Vec2(25, 25));
     expect(circle.getBody().radius).toBe(25);
     circle.setSize(new Vec2(35, 35));
     expect(circle.getBody().radius).toBe(35);
@@ -286,24 +286,27 @@ describe('Physics Engine', () => {
     expect(aabb.getBody()).toBeInstanceOf(Rect);
     expect(aabb.getBody().size.x).toBe(20);
     expect(aabb.getBody().size.y).toBe(30);
-    aabb.setSize(40, 50);
+    aabb.setSize(new Vec2(40, 50));
     expect(aabb.getBody().size.x).toBe(40);
     expect(aabb.getBody().size.y).toBe(50);
-    // Square shortcut (single argument)
-    aabb.setSize(60);
-    expect(aabb.getBody().size.x).toBe(60);
-    expect(aabb.getBody().size.y).toBe(60);
-    // Vec2 overload
     aabb.setSize(new Vec2(70, 80));
     expect(aabb.getBody().size.x).toBe(70);
     expect(aabb.getBody().size.y).toBe(80);
+
+    const tri = new Physics(new Vec2(32, 32), new Vec2(), new Vec2(64, 64), 0, 0.8, 0, 'triangle-nw');
+    expect(tri.shape).toBe('triangle-nw');
+    expect(tri.halfSize.x).toBe(32);
+    expect(tri.halfSize.y).toBe(32);
+    tri.setSize(new Vec2(128, 128));
+    expect(tri.halfSize.x).toBe(64);
+    expect(tri.halfSize.y).toBe(64);
   });
 
   test('setGrid and getGrid manage Spock Grid attachment on body', () => {
     const body = new Physics(new Vec2(50, 50));
     expect(body.getGrid()).toBeNull();
 
-    const grid = new Grid(800, 600, 32);
+    const grid = new Grid(new Vec2(800, 600), 32);
     body.setGrid(grid);
     expect(body.getGrid()).toBe(grid);
     expect(body.body.gridCells.length).toBeGreaterThan(0);

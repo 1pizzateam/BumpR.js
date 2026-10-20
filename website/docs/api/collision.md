@@ -2,7 +2,7 @@
 
 Narrow-phase collision detection, positional resolution, and elastic impulse solver.
 
-`CollisionDetection` computes penetration vectors between pairs of bodies (`Circle vs Circle`, `Circle vs AABB`, `AABB vs AABB`), separates overlapping bodies along the contact normal according to inverse mass ratios, and computes linear impulse responses.
+`CollisionDetection` computes penetration vectors between pairs of bodies (`Circle vs Circle`, `Circle vs AABB`, `Circle vs Triangle`, `AABB vs AABB`, `AABB vs Triangle`), separates overlapping bodies along the contact normal according to inverse mass ratios, and computes linear impulse responses.
 
 ```javascript
 import { CollisionDetection, Physics } from '@1pizzateam/bumpr';
@@ -58,16 +58,16 @@ test(a: Physics, b: Physics, sceneCallback?: (a: Physics, b: Physics, normal: Ve
 
 ## CollisionDetection.detect()
 
-Compute the penetration vector between two geometric shapes (`Circ | Rect`). Stores result in `this.penetration`.
+Compute the penetration vector between two geometric shapes (`Circ | Rect | RightTriangle`). Stores result in `this.penetration`.
 
 ```typescript
-detect(a: Circ | Rect, b: Circ | Rect): void
+detect(a: Circ | Rect | RightTriangle, b: Circ | Rect | RightTriangle): void
 ```
 
 ### Parameters
 
-- `a` — `Circ | Rect`. First shape.
-- `b` — `Circ | Rect`. Second shape.
+- `a` — `Circ | Rect | RightTriangle`. First shape.
+- `b` — `Circ | Rect | RightTriangle`. Second shape.
 
 ### Returns
 

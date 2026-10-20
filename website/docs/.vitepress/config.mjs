@@ -78,7 +78,9 @@ export default defineConfig({
         items: [
           { text: 'Circle vs Circle', link: '/api/circlevscircle' },
           { text: 'Circle vs AABB', link: '/api/circlevsaabb' },
+          { text: 'Circle vs Triangle', link: '/api/circlevstriangle' },
           { text: 'AABB vs AABB', link: '/api/aabbvsaabb' },
+          { text: 'AABB vs Triangle', link: '/api/aabbvstriangle' },
         ],
       },
     ],

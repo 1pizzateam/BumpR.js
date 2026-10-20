@@ -1,6 +1,6 @@
 {
   "name": "@1pizzateam/bumpr",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "2D physics engine written in TypeScript",
   "keywords": [
     "physics",
@@ -51,7 +51,7 @@
     "node": ">= 22"
   },
   "dependencies": {
-    "@1pizzateam/spock": "4.2.0"
+    "@1pizzateam/spock": "4.4.0"
   },
   "devDependencies": {
     "@types/jest": "29.5.14",

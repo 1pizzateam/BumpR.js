@@ -2,7 +2,7 @@
 
 Linear segment raycasting and analytical swept continuous collision detection (CCD).
 
-`Raycast` provides analytical ray vs circle intersection, fast slab-method ray vs AABB intersection, and continuous swept tests (`sweepBody`, `sweepCircleCircle`, `sweepCircleAabb`, `sweepAabbAabb`, `sweepAabbCircle`).
+`Raycast` provides analytical ray vs circle intersection, fast slab-method ray vs AABB intersection, ray vs segment intersection, and continuous swept tests (`sweepBody`, `sweepCircleCircle`, `sweepCircleAabb`, `sweepCircleTriangle`, `sweepAabbAabb`, `sweepAabbCircle`, `sweepAabbTriangle`).
 
 It returns impact fraction $t \in [0, 1]$, world coordinates of the hit point, outward unit normal vector, and struck body reference.
 
@@ -14,7 +14,7 @@ const start = new Vec2(0, 100);
 const end = new Vec2(500, 100);
 
 // Scene raycast (returns closest hit)
-const hit = scene.raycast(start, end, 0x0004);
+const hit = scene.raycast(start, end, { mask: 0x0004 });
 if (hit) {
   console.log('Impact at:', hit.point.x, hit.point.y, 'normal:', hit.normal);
 }
@@ -37,7 +37,7 @@ getAabbExitNormal(point: Vec2, min: Vec2, max: Vec2, out: Vec2): Vec2
 Cast a segment against a circular boundary and calculate intersection fraction, hit point, and surface normal.
 
 ```typescript
-raycastCircle(start: Vec2, end: Vec2, center: Vec2, radius: number): { fraction: number; point: Vec2; normal: Vec2 } | null
+raycastCircle(start: Vec2, end: Vec2, center: Vec2, radius: number, target?: RayHit2D): RayHit2D | null
 ```
 
 ### Parameters
@@ -58,7 +58,7 @@ raycastCircle(start: Vec2, end: Vec2, center: Vec2, radius: number): { fraction:
 Cast a segment against an Axis-Aligned Bounding Box (AABB) using the slab method.
 
 ```typescript
-raycastAabb(start: Vec2, end: Vec2, center: Vec2, halfSize: Vec2): { fraction: number; point: Vec2; normal: Vec2 } | null
+raycastAabb(start: Vec2, end: Vec2, center: Vec2, halfSize: Vec2, target?: RayHit2D): RayHit2D | null
 ```
 
 ### Parameters
@@ -71,6 +71,16 @@ raycastAabb(start: Vec2, end: Vec2, center: Vec2, halfSize: Vec2): { fraction: n
 ### Returns
 
 `{ fraction: number, point: Vec2, normal: Vec2 } | null`
+
+---
+
+## Raycast.raycastSegment()
+
+
+
+```typescript
+raycastSegment(start: Vec2, end: Vec2, p1: Vec2, p2: Vec2, outNormal: Vec2, target?: RayHit2D): RayHit2D | null
+```
 
 ---
 
@@ -130,7 +140,38 @@ sweepCircleAabb(start: Vec2, end: Vec2, radiusA: number, centerB: Vec2, halfSize
 - `end` — `Vec2`. Target position of moving circle center.
 - `radiusA` — `number`. Radius of moving circle A.
 - `centerB` — `Vec2`. Center of target AABB B.
-- `halfB` — `Vec2`. Half-extents of target AABB B.
+- `halfSizeB` — `Vec2`. Half-extents of target AABB B.
+
+### Returns
+
+`{ fraction: number, point: Vec2, normal: Vec2 } | null`
+
+---
+
+## Raycast.testOffsetEdge()
+
+
+
+```typescript
+testOffsetEdge(start: Vec2, end: Vec2, p1: Vec2, p2: Vec2, normal: Vec2, radius: number, tMin: number): number
+```
+
+---
+
+## Raycast.sweepCircleTriangle()
+
+Sweep a moving circle along a line segment against a `RightTriangle` using offset edges and rounded vertices.
+
+```typescript
+sweepCircleTriangle(start: Vec2, end: Vec2, radiusA: number, tri: RightTriangle): { fraction: number; point: Vec2; normal: Vec2 } | null
+```
+
+### Parameters
+
+- `start` — `Vec2`. Starting point of moving circle center.
+- `end` — `Vec2`. Target position of moving circle center.
+- `radiusA` — `number`. Radius of moving circle A.
+- `tri` — `RightTriangle`. Target right triangle.
 
 ### Returns
 
@@ -150,9 +191,9 @@ sweepAabbAabb(start: Vec2, end: Vec2, halfSizeA: Vec2, centerB: Vec2, halfSizeB:
 
 - `start` — `Vec2`. Starting point of moving AABB center.
 - `end` — `Vec2`. Target position of moving AABB center.
-- `halfA` — `Vec2`. Half-extents of moving AABB A.
+- `halfSizeA` — `Vec2`. Half-extents of moving AABB A.
 - `centerB` — `Vec2`. Center of target AABB B.
-- `halfB` — `Vec2`. Half-extents of target AABB B.
+- `halfSizeB` — `Vec2`. Half-extents of target AABB B.
 
 ### Returns
 
@@ -172,9 +213,30 @@ sweepAabbCircle(start: Vec2, end: Vec2, halfSizeA: Vec2, centerB: Vec2, radiusB:
 
 - `start` — `Vec2`. Starting point of moving AABB center.
 - `end` — `Vec2`. Target position of moving AABB center.
-- `halfA` — `Vec2`. Half-extents of moving AABB A.
+- `halfSizeA` — `Vec2`. Half-extents of moving AABB A.
 - `centerB` — `Vec2`. Center of target circle B.
 - `radiusB` — `number`. Radius of target circle B.
+
+### Returns
+
+`{ fraction: number, point: Vec2, normal: Vec2 } | null`
+
+---
+
+## Raycast.sweepAabbTriangle()
+
+Sweep a moving AABB along a line segment against a `RightTriangle`.
+
+```typescript
+sweepAabbTriangle(start: Vec2, end: Vec2, halfSizeA: Vec2, tri: RightTriangle): { fraction: number; point: Vec2; normal: Vec2 } | null
+```
+
+### Parameters
+
+- `start` — `Vec2`. Starting point of moving AABB center.
+- `end` — `Vec2`. Target position of moving AABB center.
+- `halfSizeA` — `Vec2`. Half-extents of moving AABB A.
+- `tri` — `RightTriangle`. Target right triangle.
 
 ### Returns
 

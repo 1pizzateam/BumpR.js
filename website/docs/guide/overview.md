@@ -5,15 +5,15 @@
 ## Highlights
 
 - **Linear Dynamics**: Accurate simulation of velocity, acceleration, gravity, damping, and instantaneous impulses.
-- **Versatile Shapes**: Narrow-phase detection between Circles (`Circ`) and Axis-Aligned Bounding Boxes (`Rect`).
-- **Corner Voronoi Handling**: Diagonal hits against rectangular corners project outwards along true radial normals rather than sticking or catching.
+- **Versatile Shapes**: Narrow-phase detection between Circles (`Circ`), Axis-Aligned Bounding Boxes (`Rect`), and Axis-Aligned Right Triangles (`RightTriangle`: `'triangle-nw'`, `'triangle-ne'`, `'triangle-sw'`, `'triangle-se'`).
+- **Corner Voronoi & Diagonal Slope Handling**: Diagonal hits against rectangular corners and $45^\circ$ right-triangle hypotenuses project and slide smoothly along true surface normals rather than sticking or catching.
 - **Elastic Impulses & Friction**: Realistic bounce calculations taking into account both bodies' restitution coefficients and inverse mass ratios, accompanied by a 2D Coulomb tangential friction solver that prevents unnatural sliding.
 - **Resting Contact Stabilization & Sleeping**: Thresholded contact resolution eliminates micro-bouncing jitter; idle bodies automatically enter sleep state to save CPU.
 - **Explicit Body Types**: First-class support for `dynamic`, `static` (immovable), and `kinematic` (scripted velocity pushing dynamic bodies with infinite momentum) bodies.
 - **Continuous Collision Detection (CCD)**: Bullet mode with swept Minkowski queries prevents fast-moving projectiles from tunneling through thin obstacles.
 - **Distance Constraints & Joints**: Connect bodies with rigid rods (`createRod`), flexible ropes (`createRope`), or harmonic damped springs (`createSpring`).
 - **Deterministic Fixed-Timestep Accumulator**: `scene.step(deltaTime)` decouples simulation time from render frame rates, offering alpha interpolation (`getAlpha()`) for smooth rendering on high-refresh monitors.
-- **Raycasting & Spatial Queries**: Line-of-sight raycasting (`scene.raycast`), point containment (`scene.queryPoint`), and area queries (`scene.queryCircle`, `scene.queryAabb`).
+- **Raycasting & Spatial Queries**: Line-of-sight checks (`scene.hasLineOfSight`), raycasting (`scene.raycast`, `scene.raycastAll`), point containment (`scene.queryPoint`), and area queries (`scene.queryCircle`, `scene.queryAabb`) with `mask`, `category`, `ignoreSensors`, and `ignoreBody` filters.
 - **Collision Filtering & Sensors**: 16-bit category/mask bitfields, group indices, and non-solid sensor trigger zones.
 - **Spatial Hash Acceleration**: Native integration with `@1pizzateam/spock`'s `Grid` reduces pairwise checks from $O(N^2)$ to $O(\text{activeCells})$.
 - **Zero Allocations in Hot Paths**: Collision detection vectors and intermediate math structures are reused across iterations to eliminate garbage collection pauses.

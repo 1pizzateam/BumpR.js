@@ -7,7 +7,8 @@ import {
   Scene as DistScene,
   Shape as DistShape,
   DistanceConstraint as DistDistanceConstraint,
-  Joint as DistJoint
+  Joint as DistJoint,
+  isTriangleShape as DistIsTriangleShape
 } from '../build/bumpr.mjs';
 import {
   CollisionDetection,
@@ -16,7 +17,8 @@ import {
   Scene,
   Shape,
   DistanceConstraint,
-  Joint
+  Joint,
+  isTriangleShape
 } from '../build/es6/bumpr.js';
 import { Vec2 } from '@1pizzateam/spock';
 
@@ -29,6 +31,7 @@ describe('Public Library Exports', () => {
     expect(Raycast).toBeDefined();
     expect(DistanceConstraint).toBeDefined();
     expect(Joint).toBeDefined();
+    expect(isTriangleShape(Shape.triangleNW)).toBe(true);
     expect(Shape.circle).toBe('circle');
     expect(Shape.aabb).toBe('aabb');
 
@@ -37,6 +40,7 @@ describe('Public Library Exports', () => {
     expect(BumprEs6.Vec2).toBeUndefined();
     expect(BumprEs6.Circ).toBeUndefined();
     expect(BumprEs6.Rect).toBeUndefined();
+    expect(BumprEs6.RightTriangle).toBeUndefined();
     expect(BumprEs6.Utils).toBeUndefined();
 
     const scene = new Scene();
@@ -64,6 +68,7 @@ describe('Public Library Exports', () => {
     expect(DistRaycast).toBeDefined();
     expect(DistDistanceConstraint).toBeDefined();
     expect(DistJoint).toBeDefined();
+    expect(DistIsTriangleShape(DistShape.triangleSE)).toBe(true);
     expect(DistShape.circle).toBe('circle');
     expect(DistShape.aabb).toBe('aabb');
 
@@ -72,6 +77,7 @@ describe('Public Library Exports', () => {
     expect(BumprBundle.Vec2).toBeUndefined();
     expect(BumprBundle.Circ).toBeUndefined();
     expect(BumprBundle.Rect).toBeUndefined();
+    expect(BumprBundle.RightTriangle).toBeUndefined();
     expect(BumprBundle.Utils).toBeUndefined();
 
     const scene = new DistScene();

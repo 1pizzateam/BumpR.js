@@ -1,12 +1,27 @@
-
-import type { Circ, Grid, Rect } from '@1pizzateam/spock';
+import type { Circ, Grid, Rect, RightTriangle } from '@1pizzateam/spock';
 import { Utils, Vec2 } from '@1pizzateam/spock';
-import { AabbVSAabb } from './collisions/aabbvsaabb';
-import { CircleVSAabb } from './collisions/circlevsaabb';
-import { CircleVSCircle } from './collisions/circlevscircle';
-import type { Physics } from './physics';
+import { AabbVSAabb } from './collisions/aabbvsaabb.js';
+import { AabbVSTriangle } from './collisions/aabbvstriangle.js';
+import { CircleVSAabb } from './collisions/circlevsaabb.js';
+import { CircleVSCircle } from './collisions/circlevscircle.js';
+import { CircleVSTriangle } from './collisions/circlevstriangle.js';
+import type { Physics } from './physics.js';
 
-export enum Shape { circle = 'circle', aabb = 'aabb' };
+export enum Shape {
+  circle = 'circle',
+  aabb = 'aabb',
+  triangleNW = 'triangle-nw',
+  triangleNE = 'triangle-ne',
+  triangleSW = 'triangle-sw',
+  triangleSE = 'triangle-se'
+};
+
+export function isTriangleShape(shape: string): boolean {
+  return shape === Shape.triangleNW ||
+         shape === Shape.triangleNE ||
+         shape === Shape.triangleSW ||
+         shape === Shape.triangleSE;
+}
 
 export const CollisionDetection = {
 
@@ -55,19 +70,32 @@ export const CollisionDetection = {
     return true;
   },
 
-  detect( a: Circ | Rect, b: Circ | Rect ): void {
+  detect( a: Circ | Rect | RightTriangle, b: Circ | Rect | RightTriangle ): void {
+    this.penetration.origin();
     if( a.shape === Shape.circle ) {
+      const ca = a as Circ;
       if( b.shape === Shape.circle )
-        this.penetration = CircleVSCircle.detect( a.position, a.radius, b.position, b.radius );
+        this.penetration = CircleVSCircle.detect( ca.position, ca.radius, b.position, (b as Circ).radius );
       else if( b.shape === Shape.aabb )
-        this.penetration = CircleVSAabb.detect( a.position, a.radius, b.position, b.halfSize );
+        this.penetration = CircleVSAabb.detect( ca.position, ca.radius, b.position, b.halfSize );
+      else if( isTriangleShape(b.shape) )
+        this.penetration = CircleVSTriangle.detect( ca.position, ca.radius, b as RightTriangle );
       return;
     }
     if( a.shape === Shape.aabb ) {
       if( b.shape === Shape.circle )
-        this.penetration = CircleVSAabb.detect( b.position, b.radius, a.position, a.halfSize ).opposite();
+        this.penetration = CircleVSAabb.detect( b.position, (b as Circ).radius, a.position, a.halfSize ).opposite();
       else if( b.shape === Shape.aabb )
         this.penetration = AabbVSAabb.detect( a.position, a.halfSize, b.position, b.halfSize );
+      else if( isTriangleShape(b.shape) )
+        this.penetration = AabbVSTriangle.detect( a.position, a.halfSize, b as RightTriangle );
+      return;
+    }
+    if( isTriangleShape(a.shape) ) {
+      if( b.shape === Shape.circle )
+        this.penetration = CircleVSTriangle.detect( b.position, (b as Circ).radius, a as RightTriangle ).opposite();
+      else if( b.shape === Shape.aabb )
+        this.penetration = AabbVSTriangle.detect( b.position, b.halfSize, a as RightTriangle ).opposite();
     }
   },
 

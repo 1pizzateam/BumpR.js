@@ -101,7 +101,7 @@ describe('Collision Detection & Impulse Response', () => {
   });
 
   test('CollisionDetection.broadphase uses Spock Grid to test cell overlap', () => {
-    const grid = new Grid(800, 600, 50);
+    const grid = new Grid(new Vec2(800, 600), 50);
     const b1 = new Physics(new Vec2(25, 25), new Vec2(), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
     const b2 = new Physics(new Vec2(30, 25), new Vec2(), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
     const b3 = new Physics(new Vec2(500, 500), new Vec2(), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');

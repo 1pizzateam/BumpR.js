@@ -5,17 +5,63 @@ import { Vec2 } from '@1pizzateam/spock';
 
 const canvasRef = ref(null);
 const gravityEnabled = ref(true);
+const rampsEnabled = ref(true);
 const bodyCount = ref(0);
 
 let scene = null;
+let leftRamp = null;
+let rightRamp = null;
 let animId = null;
 let isRunning = false;
+
+function syncRamps(w, h) {
+  if (!scene) return;
+  if (leftRamp) {
+    scene.removeBody(leftRamp);
+    leftRamp = null;
+  }
+  if (rightRamp) {
+    scene.removeBody(rightRamp);
+    rightRamp = null;
+  }
+  if (!rampsEnabled.value || w <= 0 || h <= 0) return;
+
+  const rampSize = new Vec2(72, 72);
+  leftRamp = new Physics(
+    new Vec2(10 + rampSize.x * 0.5, h - 10 - rampSize.y * 0.5),
+    new Vec2(),
+    rampSize,
+    0,
+    1.0,
+    0.75,
+    'triangle-sw'
+  );
+  rightRamp = new Physics(
+    new Vec2(w - 10 - rampSize.x * 0.5, h - 10 - rampSize.y * 0.5),
+    new Vec2(),
+    rampSize,
+    0,
+    1.0,
+    0.75,
+    'triangle-se'
+  );
+  scene.addBody(leftRamp);
+  scene.addBody(rightRamp);
+}
 
 function toggleGravity() {
   gravityEnabled.value = !gravityEnabled.value;
   if (scene) {
     scene.setGravity(new Vec2(0, gravityEnabled.value ? 250 : 0));
   }
+}
+
+function toggleRamps() {
+  rampsEnabled.value = !rampsEnabled.value;
+  if (!canvasRef.value) return;
+  const rect = canvasRef.value.getBoundingClientRect();
+  syncRamps(rect.width, rect.height);
+  bodyCount.value = scene.bodiesLength;
 }
 
 function addRandomBody(type = 'circle') {
@@ -54,9 +100,14 @@ function addRandomBody(type = 'circle') {
 function resetSimulation() {
   if (!scene || !canvasRef.value) return;
   scene.clear();
+  leftRamp = null;
+  rightRamp = null;
   const canvas = canvasRef.value;
   const rect = canvas.getBoundingClientRect();
   const w = rect.width;
+  const h = rect.height;
+
+  syncRamps(w, h);
 
   // Add initial bodies
   for (let i = 0; i < 4; i++) {
@@ -97,16 +148,16 @@ onMounted(() => {
 
   scene = new Scene();
   scene.setGravity(new Vec2(0, gravityEnabled.value ? 250 : 0));
-  resetSimulation();
-
   function resize() {
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
     canvas.width = Math.round(rect.width * dpr);
     canvas.height = Math.round(rect.height * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    syncRamps(rect.width, rect.height);
   }
   resize();
+  resetSimulation();
   window.addEventListener('resize', resize);
 
   let lastTime = performance.now();
@@ -131,6 +182,7 @@ onMounted(() => {
     // Enforce arena boundaries
     for (let i = 0; i < scene.bodiesLength; i++) {
       const b = scene.bodies[i];
+      if (b.isStatic()) continue;
       const pos = b.position;
       const isCircle = b.shape === 'circle';
       const rx = isCircle ? b.radius : b.halfSize.x;
@@ -226,9 +278,18 @@ onMounted(() => {
     ctx.strokeRect(10, 10, w - 20, h - 20);
 
     // Draw bodies
+    const rampFill = isDark ? '#2e303d' : '#e9ecef';
+    const rampStroke = isDark ? '#707489' : '#868e96';
     const fill = isDark ? '#25262b' : '#f8f9fa';
     const stroke = '#ff6b6b';
-    scene.draw(ctx, fill, stroke, 2);
+    for (let i = 0; i < scene.bodiesLength; i++) {
+      const b = scene.bodies[i];
+      if (!b.isActive()) continue;
+      if (b.isStatic())
+        b.draw(ctx, rampFill, rampStroke, 2);
+      else
+        b.draw(ctx, fill, stroke, 2);
+    }
   }
 
   isRunning = true;
@@ -255,6 +316,14 @@ onMounted(() => {
           @click="toggleGravity"
         >
           Gravity: {{ gravityEnabled ? 'ON' : 'OFF' }}
+        </button>
+        <button
+          type="button"
+          class="bumpr-btn"
+          :class="{ active: rampsEnabled }"
+          @click="toggleRamps"
+        >
+          Triangle Ramps: {{ rampsEnabled ? 'ON' : 'OFF' }}
         </button>
         <button
           type="button"

@@ -270,7 +270,7 @@ describe('Scene Management & Lifecycle', () => {
 
   describe('Spock Grid Broad-Phase Integration', () => {
     test('Scene manages Grid lifecycle on bodies (add, remove, clear, setGrid)', () => {
-      const grid = new Grid(800, 600, 32);
+      const grid = new Grid(new Vec2(800, 600), 32);
       const scene = new Scene(grid);
       expect(scene.getGrid()).toBe(grid);
 
@@ -295,7 +295,7 @@ describe('Scene Management & Lifecycle', () => {
       expect(b1.getGrid()).toBeNull();
 
       // Setting grid on scene with existing bodies propagates to all bodies
-      const newGrid = new Grid(400, 300, 20);
+      const newGrid = new Grid(new Vec2(400, 300), 20);
       scene.setGrid(newGrid);
       expect(scene.getGrid()).toBe(newGrid);
       expect(b1.getGrid()).toBe(newGrid);
@@ -306,7 +306,7 @@ describe('Scene Management & Lifecycle', () => {
     });
 
     test('Grid broad-phase skips collision detection when bodies are in different cells', () => {
-      const grid = new Grid(800, 600, 50);
+      const grid = new Grid(new Vec2(800, 600), 50);
       const scene = new Scene(grid);
       scene.setGravity(new Vec2(0, 0));
 
@@ -341,7 +341,7 @@ describe('Scene Management & Lifecycle', () => {
     });
 
     test('Grid broad-phase allows collision detection when bodies share grid cells', () => {
-      const grid = new Grid(800, 600, 50);
+      const grid = new Grid(new Vec2(800, 600), 50);
       const scene = new Scene(grid);
       scene.setGravity(new Vec2(0, 0));
 
@@ -376,7 +376,7 @@ describe('Scene Management & Lifecycle', () => {
     });
 
     test('testScene respects Grid broad-phase filtering across scenes', () => {
-      const grid = new Grid(800, 600, 50);
+      const grid = new Grid(new Vec2(800, 600), 50);
       const sceneA = new Scene(grid);
       const sceneB = new Scene();
       sceneA.setGravity(new Vec2(0, 0));
@@ -412,7 +412,7 @@ describe('Scene Management & Lifecycle', () => {
     });
 
     test('drawGrid delegates to Grid.draw when grid is attached', () => {
-      const grid = new Grid(800, 600, 50);
+      const grid = new Grid(new Vec2(800, 600), 50);
       let drawn = false;
       grid.draw = () => { drawn = true; };
 
@@ -476,7 +476,7 @@ describe('Scene Management & Lifecycle', () => {
     });
 
     test('Grid broad-phase deduplicates pair tests across multi-cell spanning bodies', () => {
-      const grid = new Grid(800, 600, 20);
+      const grid = new Grid(new Vec2(800, 600), 20);
       const scene = new Scene(grid);
       scene.setGravity(new Vec2(0, 0));
 
@@ -511,7 +511,7 @@ describe('Scene Management & Lifecycle', () => {
     });
 
     test('testScene with grid detects collisions across overlapping bodies', () => {
-      const grid = new Grid(800, 600, 50);
+      const grid = new Grid(new Vec2(800, 600), 50);
       const sceneA = new Scene(grid);
       const sceneB = new Scene(grid);
       sceneA.setGravity(new Vec2(0, 0));
@@ -545,7 +545,7 @@ describe('Scene Management & Lifecycle', () => {
     });
 
     test('Grid broad-phase scales efficiently with many distributed bodies', () => {
-      const grid = new Grid(2000, 2000, 50);
+      const grid = new Grid(new Vec2(2000, 2000), 50);
       const scene = new Scene(grid);
       scene.setGravity(new Vec2(0, 0));
 
@@ -570,7 +570,7 @@ describe('Scene Management & Lifecycle', () => {
     });
 
     test('Sparse Grid broad-phase skips out-of-bounds bodies and empty buckets', () => {
-      const grid = new Grid(2000, 2000, 20); // 10,000 cells
+      const grid = new Grid(new Vec2(2000, 2000), 20); // 10,000 cells
       const scene = new Scene(grid);
       scene.setGravity(new Vec2(0, 0));
 
@@ -616,7 +616,7 @@ describe('Scene Management & Lifecycle', () => {
     });
 
     test('populateBuckets is called exactly once per test() even with iterations > 1', () => {
-      const grid = new Grid(800, 600, 50);
+      const grid = new Grid(new Vec2(800, 600), 50);
       const scene = new Scene(grid);
       scene.setGravity(new Vec2(0, 0));
       scene.setIteration(8);
@@ -643,7 +643,7 @@ describe('Scene Management & Lifecycle', () => {
     });
 
     test('populateBuckets is called exactly once per testScene() with iterations > 1', () => {
-      const grid = new Grid(800, 600, 50);
+      const grid = new Grid(new Vec2(800, 600), 50);
       const sceneA = new Scene(grid);
       const sceneB = new Scene(grid);
       sceneA.setGravity(new Vec2(0, 0));
@@ -671,7 +671,7 @@ describe('Scene Management & Lifecycle', () => {
     });
 
     test('isFirstCommonCell delegates to grid when grid is attached', () => {
-      const grid = new Grid(800, 600, 50);
+      const grid = new Grid(new Vec2(800, 600), 50);
       const scene = new Scene(grid);
       let calledWith = null;
       const origIsFirst = grid.isFirstCommonCell;
@@ -686,7 +686,7 @@ describe('Scene Management & Lifecycle', () => {
     });
 
     test('clear resets candidatePairs buffer and count', () => {
-      const grid = new Grid(800, 600, 50);
+      const grid = new Grid(new Vec2(800, 600), 50);
       const scene = new Scene(grid);
       const b1 = new Physics(new Vec2(50, 50), new Vec2(), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
       const b2 = new Physics(new Vec2(55, 50), new Vec2(), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
@@ -730,7 +730,7 @@ describe('Scene Management & Lifecycle', () => {
     });
 
     test('explicit cell deduplication mode resolves multi-cell collision and keeps mode', () => {
-      const grid = new Grid(800, 600, 50);
+      const grid = new Grid(new Vec2(800, 600), 50);
       const scene = new Scene(grid);
       scene.setGravity(new Vec2(0, 0));
       scene.setDeduplicationMode('cell');
@@ -756,7 +756,7 @@ describe('Scene Management & Lifecycle', () => {
     });
 
     test('explicit pair deduplication mode resolves multi-cell collision without calling isFirstCommonCell', () => {
-      const grid = new Grid(800, 600, 50);
+      const grid = new Grid(new Vec2(800, 600), 50);
       const scene = new Scene(grid);
       scene.setGravity(new Vec2(0, 0));
       scene.setDeduplicationMode('pair');
@@ -783,7 +783,7 @@ describe('Scene Management & Lifecycle', () => {
     });
 
     test('auto mode selects cell for small bodies and pair for multi-cell bodies with identical impulse outcome', () => {
-      const gridA = new Grid(800, 600, 50);
+      const gridA = new Grid(new Vec2(800, 600), 50);
       const sceneSmall = new Scene(gridA);
       sceneSmall.setGravity(new Vec2(0, 0));
       // Small bodies occupying <= 2 cells
@@ -795,7 +795,7 @@ describe('Scene Management & Lifecycle', () => {
       expect(sceneSmall.getActiveDeduplicationMode()).toBe('cell');
 
       // Large multi-cell bodies spanning >= 3 cells
-      const gridB = new Grid(800, 600, 50);
+      const gridB = new Grid(new Vec2(800, 600), 50);
       const sceneLarge = new Scene(gridB);
       sceneLarge.setGravity(new Vec2(0, 0));
       const l1 = new Physics(new Vec2(45, 100), new Vec2(5, 0), new Vec2(20, 160), 1.0, 1.0, 0.5, 'aabb');
@@ -806,7 +806,7 @@ describe('Scene Management & Lifecycle', () => {
       expect(sceneLarge.getActiveDeduplicationMode()).toBe('pair');
 
       // Now verify exact impulse equivalence between explicit cell and explicit pair modes
-      const scenePair = new Scene(new Grid(800, 600, 50));
+      const scenePair = new Scene(new Grid(new Vec2(800, 600), 50));
       scenePair.setGravity(new Vec2(0, 0));
       scenePair.setDeduplicationMode('pair');
       const p1 = new Physics(new Vec2(45, 100), new Vec2(5, 0), new Vec2(20, 160), 1.0, 1.0, 0.5, 'aabb');
@@ -815,7 +815,7 @@ describe('Scene Management & Lifecycle', () => {
       scenePair.addBody(p2);
       scenePair.test();
 
-      const sceneCell = new Scene(new Grid(800, 600, 50));
+      const sceneCell = new Scene(new Grid(new Vec2(800, 600), 50));
       sceneCell.setGravity(new Vec2(0, 0));
       sceneCell.setDeduplicationMode('cell');
       const c1 = new Physics(new Vec2(45, 100), new Vec2(5, 0), new Vec2(20, 160), 1.0, 1.0, 0.5, 'aabb');
@@ -829,7 +829,7 @@ describe('Scene Management & Lifecycle', () => {
     });
 
     test('testScene works under both cell and pair deduplication modes', () => {
-      const grid = new Grid(800, 600, 50);
+      const grid = new Grid(new Vec2(800, 600), 50);
       const sceneA = new Scene(grid);
       const sceneB = new Scene(grid);
       sceneA.setGravity(new Vec2(0, 0));
@@ -891,7 +891,7 @@ describe('Scene Management & Lifecycle', () => {
     });
 
     test('Broad-phase skips collision tests between two sleeping bodies', () => {
-      const grid = new Grid(800, 600, 50);
+      const grid = new Grid(new Vec2(800, 600), 50);
       const scene = new Scene(grid);
       scene.setGravity(new Vec2(0, 0));
 
@@ -910,7 +910,7 @@ describe('Scene Management & Lifecycle', () => {
     });
 
     test('Broad-phase skips test between sleeping body and static body', () => {
-      const grid = new Grid(800, 600, 50);
+      const grid = new Grid(new Vec2(800, 600), 50);
       const scene = new Scene(grid);
       scene.setGravity(new Vec2(0, 0));
 
@@ -927,7 +927,7 @@ describe('Scene Management & Lifecycle', () => {
     });
 
     test('Moving active body collides with sleeping body and wakes it up', () => {
-      const grid = new Grid(800, 600, 50);
+      const grid = new Grid(new Vec2(800, 600), 50);
       const scene = new Scene(grid);
       scene.setGravity(new Vec2(0, 0));
 
@@ -964,7 +964,7 @@ describe('Scene Management & Lifecycle', () => {
     });
 
     test('Removing a body awakens neighbor bodies sharing grid cells', () => {
-      const grid = new Grid(800, 600, 50);
+      const grid = new Grid(new Vec2(800, 600), 50);
       const scene = new Scene(grid);
       const b1 = new Physics(new Vec2(50, 50), new Vec2(0, 0), new Vec2(20, 20), 1, 1, 0, 'aabb');
       const b2 = new Physics(new Vec2(50, 50), new Vec2(0, 0), new Vec2(20, 20), 1, 1, 0, 'aabb');
@@ -1251,7 +1251,7 @@ describe('Scene Management & Lifecycle', () => {
 
     test('Grid broadphase skips non-colliding pairs early', () => {
       const scene = new Scene();
-      const grid = new Grid(new Vec2(10, 10), new Vec2(50, 50));
+      const grid = new Grid(new Vec2(500, 500), 50);
       scene.setGrid(grid);
 
       const CAT_A = 0x0001;
@@ -1473,7 +1473,7 @@ describe('Scene Management & Lifecycle', () => {
     });
 
     test('Spock Grid broad-phase prunes non-dynamic pairs while detecting kinematic vs dynamic', () => {
-      const grid = new Grid(800, 600, 50);
+      const grid = new Grid(new Vec2(800, 600), 50);
       const scene = new Scene(grid);
 
       const staticWall = new Physics(new Vec2(100, 100), new Vec2(), new Vec2(60, 60), 0, 1, 0, 'aabb', 0, false, 1, 1, 0, 'static');
@@ -1941,7 +1941,7 @@ describe('Scene Management & Lifecycle', () => {
       expect(resultsAll).toContain(bSensor);
 
       // With category mask
-      const resultsMask = scene.queryPoint(new Vec2(100, 100), 0x0004);
+      const resultsMask = scene.queryPoint(new Vec2(100, 100), { mask: 0x0004 });
       expect(resultsMask).toHaveLength(1);
       expect(resultsMask[0]).toBe(bAabb1);
 
@@ -1961,7 +1961,7 @@ describe('Scene Management & Lifecycle', () => {
       const first = scene.queryPointFirst(new Vec2(100, 100));
       expect(first).toBe(bCirc1);
 
-      const firstMask = scene.queryPointFirst(new Vec2(100, 100), 0x0002);
+      const firstMask = scene.queryPointFirst(new Vec2(100, 100), { mask: 0x0002 });
       expect(firstMask).toBeNull(); // bCirc2 is at (200, 100)
 
       const miss = scene.queryPointFirst(new Vec2(500, 500));
@@ -2063,7 +2063,7 @@ describe('Scene Management & Lifecycle', () => {
       expect(collided).toBe(false);
 
       // Grid testScene with inactive body in sceneB
-      const grid = new Grid(500, 500, 50);
+      const grid = new Grid(new Vec2(500, 500), 50);
       const sceneG1 = new Scene(grid);
       const sceneG2 = new Scene(grid);
       const g1 = new Physics(new Vec2(50, 50), new Vec2(), new Vec2(20, 20), 1, 1, 0, 'circle');

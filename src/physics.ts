@@ -1,9 +1,11 @@
-import type { Grid } from '@1pizzateam/spock';
-import { Circ, Rect, Utils, Vec2 } from '@1pizzateam/spock';
+import type { Grid, TriangleCorner, TriangleShape } from '@1pizzateam/spock';
+import { Circ, Rect, RightTriangle, Utils, Vec2 } from '@1pizzateam/spock';
+import { isTriangleShape } from './collision.js';
 import { Raycast, type RaycastHit } from './raycast.js';
 
 export type BodyCollisionCallback = (other: Physics, normal: Vec2, impulse: Vec2) => void;
 export type BodyType = 'dynamic' | 'static' | 'kinematic';
+export type BodyShape = 'circle' | 'aabb' | 'rectangle' | TriangleShape;
 
 export class Physics {
 
@@ -28,7 +30,7 @@ export class Physics {
   private cachedDampingFactor : number = 1;
   private grid : Grid | null = null;
 
-  body        : Rect | Circ;
+  body        : Rect | Circ | RightTriangle;
 
   collisionSceneId : number = 0;
   sceneIndex : number = -1;
@@ -61,8 +63,8 @@ export class Physics {
    * @param mass - Mass in kg (0 indicates an immovable static body). Defaults to 1.0.
    * @param damping - Velocity damping factor in [0, 1]. Defaults to 0.8.
    * @param restitution - Elasticity coefficient in [0, 1]. Defaults to 0.0.
-   * @param shape - Geometric shape ('circle', 'aabb', 'rectangle'). Defaults to 'circle'.
-   * @param friction - Surface friction coefficient in [0, 1]. Defaults to 0.0 for circle, 0.6 for AABB.
+   * @param shape - Geometric shape ('circle', 'aabb', 'rectangle', 'triangle-nw', 'triangle-ne', 'triangle-sw', 'triangle-se'). Defaults to 'circle'.
+   * @param friction - Surface friction coefficient in [0, 1]. Defaults to 0.0 for circle, 0.6 for AABB/triangle.
    * @param isSensor - Whether this body is a sensor/trigger (detects overlap without physical resolution). Defaults to false.
    * @param collisionCategory - Bitfield category for collision filtering (e.g. 0x0001). Defaults to 0x0001.
    * @param collisionMask - Bitfield mask for categories this body can collide with. Defaults to 0xFFFF.
@@ -77,7 +79,7 @@ export class Physics {
     mass              : number = 1.0,
     damping           : number = 0.8,
     restitution       : number = 0,
-    shape             : 'circle' | 'aabb' | 'rectangle' = 'circle',
+    shape             : BodyShape = 'circle',
     friction?         : number,
     isSensor          : boolean = false,
     collisionCategory : number = 0x0001,
@@ -126,7 +128,7 @@ export class Physics {
 
     this.friction     = friction !== undefined
       ? Utils.clamp(friction, 0, 1)
-      : (shape === 'rectangle' || shape === 'aabb' ? 0.6 : 0.0);
+      : (shape === 'rectangle' || shape === 'aabb' || isTriangleShape(shape) ? 0.6 : 0.0);
 
     this.isSensor     = isSensor;
     this.isBullet     = isBullet;
@@ -136,7 +138,10 @@ export class Physics {
     this.collisionGroup = collisionGroup;
 
     const s = size ? size.clone() : new Vec2(20, 20);
-    if (shape === 'rectangle' || shape === 'aabb')
+    if (isTriangleShape(shape)) {
+      const corner = shape.slice(9) as TriangleCorner;
+      this.body = new RightTriangle( s, pos, corner );
+    } else if (shape === 'rectangle' || shape === 'aabb')
       this.body = new Rect( s, pos );
     else
       this.body = new Circ( s.x * 0.5, pos );
@@ -302,30 +307,35 @@ export class Physics {
     this.wakeUp();
   }
 
-  public getPosition(): Vec2 {
-    return this.position;
+  public getPosition(target?: Vec2): Vec2 {
+    return target ? target.copy(this.position) : this.position;
   }
 
   public setVelocity(velocity: Vec2): void {
     this.velocity.copy(velocity);
+    this.impulse.origin();
     if (!this.velocity.isOrigin())
       this.wakeUp();
   }
 
-  public getVelocity(): Vec2 {
-    return this.velocity;
+  public getVelocity(target?: Vec2): Vec2 {
+    return target ? target.copy(this.velocity) : this.velocity;
   }
 
   public setInitialVelocity(velocity: Vec2): void {
     this.initialVelocity.copy(velocity);
   }
 
-  public getInitialVelocity(): Vec2 {
-    return this.initialVelocity;
+  public getInitialVelocity(target?: Vec2): Vec2 {
+    return target ? target.copy(this.initialVelocity) : this.initialVelocity;
   }
 
   public setGravity(gravity: Vec2): void {
     this.gravity.copy(gravity);
+  }
+
+  public getGravity(target?: Vec2): Vec2 {
+    return target ? target.copy(this.gravity) : this.gravity;
   }
 
   public setMass( mass: number ): void {
@@ -402,27 +412,35 @@ export class Physics {
     return this.damping;
   }
 
-  public getBody(): Rect | Circ {
+  public getBody(): Rect | Circ | RightTriangle {
     return this.body;
   }
 
-  public setSize( sizeOrWidth: Vec2 | number, height?: number ): void {
-    if (this.body.shape === 'aabb')
-      (this.body as Rect).setSize( sizeOrWidth as any, height );
-    else if (this.body.shape === 'circle')
-      (this.body as Circ).setRadius( sizeOrWidth instanceof Vec2 ? sizeOrWidth.x : sizeOrWidth );
+  public setSize( size: Vec2 ): void {
+    if (this.body.shape === 'circle')
+      (this.body as Circ).setRadius( size.x );
+    else
+      (this.body as Rect | RightTriangle).setSize( size );
   }
 
-  public get shape(): 'circle' | 'aabb' | 'rectangle' {
-    return this.body.shape as 'circle' | 'aabb' | 'rectangle';
+  public getSize( target: Vec2 = new Vec2() ): Vec2 {
+    if (this.body.shape === 'circle') {
+      const d = (this.body as Circ).diameter;
+      return target.setScalar( d, d );
+    }
+    return target.copy( (this.body as Rect | RightTriangle).size );
+  }
+
+  public get shape(): BodyShape {
+    return this.body.shape as BodyShape;
   }
 
   public get radius(): number {
-    return this.body.shape === 'circle' ? (this.body as Circ).radius : (this.body.shape === 'aabb' ? (this.body as Rect).halfSize.x : 0);
+    return this.body.shape === 'circle' ? (this.body as Circ).radius : (this.body as Rect | RightTriangle).halfSize.x;
   }
 
   public get halfSize(): Vec2 {
-    return (this.body as Rect | Circ).halfSize;
+    return (this.body as Rect | Circ | RightTriangle).halfSize;
   }
 
   public setRadius( radius: number ): void {
@@ -539,7 +557,8 @@ export class Physics {
   }
 
   public canCollideWith(other: Physics): boolean {
-    if (this.ignoredBodies && this.ignoredBodies.has(other))
+    if ((this.ignoredBodies && this.ignoredBodies.has(other)) ||
+        (other.ignoredBodies && other.ignoredBodies.has(this)))
       return false;
     if (this.collisionGroup !== 0 && this.collisionGroup === other.collisionGroup)
       return this.collisionGroup > 0;
@@ -607,6 +626,8 @@ export class Physics {
     return this.body.isIn(point);
   }
 
+  private static readonly scratchCircle = new Circ(0);
+
   /**
    * Test whether this active body overlaps a circle defined by center and radius.
    * @param center - Circle center in world coordinates.
@@ -616,7 +637,9 @@ export class Physics {
   public overlapsCircle(center: Vec2, radius: number): boolean {
     if (!this.active || radius < 0)
       return false;
-    return this.body.overlapsCircle(center, radius);
+    Physics.scratchCircle.position.copy(center);
+    Physics.scratchCircle.radius = radius;
+    return this.body.overlapsCircle(Physics.scratchCircle);
   }
 
   /**
@@ -628,7 +651,7 @@ export class Physics {
   public overlapsAabb(min: Vec2, max: Vec2): boolean {
     if (!this.active)
       return false;
-    return (this.body as Rect | Circ).overlapsBounds(min, max);
+    return this.body.overlapsBounds(min, max);
   }
 
   public draw(context: CanvasRenderingContext2D, fillColor: string, strokeColor: string, strokeWidth: number): void {

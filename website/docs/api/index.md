@@ -15,6 +15,7 @@ import {
 import {
   Circ,
   Rect,
+  RightTriangle,
   Grid,
   Vec2
 } from '@1pizzateam/spock';
@@ -26,13 +27,15 @@ import {
 - [Scene](/api/scene): Spatial world manager holding bodies, controlling gravity, stepping integration, and testing collisions.
 - [Physics](/api/physics): Rigid body physics instance handling linear momentum, impulse, velocity damping, restitution, and Spock geometric shapes.
 - [CollisionDetection](/api/collision): Narrow-phase dispatch, contact normal computation, positional de-penetration, and elastic collision response solver.
-- [Raycast](/api/raycast): Fast segment queries against Circle, AABB, and Scene rigid bodies.
+- [Raycast](/api/raycast): Fast segment and swept CCD queries against Circle, AABB, RightTriangle, and Scene rigid bodies.
 - [DistanceConstraint / Joint](/api/constraint): Distance constraints, rigid rods, ropes, and damped elastic spring joints connecting rigid bodies.
 
 ### Narrow-Phase Collisions
 - [Circle vs Circle](/api/circlevscircle): Fast Euclidean radial distance detection and penetration extraction.
 - [Circle vs AABB](/api/circlevsaabb): Voronoi region classification with outward diagonal corner projection.
+- [Circle vs Triangle](/api/circlevstriangle): Closest-point and hypotenuse half-space penetration solver against `RightTriangle` colliders.
 - [AABB vs AABB](/api/aabbvsaabb): Dual-axis interval overlap with minimum translation axis projection.
+- [AABB vs Triangle](/api/aabbvstriangle): Separating Axis Theorem (SAT) solver along X, Y, and hypotenuse normal axes.
 
 ### Primitives from Spock.js
 BumpR is built on top of mathematical and spatial primitives from [`@1pizzateam/spock`](https://1pizzateam.github.io/Spock.js/):
@@ -40,4 +43,5 @@ BumpR is built on top of mathematical and spatial primitives from [`@1pizzateam/
 - `Grid`: Spatial hash grid partitioning space for $O(\text{activeCells})$ broad-phase culling.
 - `Circ`: Circle geometry shape (`position`, `radius`, `gridCells`).
 - `Rect`: Axis-aligned rectangle shape (`position`, `size`, `halfSize`, `corners`, `gridCells`).
+- `RightTriangle`: Axis-aligned right triangle shape (`'nw' | 'ne' | 'sw' | 'se'`, `hypNormal`, `hypTangent`, `gridCells`).
 - `Utils`: Numeric utility functions including `clamp`.

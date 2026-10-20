@@ -4,7 +4,7 @@ Live interactive examples running `@1pizzateam/bumpr` directly in your browser.
 
 ## Rigid Body Bouncing Sandbox
 
-A dynamic physics environment simulating circles and boxes bouncing under gravity with boundary reflection, Coulomb friction, and pairwise collision resolution. Boxes have surface friction and settle smoothly into resting contact upon landing or stacking, while circles roll and glide freely.
+A dynamic physics environment simulating circles and boxes bouncing under gravity against static right-triangle corner ramps (`'triangle-sw'` and `'triangle-se'`), with boundary reflection, Coulomb friction, and pairwise collision resolution. Boxes have surface friction and settle smoothly into resting contact upon landing or stacking, while circles deflect off the $45^\circ$ triangle hypotenuses and roll across the floor.
 
 <BouncingDemo />
 
@@ -14,6 +14,28 @@ import { Vec2 } from '@1pizzateam/spock';
 
 const scene = new Scene();
 scene.setGravity(new Vec2(0, 250)); // Downward acceleration
+
+// Add static right-triangle corner ramps
+const leftRamp = new Physics(
+  new Vec2(46, 234),
+  new Vec2(),
+  new Vec2(72, 72),
+  0,
+  1.0,
+  0.75,
+  'triangle-sw'
+);
+const rightRamp = new Physics(
+  new Vec2(554, 234),
+  new Vec2(),
+  new Vec2(72, 72),
+  0,
+  1.0,
+  0.75,
+  'triangle-se'
+);
+scene.addBody(leftRamp);
+scene.addBody(rightRamp);
 
 // Add dynamic circle
 const ball = new Physics(
@@ -86,10 +108,12 @@ scene.setGrid(grid);
 
 ## Collision Detection Modes
 
-BumpR handles three distinct narrow-phase collision pairs:
+BumpR handles five narrow-phase collision pairs:
 1. **Circle vs Circle**: Radial distance separation.
 2. **Circle vs AABB**: Voronoi region classification with outward corner projection.
-3. **AABB vs AABB**: Dual-axis interval overlap with minimum translation axis projection.
+3. **Circle vs Triangle**: Closest-point and hypotenuse half-space separation against `RightTriangle` colliders.
+4. **AABB vs AABB**: Dual-axis interval overlap with minimum translation axis projection.
+5. **AABB vs Triangle**: Separating Axis Theorem (SAT) projection across X, Y, and hypotenuse normal axes.
 
 <CollisionShapesDemo />
 
@@ -127,9 +151,10 @@ const collided = CollisionDetection.test(ball, obstacle);
 
 BumpR provides high-performance ray segment queries for line-of-sight checks, laser weapons, aiming reticles, and visibility testing.
 
+- **`scene.hasLineOfSight(start, end, options)`**: Fast boolean visibility check with zero allocations on hits or misses.
 - **`scene.raycast(start, end, options)`**: Returns the closest intersected obstacle, exact impact coordinates, and the geometric surface normal vector.
 - **`scene.raycastAll(start, end, options)`**: Penetrates through all intersected obstacles along the segment, returning an array of hits sorted by distance from start.
-- **Sensor Filtering (`ignoreSensors: true`)**: Allows rays to pass unimpeded through non-solid ghost trigger zones or detect them as triggers.
+- **Filter Options (`{ mask, category, ignoreSensors, ignoreBody }`)**: Filter by category bitmasks, ignore specific bodies (such as the shooter), or skip non-solid sensor trigger zones.
 
 <RaycastDemo />
 

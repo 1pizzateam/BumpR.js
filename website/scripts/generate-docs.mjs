@@ -15,7 +15,9 @@ const modules = [
   ['DistanceConstraint', 'constraint.ts', 'constraint.md'],
   ['CircleVSCircle', 'collisions/circlevscircle.ts', 'circlevscircle.md'],
   ['CircleVSAabb', 'collisions/circlevsaabb.ts', 'circlevsaabb.md'],
+  ['CircleVSTriangle', 'collisions/circlevstriangle.ts', 'circlevstriangle.md'],
   ['AabbVSAabb', 'collisions/aabbvsaabb.ts', 'aabbvsaabb.md'],
+  ['AabbVSTriangle', 'collisions/aabbvstriangle.ts', 'aabbvstriangle.md'],
 ];
 
 const intros = {
@@ -111,6 +113,16 @@ function tick(dt) {
         returns: '`void`',
         example: `scene.setIteration(4);`,
       },
+      setPositionCorrection: {
+        description: 'Set positional penetration correction factor in `[0, 1]` (default `0.99`). Use `1` for 100% immediate de-penetration against solid walls.',
+        params: ['- `percent` — `number`. Fraction of penetration depth resolved per step in `[0, 1]`.'],
+        returns: '`void`',
+        example: `scene.setPositionCorrection(1);`,
+      },
+      getPositionCorrection: {
+        description: 'Get current positional penetration correction factor.',
+        returns: '`number`',
+      },
       setOnCollision: {
         description: 'Set callback invoked when any physical collision occurs in the scene.',
         params: ['- `callback` — `((bodyA: Physics, bodyB: Physics, normal: Vec2, impulse: Vec2) => void) | null`. Collision callback function.'],
@@ -198,20 +210,30 @@ function tick(dt) {
         params: [
           '- `start` — `Vec2`. Starting point of the segment.',
           '- `end` — `Vec2`. Ending point of the segment.',
-          '- `optionsOrMask` — `number | RaycastOptions` (optional). Category bitmask (defaults to `0xFFFF`) or `{ mask, ignoreSensors }` options object.',
+          '- `options` — `RaycastOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.',
         ],
         returns: '`RaycastHit | null` — Nearest impact information `{ body, point, normal, fraction }`, or `null`.',
-        example: `const hit = scene.raycast(muzzlePos, targetPos, 0x0004);
+        example: `const hit = scene.raycast(muzzlePos, targetPos, { mask: 0x0004 });
 if (hit) {
   console.log('Struck', hit.body, 'at', hit.point, 'normal', hit.normal);
 }`,
+      },
+      hasLineOfSight: {
+        description: 'Test whether a segment from start to end has an unobstructed line of sight, early-exiting with zero allocations on the first blocking collider.',
+        params: [
+          '- `start` — `Vec2`. Starting point of the segment.',
+          '- `end` — `Vec2`. Ending point of the segment.',
+          '- `options` — `RaycastOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.',
+        ],
+        returns: '`boolean` — `true` if no matching body intersects the segment.',
+        example: `const visible = scene.hasLineOfSight(enemyPos, playerPos, { mask: CAT_WALL });`,
       },
       raycastAll: {
         description: 'Cast a segment from start to end and return all intersected bodies, sorted by fraction ascending.',
         params: [
           '- `start` — `Vec2`. Starting point of the segment.',
           '- `end` — `Vec2`. Ending point of the segment.',
-          '- `optionsOrMask` — `number | RaycastOptions` (optional). Category bitmask or options object.',
+          '- `options` — `RaycastOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.',
         ],
         returns: '`RaycastHit[]` — Array of all impacts sorted nearest-first.',
         example: `const hits = scene.raycastAll(start, end, { ignoreSensors: true });`,
@@ -232,7 +254,7 @@ if (hit) {
           '- `start` — `Vec2`. Starting position.',
           '- `end` — `Vec2`. Target position.',
           '- `movingBody` — `Physics`. Body being swept.',
-          '- `optionsOrMask` — `number | RaycastOptions` (optional). Category bitmask or options object.',
+          '- `options` — `RaycastOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.',
         ],
         returns: '`RaycastHit | null`',
         example: `const hit = scene.sweepBody(startPos, endPos, bullet);`,
@@ -243,7 +265,7 @@ if (hit) {
           '- `start` — `Vec2`. Starting position.',
           '- `end` — `Vec2`. Target position.',
           '- `movingBody` — `Physics`. Body being swept.',
-          '- `optionsOrMask` — `number | RaycastOptions` (optional). Category bitmask or options object.',
+          '- `options` — `RaycastOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.',
         ],
         returns: '`RaycastHit[]`',
         example: `const hits = scene.sweepBodyAll(startPos, endPos, bullet);`,
@@ -298,7 +320,7 @@ function tick(time) {
         description: 'Find all active bodies in the scene containing a point in world coordinates.',
         params: [
           '- `point` — `Vec2`. Query point in world coordinates.',
-          '- `optionsOrMask` — `number | SpatialQueryOptions` (optional). Category bitmask or `{ mask, ignoreSensors }` options object.',
+          '- `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.',
         ],
         returns: '`Physics[]` — Array of matching bodies containing the point.',
         example: `const clickedBodies = scene.queryPoint(mouseWorldPos);`,
@@ -307,7 +329,7 @@ function tick(time) {
         description: 'Find the first active body in the scene containing a point in world coordinates.',
         params: [
           '- `point` — `Vec2`. Query point in world coordinates.',
-          '- `optionsOrMask` — `number | SpatialQueryOptions` (optional). Category bitmask or options object.',
+          '- `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.',
         ],
         returns: '`Physics | null` — The first matching body, or `null` if none found.',
         example: `const hoveredBody = scene.queryPointFirst(mouseWorldPos);`,
@@ -317,27 +339,46 @@ function tick(time) {
         params: [
           '- `center` — `Vec2`. Circle center in world coordinates.',
           '- `radius` — `number`. Circle radius.',
-          '- `optionsOrMask` — `number | SpatialQueryOptions` (optional). Category bitmask or options object.',
+          '- `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.',
         ],
         returns: '`Physics[]` — Array of matching bodies overlapping the circle.',
         example: `const blastedEnemies = scene.queryCircle(explosionPos, 150, { mask: ENEMY_CATEGORY });`,
+      },
+      queryCircleFirst: {
+        description: 'Find the first active body in the scene overlapping a circle.',
+        params: [
+          '- `center` — `Vec2`. Circle center in world coordinates.',
+          '- `radius` — `number`. Circle radius.',
+          '- `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.',
+        ],
+        returns: '`Physics | null` — The first matching body, or `null` if none found.',
+        example: `const blocked = scene.queryCircleFirst(padPos, 24, { mask: CAT_ENEMY, ignoreBody: selfBody });`,
       },
       queryAabb: {
         description: 'Find all active bodies in the scene overlapping an Axis-Aligned Bounding Box (AABB) (e.g. selection marquee or camera frustum).',
         params: [
           '- `min` — `Vec2`. Minimum corner (or first corner).',
           '- `max` — `Vec2`. Maximum corner (or second corner).',
-          '- `optionsOrMask` — `number | SpatialQueryOptions` (optional). Category bitmask or options object.',
+          '- `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.',
         ],
         returns: '`Physics[]` — Array of matching bodies overlapping the AABB.',
         example: `const selectedUnits = scene.queryAabb(dragStart, dragEnd);`,
+      },
+      queryAabbFirst: {
+        description: 'Find the first active body in the scene overlapping an Axis-Aligned Bounding Box (AABB).',
+        params: [
+          '- `min` — `Vec2`. Minimum corner (or first corner).',
+          '- `max` — `Vec2`. Maximum corner (or second corner).',
+          '- `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.',
+        ],
+        returns: '`Physics | null` — The first matching body, or `null` if none found.',
       },
     },
   },
   Physics: {
     summary: 'A 2D rigid body with mass, velocity, acceleration, restitution, damping, and geometry.',
     body: [
-      '`Physics` pairs physical dynamics (Newtonian integration, forces, velocity damping, and coefficient of restitution) with geometric primitives (`Circ` or `Rect`) from Spock.js.',
+      '`Physics` pairs physical dynamics (Newtonian integration, forces, velocity damping, and coefficient of restitution) with geometric primitives (`Circ`, `Rect`, or `RightTriangle`) from Spock.js.',
       'A mass of `0` denotes a static, immovable obstacle (`inverseMass = 0`), which absorbs collisions without being pushed back.',
     ],
     example: `import { Physics } from '@1pizzateam/bumpr';
@@ -374,8 +415,8 @@ const wall = new Physics(
           '- `mass` — `number`. Body mass in kg (default `1.0`). `0` marks a static body.',
           '- `damping` — `number`. Air resistance / velocity damping per second in `[0, 1]` (default `0.8`).',
           '- `restitution` — `number`. Bounciness in `[0, 1]` (default `0`).',
-          "- `shape` — `'circle' | 'aabb' | 'rectangle'`. Collision geometry (default `'circle'`).",
-          '- `friction` — `number` (optional). Coulomb friction coefficient in `[0, 1]` (defaults to `0` for circle, `0.6` for AABB).',
+          "- `shape` — `BodyShape` (`'circle' | 'aabb' | 'rectangle' | 'triangle-nw' | 'triangle-ne' | 'triangle-sw' | 'triangle-se'`). Collision geometry (default `'circle'`).",
+          '- `friction` — `number` (optional). Coulomb friction coefficient in `[0, 1]` (defaults to `0` for circle, `0.6` for AABB/triangle).',
           '- `isSensor` — `boolean` (optional). Whether this body acts as a sensor/trigger collider (default `false`).',
           '- `collisionCategory` — `number` (optional). Bitfield category for collision filtering (default `0x0001`).',
           '- `collisionMask` — `number` (optional). Bitfield mask of categories this body can collide with (default `0xFFFF`).',
@@ -408,20 +449,40 @@ const wall = new Physics(
         params: ['- `position` — `Vec2`. New position vector.'],
         returns: '`void`',
       },
+      getPosition: {
+        description: 'Get the body position vector, optionally copying into a pre-allocated target.',
+        params: ['- `target` — `Vec2` (optional). Pre-allocated target vector.'],
+        returns: '`Vec2`',
+      },
       setVelocity: {
-        description: 'Explicitly set linear velocity vector.',
+        description: 'Explicitly set linear velocity vector and clear queued impulse.',
         params: ['- `velocity` — `Vec2`. New velocity vector.'],
         returns: '`void`',
+      },
+      getVelocity: {
+        description: 'Get the linear velocity vector, optionally copying into a pre-allocated target.',
+        params: ['- `target` — `Vec2` (optional). Pre-allocated target vector.'],
+        returns: '`Vec2`',
       },
       setInitialVelocity: {
         description: 'Record reference initial velocity for subsequent `reset()` calls.',
         params: ['- `velocity` — `Vec2`. Initial velocity vector.'],
         returns: '`void`',
       },
+      getInitialVelocity: {
+        description: 'Get the reference initial velocity vector, optionally copying into a pre-allocated target.',
+        params: ['- `target` — `Vec2` (optional). Pre-allocated target vector.'],
+        returns: '`Vec2`',
+      },
       setGravity: {
         description: 'Set custom gravity acceleration vector for this body.',
         params: ['- `gravity` — `Vec2`. Gravity vector.'],
         returns: '`void`',
+      },
+      getGravity: {
+        description: 'Get the gravity acceleration vector, optionally copying into a pre-allocated target.',
+        params: ['- `target` — `Vec2` (optional). Pre-allocated target vector.'],
+        returns: '`Vec2`',
       },
       setMass: {
         description: 'Set body mass. Sets `inverseMass = 1 / mass` (or `0` when `mass = 0`). Automatically syncs `bodyType` to `static`/`kinematic` if mass is 0, or `dynamic` if mass > 0.',
@@ -486,13 +547,18 @@ const wall = new Physics(
         returns: '`number`',
       },
       setSize: {
-        description: 'Update the dimensions of the underlying geometric shape.',
-        params: ['- `width` — `number`. Radius if circle, width if AABB.', '- `height` — `number | undefined`. Height if AABB.'],
+        description: 'Update the dimensions of the underlying geometric shape using a `Vec2` size vector.',
+        params: ['- `size` — `Vec2`. Radius in `size.x` if circle, `(width, height)` if AABB or RightTriangle.'],
         returns: '`void`',
       },
+      getSize: {
+        description: 'Write the bounding `(width, height)` dimensions of this body into `target`.',
+        params: ['- `target` — `Vec2` (optional). Pre-allocated target vector.'],
+        returns: '`Vec2`',
+      },
       getBody: {
-        description: 'Get the underlying Spock geometric shape (`Circ` or `Rect`).',
-        returns: '`Circ | Rect`',
+        description: 'Get the underlying Spock geometric shape (`Circ`, `Rect`, or `RightTriangle`).',
+        returns: '`Rect | Circ | RightTriangle`',
       },
       reset: {
         description: 'Reset transient forces, impulses, and revert velocity to initial velocity.',
@@ -723,7 +789,7 @@ const wall = new Physics(
   CollisionDetection: {
     summary: 'Narrow-phase collision detection, positional resolution, and elastic impulse solver.',
     body: [
-      '`CollisionDetection` computes penetration vectors between pairs of bodies (`Circle vs Circle`, `Circle vs AABB`, `AABB vs AABB`), separates overlapping bodies along the contact normal according to inverse mass ratios, and computes linear impulse responses.',
+      '`CollisionDetection` computes penetration vectors between pairs of bodies (`Circle vs Circle`, `Circle vs AABB`, `Circle vs Triangle`, `AABB vs AABB`, `AABB vs Triangle`), separates overlapping bodies along the contact normal according to inverse mass ratios, and computes linear impulse responses.',
     ],
     example: `import { CollisionDetection, Physics } from '@1pizzateam/bumpr';
 import { Vec2 } from '@1pizzateam/spock';
@@ -749,8 +815,8 @@ const hasCollided = CollisionDetection.test(a, b);`,
         returns: '`boolean` — `true` if a collision occurred and was resolved.',
       },
       detect: {
-        description: 'Compute the penetration vector between two geometric shapes (`Circ | Rect`). Stores result in `this.penetration`.',
-        params: ['- `a` — `Circ | Rect`. First shape.', '- `b` — `Circ | Rect`. Second shape.'],
+        description: 'Compute the penetration vector between two geometric shapes (`Circ | Rect | RightTriangle`). Stores result in `this.penetration`.',
+        params: ['- `a` — `Circ | Rect | RightTriangle`. First shape.', '- `b` — `Circ | Rect | RightTriangle`. Second shape.'],
         returns: '`void`',
       },
       resolve: {
@@ -778,7 +844,7 @@ const hasCollided = CollisionDetection.test(a, b);`,
   Raycast: {
     summary: 'Linear segment raycasting and analytical swept continuous collision detection (CCD).',
     body: [
-      '`Raycast` provides analytical ray vs circle intersection, fast slab-method ray vs AABB intersection, and continuous swept tests (`sweepBody`, `sweepCircleCircle`, `sweepCircleAabb`, `sweepAabbAabb`, `sweepAabbCircle`).',
+      '`Raycast` provides analytical ray vs circle intersection, fast slab-method ray vs AABB intersection, ray vs segment intersection, and continuous swept tests (`sweepBody`, `sweepCircleCircle`, `sweepCircleAabb`, `sweepCircleTriangle`, `sweepAabbAabb`, `sweepAabbCircle`, `sweepAabbTriangle`).',
       'It returns impact fraction $t \\in [0, 1]$, world coordinates of the hit point, outward unit normal vector, and struck body reference.',
     ],
     example: `import { Raycast, Scene, Physics } from '@1pizzateam/bumpr';
@@ -788,7 +854,7 @@ const start = new Vec2(0, 100);
 const end = new Vec2(500, 100);
 
 // Scene raycast (returns closest hit)
-const hit = scene.raycast(start, end, 0x0004);
+const hit = scene.raycast(start, end, { mask: 0x0004 });
 if (hit) {
   console.log('Impact at:', hit.point.x, hit.point.y, 'normal:', hit.normal);
 }`,
@@ -840,7 +906,17 @@ if (hit) {
           '- `end` — `Vec2`. Target position of moving circle center.',
           '- `radiusA` — `number`. Radius of moving circle A.',
           '- `centerB` — `Vec2`. Center of target AABB B.',
-          '- `halfB` — `Vec2`. Half-extents of target AABB B.',
+          '- `halfSizeB` — `Vec2`. Half-extents of target AABB B.',
+        ],
+        returns: '`{ fraction: number, point: Vec2, normal: Vec2 } | null`',
+      },
+      sweepCircleTriangle: {
+        description: 'Sweep a moving circle along a line segment against a `RightTriangle` using offset edges and rounded vertices.',
+        params: [
+          '- `start` — `Vec2`. Starting point of moving circle center.',
+          '- `end` — `Vec2`. Target position of moving circle center.',
+          '- `radiusA` — `number`. Radius of moving circle A.',
+          '- `tri` — `RightTriangle`. Target right triangle.',
         ],
         returns: '`{ fraction: number, point: Vec2, normal: Vec2 } | null`',
       },
@@ -849,9 +925,9 @@ if (hit) {
         params: [
           '- `start` — `Vec2`. Starting point of moving AABB center.',
           '- `end` — `Vec2`. Target position of moving AABB center.',
-          '- `halfA` — `Vec2`. Half-extents of moving AABB A.',
+          '- `halfSizeA` — `Vec2`. Half-extents of moving AABB A.',
           '- `centerB` — `Vec2`. Center of target AABB B.',
-          '- `halfB` — `Vec2`. Half-extents of target AABB B.',
+          '- `halfSizeB` — `Vec2`. Half-extents of target AABB B.',
         ],
         returns: '`{ fraction: number, point: Vec2, normal: Vec2 } | null`',
       },
@@ -860,9 +936,19 @@ if (hit) {
         params: [
           '- `start` — `Vec2`. Starting point of moving AABB center.',
           '- `end` — `Vec2`. Target position of moving AABB center.',
-          '- `halfA` — `Vec2`. Half-extents of moving AABB A.',
+          '- `halfSizeA` — `Vec2`. Half-extents of moving AABB A.',
           '- `centerB` — `Vec2`. Center of target circle B.',
           '- `radiusB` — `number`. Radius of target circle B.',
+        ],
+        returns: '`{ fraction: number, point: Vec2, normal: Vec2 } | null`',
+      },
+      sweepAabbTriangle: {
+        description: 'Sweep a moving AABB along a line segment against a `RightTriangle`.',
+        params: [
+          '- `start` — `Vec2`. Starting point of moving AABB center.',
+          '- `end` — `Vec2`. Target position of moving AABB center.',
+          '- `halfSizeA` — `Vec2`. Half-extents of moving AABB A.',
+          '- `tri` — `RightTriangle`. Target right triangle.',
         ],
         returns: '`{ fraction: number, point: Vec2, normal: Vec2 } | null`',
       },
@@ -1122,6 +1208,54 @@ const pen = AabbVSAabb.detect(posA, halfSizeA, posB, halfSizeB);`,
       getPenetration: {
         description: 'Isolate shallowest projection axis and negate direction if necessary.',
         returns: '`Vec2`',
+      },
+    },
+  },
+  CircleVSTriangle: {
+    summary: 'Narrow-phase detection between a Circle and an Axis-Aligned RightTriangle.',
+    body: [
+      '`CircleVSTriangle` delegates closest-point and signed hypotenuse distance queries to `RightTriangle` from `@1pizzateam/spock` and computes the outward minimum translation vector.',
+    ],
+    example: `import { RightTriangle, Vec2 } from '@1pizzateam/spock';
+import { CollisionDetection, Physics } from '@1pizzateam/bumpr';
+
+const circle = new Physics(new Vec2(36, 36), new Vec2(), new Vec2(28, 28), 1, 1, 0, 'circle');
+const tri = new Physics(new Vec2(32, 32), new Vec2(), new Vec2(64, 64), 0, 1, 0, 'triangle-nw');
+
+CollisionDetection.test(circle, tri);`,
+    members: {
+      detect: {
+        description: 'Test collision and compute outward penetration vector pushing Circle A out of RightTriangle B.',
+        params: [
+          '- `circlePos` — `Vec2`. Circle center.',
+          '- `radius` — `number`. Circle radius.',
+          '- `tri` — `RightTriangle`. RightTriangle collider.',
+        ],
+        returns: '`Vec2` — Outward penetration vector (origin vector if no collision).',
+      },
+    },
+  },
+  AabbVSTriangle: {
+    summary: 'Narrow-phase SAT detection between an Axis-Aligned Bounding Box (AABB) and a RightTriangle.',
+    body: [
+      '`AabbVSTriangle` tests separating axes along X, Y, and `tri.hypNormal` using `Vec2` operations and returns the minimum translation vector.',
+    ],
+    example: `import { Vec2 } from '@1pizzateam/spock';
+import { CollisionDetection, Physics } from '@1pizzateam/bumpr';
+
+const box = new Physics(new Vec2(36, 36), new Vec2(), new Vec2(20, 20), 1, 1, 0, 'aabb');
+const tri = new Physics(new Vec2(32, 32), new Vec2(), new Vec2(64, 64), 0, 1, 0, 'triangle-nw');
+
+CollisionDetection.test(box, tri);`,
+    members: {
+      detect: {
+        description: 'Test collision and compute minimum translation penetration vector pushing AABB A out of RightTriangle B.',
+        params: [
+          '- `aabbPos` — `Vec2`. Center of AABB.',
+          '- `aabbHalfSize` — `Vec2`. Half-size of AABB.',
+          '- `tri` — `RightTriangle`. RightTriangle collider.',
+        ],
+        returns: '`Vec2` — Minimum translation penetration vector (origin vector if no collision).',
       },
     },
   },

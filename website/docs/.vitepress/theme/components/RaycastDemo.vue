@@ -36,10 +36,10 @@ function setupScene(w = 600, h = 280) {
   rayOrigin.setScalar(40, h * 0.5);
 
   // Obstacles placed across the arena
-  const c1 = new Physics(new Vec2(w * 0.35, h * 0.35), new Vec2(), new Vec2(60, 60), 0, 1, 0.8, 'circle');
+  const c1 = new Physics(new Vec2(w * 0.35, h * 0.25), new Vec2(), new Vec2(60, 60), 0, 1, 0.8, 'circle');
   const b1 = new Physics(new Vec2(w * 0.42, h * 0.72), new Vec2(), new Vec2(70, 50), 0, 1, 0.8, 'aabb');
   const c2 = new Physics(new Vec2(w * 0.82, h * 0.65), new Vec2(), new Vec2(56, 56), 0, 1, 0.8, 'circle');
-  const b2 = new Physics(new Vec2(w * 0.84, h * 0.28), new Vec2(), new Vec2(50, 60), 0, 1, 0.8, 'aabb');
+  const b2 = new Physics(new Vec2(w * 0.84, h * 0.28), new Vec2(), new Vec2(58, 58), 0, 1, 0.8, 'triangle-ne');
 
   // Sensor zone in middle (isSensor = true)
   sensorZone = new Physics(
@@ -167,19 +167,7 @@ onMounted(() => {
         const b = scene.bodies[i];
         if (b === sensorZone) continue;
         ctx.save();
-        ctx.fillStyle = obsFill;
-        ctx.strokeStyle = obsStroke;
-        ctx.lineWidth = 2;
-        if (b.shape === 'circle') {
-          ctx.beginPath();
-          ctx.arc(b.position.x, b.position.y, b.radius, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.stroke();
-        } else {
-          const hs = b.halfSize;
-          ctx.fillRect(b.position.x - hs.x, b.position.y - hs.y, hs.x * 2, hs.y * 2);
-          ctx.strokeRect(b.position.x - hs.x, b.position.y - hs.y, hs.x * 2, hs.y * 2);
-        }
+        b.draw(ctx, obsFill, obsStroke, 2);
         ctx.restore();
       }
     }

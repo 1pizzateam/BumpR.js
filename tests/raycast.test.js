@@ -317,7 +317,7 @@ describe('Raycasting and Segment Queries', () => {
       scene.addBody(solidWall);
 
       // Ray only tests for CAT_SOLID (pierces glassWall)
-      const hit = scene.raycast(new Vec2(0, 50), new Vec2(300, 50), CAT_SOLID);
+      const hit = scene.raycast(new Vec2(0, 50), new Vec2(300, 50), { mask: CAT_SOLID });
       expect(hit).not.toBeNull();
       expect(hit.body).toBe(solidWall);
       expect(hit.point.x).toBeCloseTo(180);
@@ -394,7 +394,7 @@ describe('Raycasting and Segment Queries', () => {
       expect(allHits[1].body).toBe(wall);
 
       // With mask: only wall
-      const maskedHits = scene.raycastAll(new Vec2(0, 50), new Vec2(300, 50), 0x0004);
+      const maskedHits = scene.raycastAll(new Vec2(0, 50), new Vec2(300, 50), { mask: 0x0004 });
       expect(maskedHits.length).toBe(1);
       expect(maskedHits[0].body).toBe(wall);
 
@@ -643,7 +643,7 @@ describe('Raycasting and Segment Queries', () => {
         expect(hitSolid.body).toBe(wall);
 
         // Mask filters
-        const hitMask = scene.sweepBody(new Vec2(0, 50), new Vec2(300, 50), bullet, 0x0004);
+        const hitMask = scene.sweepBody(new Vec2(0, 50), new Vec2(300, 50), bullet, { mask: 0x0004 });
         expect(hitMask.body).toBe(wall);
       });
 
