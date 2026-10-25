@@ -1,6 +1,6 @@
 {
   "name": "bumpr-docs",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "Documentation for BumpR.js.",
   "private": true,
   "scripts": {
@@ -21,7 +21,7 @@
     "vitepress": "1.6.4"
   },
   "dependencies": {
-    "@1pizzateam/spock": "4.4.0",
+    "@1pizzateam/spock": "4.5.0",
     "@1pizzateam/loopr": "2.1.0"
   }
 }

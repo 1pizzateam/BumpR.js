@@ -1,6 +1,6 @@
 [![License: MIT](https://img.shields.io/npm/l/@1pizzateam/bumpr.svg)](https://opensource.org/licenses/MIT)
 [![npm version](https://badge.fury.io/js/%401pizzateam%2Fbumpr.svg)](https://www.npmjs.com/package/@1pizzateam/bumpr)
-![Jest:coverage](https://img.shields.io/badge/Jest:coverage-99%25-brightgreen.svg)
+![Jest:coverage](https://img.shields.io/badge/Jest:coverage-100%25-brightgreen.svg)
 
 ## Synopsis
 

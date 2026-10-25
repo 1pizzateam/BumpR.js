@@ -147,6 +147,29 @@ function tick(dt) {
         description: 'Remove all registered scene collision listeners.',
         returns: '`void`',
       },
+      dispatchCollision: {
+        description: 'Dispatch collision event to the registered scene callback and any additional scene collision listeners.',
+        params: [
+          '- `a` — `Physics`. First colliding body.',
+          '- `b` — `Physics`. Second colliding body.',
+          '- `normal` — `Vec2`. Outward contact normal vector.',
+          '- `impulse` — `Vec2`. Applied collision impulse vector.',
+        ],
+        returns: '`void`',
+      },
+      setDeduplicationMode: {
+        description: 'Configure broad-phase candidate pair deduplication strategy (`auto`, `cell`, or `pair`).',
+        params: ['- `mode` — `DeduplicationMode`. Deduplication mode (`\'auto\' | \'cell\' | \'pair\'`).'],
+        returns: '`void`',
+      },
+      getDeduplicationMode: {
+        description: 'Get configured broad-phase candidate pair deduplication strategy.',
+        returns: '`DeduplicationMode`',
+      },
+      getActiveDeduplicationMode: {
+        description: 'Get the currently active broad-phase deduplication mode (`cell` or `pair`) resolved for the scene.',
+        returns: '`\'cell\' | \'pair\'`',
+      },
       draw: {
         description: 'Render all active bodies in the scene to a 2D canvas context.',
         params: [
@@ -210,7 +233,7 @@ function tick(dt) {
         params: [
           '- `start` — `Vec2`. Starting point of the segment.',
           '- `end` — `Vec2`. Ending point of the segment.',
-          '- `options` — `RaycastOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.',
+          '- `options` — `RaycastOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody, filter }` filter options.',
         ],
         returns: '`RaycastHit | null` — Nearest impact information `{ body, point, normal, fraction }`, or `null`.',
         example: `const hit = scene.raycast(muzzlePos, targetPos, { mask: 0x0004 });
@@ -223,7 +246,7 @@ if (hit) {
         params: [
           '- `start` — `Vec2`. Starting point of the segment.',
           '- `end` — `Vec2`. Ending point of the segment.',
-          '- `options` — `RaycastOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.',
+          '- `options` — `RaycastOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody, filter }` filter options.',
         ],
         returns: '`boolean` — `true` if no matching body intersects the segment.',
         example: `const visible = scene.hasLineOfSight(enemyPos, playerPos, { mask: CAT_WALL });`,
@@ -233,7 +256,7 @@ if (hit) {
         params: [
           '- `start` — `Vec2`. Starting point of the segment.',
           '- `end` — `Vec2`. Ending point of the segment.',
-          '- `options` — `RaycastOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.',
+          '- `options` — `RaycastOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody, filter }` filter options.',
         ],
         returns: '`RaycastHit[]` — Array of all impacts sorted nearest-first.',
         example: `const hits = scene.raycastAll(start, end, { ignoreSensors: true });`,
@@ -254,7 +277,7 @@ if (hit) {
           '- `start` — `Vec2`. Starting position.',
           '- `end` — `Vec2`. Target position.',
           '- `movingBody` — `Physics`. Body being swept.',
-          '- `options` — `RaycastOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.',
+          '- `options` — `RaycastOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody, filter }` filter options.',
         ],
         returns: '`RaycastHit | null`',
         example: `const hit = scene.sweepBody(startPos, endPos, bullet);`,
@@ -265,7 +288,7 @@ if (hit) {
           '- `start` — `Vec2`. Starting position.',
           '- `end` — `Vec2`. Target position.',
           '- `movingBody` — `Physics`. Body being swept.',
-          '- `options` — `RaycastOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.',
+          '- `options` — `RaycastOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody, filter }` filter options.',
         ],
         returns: '`RaycastHit[]`',
         example: `const hits = scene.sweepBodyAll(startPos, endPos, bullet);`,
@@ -320,7 +343,7 @@ function tick(time) {
         description: 'Find all active bodies in the scene containing a point in world coordinates.',
         params: [
           '- `point` — `Vec2`. Query point in world coordinates.',
-          '- `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.',
+          '- `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody, filter }` filter options.',
         ],
         returns: '`Physics[]` — Array of matching bodies containing the point.',
         example: `const clickedBodies = scene.queryPoint(mouseWorldPos);`,
@@ -329,7 +352,7 @@ function tick(time) {
         description: 'Find the first active body in the scene containing a point in world coordinates.',
         params: [
           '- `point` — `Vec2`. Query point in world coordinates.',
-          '- `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.',
+          '- `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody, filter }` filter options.',
         ],
         returns: '`Physics | null` — The first matching body, or `null` if none found.',
         example: `const hoveredBody = scene.queryPointFirst(mouseWorldPos);`,
@@ -339,7 +362,7 @@ function tick(time) {
         params: [
           '- `center` — `Vec2`. Circle center in world coordinates.',
           '- `radius` — `number`. Circle radius.',
-          '- `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.',
+          '- `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody, filter }` filter options.',
         ],
         returns: '`Physics[]` — Array of matching bodies overlapping the circle.',
         example: `const blastedEnemies = scene.queryCircle(explosionPos, 150, { mask: ENEMY_CATEGORY });`,
@@ -349,7 +372,7 @@ function tick(time) {
         params: [
           '- `center` — `Vec2`. Circle center in world coordinates.',
           '- `radius` — `number`. Circle radius.',
-          '- `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.',
+          '- `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody, filter }` filter options.',
         ],
         returns: '`Physics | null` — The first matching body, or `null` if none found.',
         example: `const blocked = scene.queryCircleFirst(padPos, 24, { mask: CAT_ENEMY, ignoreBody: selfBody });`,
@@ -359,7 +382,7 @@ function tick(time) {
         params: [
           '- `min` — `Vec2`. Minimum corner (or first corner).',
           '- `max` — `Vec2`. Maximum corner (or second corner).',
-          '- `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.',
+          '- `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody, filter }` filter options.',
         ],
         returns: '`Physics[]` — Array of matching bodies overlapping the AABB.',
         example: `const selectedUnits = scene.queryAabb(dragStart, dragEnd);`,
@@ -369,7 +392,7 @@ function tick(time) {
         params: [
           '- `min` — `Vec2`. Minimum corner (or first corner).',
           '- `max` — `Vec2`. Maximum corner (or second corner).',
-          '- `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.',
+          '- `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody, filter }` filter options.',
         ],
         returns: '`Physics | null` — The first matching body, or `null` if none found.',
       },
@@ -427,11 +450,20 @@ const wall = new Physics(
       updatePosition: {
         description: 'Integrate accumulated impulses, apply velocity damping, and update geometric shape position.',
         params: ['- `second` — `number`. Timestep elapsed in seconds.'],
+        returns: '`Vec2` — Updated position vector.',
+      },
+      prepareStep: {
+        description: 'Reset per-step damage and contact state and evaluate automatic idle sleeping before stepping.',
+        params: ['- `second` — `number`. Timestep elapsed in seconds.'],
+        returns: '`boolean` — `true` if the body is active and awake for this step.',
+      },
+      applyForces: {
+        description: 'Integrate continuous external forces, gravity, queued impulses, and velocity damping without advancing position.',
+        params: ['- `second` — `number`. Timestep elapsed in seconds.'],
         returns: '`void`',
       },
       applyImpulse: {
-        description: 'Apply an instantaneous linear velocity impulse vector to the body.',
-        params: ['- `impulse` — `Vec2`. Impulse vector in px·kg/s.'],
+        description: 'Apply queued linear velocity impulse vector to the body velocity and clear the impulse accumulator.',
         returns: '`void`',
       },
       applyVelocity: {
@@ -555,6 +587,46 @@ const wall = new Physics(
         description: 'Write the bounding `(width, height)` dimensions of this body into `target`.',
         params: ['- `target` — `Vec2` (optional). Pre-allocated target vector.'],
         returns: '`Vec2`',
+      },
+      setRadius: {
+        description: 'Set the radius of a circular body (updates `Circ` radius and `halfSize`).',
+        params: ['- `radius` — `number`. Circle radius in pixels.'],
+        returns: '`void`',
+      },
+      setGrid: {
+        description: 'Attach or detach a Spock spatial hash `Grid` on this body and update occupied grid cells.',
+        params: ['- `grid` — `Grid | null`. Spatial hash grid or `null`.'],
+        returns: '`void`',
+      },
+      getGrid: {
+        description: 'Get the Spock spatial hash `Grid` currently attached to this body, or `null`.',
+        returns: '`Grid | null`',
+      },
+      setDamageDealt: {
+        description: 'Set the amount of contact damage this body inflicts on other bodies upon collision.',
+        params: ['- `damageDealt` — `number`. Damage amount.'],
+        returns: '`void`',
+      },
+      getDamageDealt: {
+        description: 'Get the amount of contact damage this body inflicts upon collision.',
+        returns: '`number`',
+      },
+      getDamageTaken: {
+        description: 'Get the total contact damage accumulated by this body during the current step.',
+        returns: '`number`',
+      },
+      applyDamage: {
+        description: 'Return accumulated contact damage for the current step if positive, or `false` if no damage was taken.',
+        returns: '`number | false`',
+      },
+      collision: {
+        description: 'Record contact state, accumulate damage from the colliding body, apply normal impulse scaled by inverse mass, and invoke body collision callbacks.',
+        params: [
+          '- `impulsePerInverseMass` — `Vec2`. Impulse vector per unit inverse mass.',
+          '- `object` — `Physics`. Other colliding body.',
+          '- `normal` — `Vec2` (optional). Contact normal pointing toward this body.',
+        ],
+        returns: '`void`',
       },
       getBody: {
         description: 'Get the underlying Spock geometric shape (`Circ`, `Rect`, or `RightTriangle`).',
@@ -866,8 +938,9 @@ if (hit) {
           '- `end` — `Vec2`. Ending point of the segment.',
           '- `center` — `Vec2`. Circle center.',
           '- `radius` — `number`. Circle radius.',
+          '- `target` — `RayHit2D` (optional). Pre-allocated hit target.',
         ],
-        returns: '`{ fraction: number, point: Vec2, normal: Vec2 } | null`',
+        returns: '`RayHit2D | null`',
       },
       raycastAabb: {
         description: 'Cast a segment against an Axis-Aligned Bounding Box (AABB) using the slab method.',
@@ -876,8 +949,21 @@ if (hit) {
           '- `end` — `Vec2`. Ending point of the segment.',
           '- `center` — `Vec2`. AABB center.',
           '- `halfSize` — `Vec2`. AABB half-size extents.',
+          '- `target` — `RayHit2D` (optional). Pre-allocated hit target.',
         ],
-        returns: '`{ fraction: number, point: Vec2, normal: Vec2 } | null`',
+        returns: '`RayHit2D | null`',
+      },
+      raycastSegment: {
+        description: 'Cast a ray segment `[start, end]` against a line segment `[p1, p2]` with a precomputed outward normal vector.',
+        params: [
+          '- `start` — `Vec2`. Ray segment start point.',
+          '- `end` — `Vec2`. Ray segment end point.',
+          '- `p1` — `Vec2`. Obstacle segment first endpoint.',
+          '- `p2` — `Vec2`. Obstacle segment second endpoint.',
+          '- `outNormal` — `Vec2`. Outward unit normal of the obstacle segment.',
+          '- `target` — `RayHit2D` (optional). Pre-allocated hit target.',
+        ],
+        returns: '`RayHit2D | null`',
       },
       raycastBody: {
         description: 'Cast a segment against a Physics body instance, respecting active state and shape geometry.',
@@ -887,6 +973,19 @@ if (hit) {
           '- `body` — `Physics`. Target body.',
         ],
         returns: '`RaycastHit | null`',
+      },
+      testOffsetEdge: {
+        description: 'Test a ray segment `[start, end]` against an edge `[p1, p2]` offset outward along `normal` by `radius`, returning the updated minimum hit fraction.',
+        params: [
+          '- `start` — `Vec2`. Starting point of moving circle center.',
+          '- `end` — `Vec2`. Target position of moving circle center.',
+          '- `p1` — `Vec2`. Edge first vertex.',
+          '- `p2` — `Vec2`. Edge second vertex.',
+          '- `normal` — `Vec2`. Edge outward unit normal.',
+          '- `radius` — `number`. Offset radius.',
+          '- `tMin` — `number`. Current minimum hit fraction.',
+        ],
+        returns: '`number` — Updated minimum hit fraction.',
       },
       sweepCircleCircle: {
         description: 'Sweep a moving circle along a line segment against a stationary circle using Minkowski sum expansion.',
@@ -1170,13 +1269,12 @@ const pen = CircleVSAabb.detect(circlePos, circleRadius, boxPos, boxHalfSize);`,
         description: 'Compute penetration vector from distance to closest clamped point or internal shallowest axis overlap.',
         params: [
           '- `radiusA` — `number`. Circle radius.',
-          '- `dx` — `number`. Delta X from clamped point (or relative X if inside).',
-          '- `dy` — `number`. Delta Y from clamped point (or relative Y if inside).',
+          '- `delta` — `Vec2`. Delta vector from closest clamped point (or relative offset if inside).',
           '- `distSq` — `number` (optional, default `0`). Squared distance to clamped point.',
           '- `bhs` — `Vec2` (optional). AABB half-size vector for internal overlap resolution.',
         ],
         returns: '`Vec2` — Outward penetration vector.',
-        example: `const pen = CircleVSAabb.getPenetration(15, 3, 4, 25);`,
+        example: `const pen = CircleVSAabb.getPenetration(15, new Vec2(3, 4), 25);`,
       },
     },
   },

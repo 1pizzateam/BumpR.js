@@ -13,7 +13,7 @@
 - **Continuous Collision Detection (CCD)**: Bullet mode with swept Minkowski queries prevents fast-moving projectiles from tunneling through thin obstacles.
 - **Distance Constraints & Joints**: Connect bodies with rigid rods (`createRod`), flexible ropes (`createRope`), or harmonic damped springs (`createSpring`).
 - **Deterministic Fixed-Timestep Accumulator**: `scene.step(deltaTime)` decouples simulation time from render frame rates, offering alpha interpolation (`getAlpha()`) for smooth rendering on high-refresh monitors.
-- **Raycasting & Spatial Queries**: Line-of-sight checks (`scene.hasLineOfSight`), raycasting (`scene.raycast`, `scene.raycastAll`), point containment (`scene.queryPoint`), and area queries (`scene.queryCircle`, `scene.queryAabb`) with `mask`, `category`, `ignoreSensors`, and `ignoreBody` filters.
+- **Raycasting & Spatial Queries**: Line-of-sight checks (`scene.hasLineOfSight`), raycasting (`scene.raycast`, `scene.raycastAll`), point containment (`scene.queryPoint`), and area queries (`scene.queryCircle`, `scene.queryAabb`) with `mask`, `category`, `ignoreSensors`, `ignoreBody`, and `filter` options.
 - **Collision Filtering & Sensors**: 16-bit category/mask bitfields, group indices, and non-solid sensor trigger zones.
 - **Spatial Hash Acceleration**: Native integration with `@1pizzateam/spock`'s `Grid` reduces pairwise checks from $O(N^2)$ to $O(\text{activeCells})$.
 - **Zero Allocations in Hot Paths**: Collision detection vectors and intermediate math structures are reused across iterations to eliminate garbage collection pauses.

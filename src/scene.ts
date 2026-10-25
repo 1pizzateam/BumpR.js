@@ -1,5 +1,5 @@
 import type { Grid } from '@1pizzateam/spock';
-import { Accumulator, Utils, Vec2 } from '@1pizzateam/spock';
+import { Accumulator, GRID_EMPTY_CELL, Utils, Vec2 } from '@1pizzateam/spock';
 import { CollisionDetection } from './collision';
 import type { Physics } from './physics';
 import { Raycast, type RaycastHit, type RaycastOptions } from './raycast';
@@ -7,7 +7,13 @@ import type { DistanceConstraint } from './constraint';
 
 export type DeduplicationMode = 'auto' | 'cell' | 'pair';
 export type SceneCollisionCallback = (bodyA: Physics, bodyB: Physics, normal: Vec2, impulse: Vec2) => void;
-export type SpatialQueryOptions = { mask?: number; category?: number; ignoreSensors?: boolean; ignoreBody?: Physics };
+export type SpatialQueryOptions = {
+  mask?: number;
+  category?: number;
+  ignoreSensors?: boolean;
+  ignoreBody?: Physics;
+  filter?: (body: Physics) => boolean;
+};
 
 export class Scene {
 
@@ -94,12 +100,10 @@ export class Scene {
     body.sceneIndex = -1;
     body.collisionSceneId = 0;
     body.setGrid(null);
-    if (this.constraints.length > 0) {
-      for (let i = this.constraints.length - 1; i >= 0; i--) {
-        const c = this.constraints[i];
-        if (c.bodyA === body || c.bodyB === body)
-          this.removeConstraint(c);
-      }
+    for (let i = this.constraints.length - 1; i >= 0; i--) {
+      const c = this.constraints[i];
+      if (c.bodyA === body || c.bodyB === body)
+        this.removeConstraint(c);
     }
     return true;
   }
@@ -222,7 +226,7 @@ export class Scene {
       if (!body.isActive())
         continue;
       const cells = body.body.gridCells;
-      if (cells[0] === -1)
+      if (cells[0] === GRID_EMPTY_CELL)
         continue;
       if (cells.length >= 3)
         hasLargeBodies = true;
@@ -356,7 +360,7 @@ export class Scene {
           continue;
         const isBody2Stationary = body2.isStationary();
         const cells2 = body2.body.gridCells;
-        if (cells2[0] === -1)
+        if (cells2[0] === GRID_EMPTY_CELL)
           continue;
         for (let c = 0; c < cells2.length; c++) {
           const cellId = cells2[c];
@@ -406,10 +410,9 @@ export class Scene {
     }
     const prevPercent = CollisionDetection.percent;
     CollisionDetection.percent = this.positionCorrection;
-    for (let k = 0; k < this.iterations; k++) {
+    for (let k = 0; k < this.iterations; k++)
       for (let p = 0; p < this.candidatePairsCount; p++)
         CollisionDetection.test(this.candidatePairs[p * 2], this.candidatePairs[p * 2 + 1], callback, k);
-    }
     CollisionDetection.percent = prevPercent;
     this.testSceneTarget = null;
     this.clearCandidatePairs();
@@ -552,20 +555,27 @@ export class Scene {
     mask: 0xFFFF,
     category: 0xFFFF,
     ignoreSensors: false,
-    ignoreBody: null as Physics | null
+    ignoreBody: null as Physics | null,
+    filter: null as ((body: Physics) => boolean) | null
   };
+  private rayMin: Vec2 = new Vec2();
+  private rayMax: Vec2 = new Vec2();
+  private bestHitPoint: Vec2 = new Vec2();
+  private bestHitNormal: Vec2 = new Vec2();
 
   private parseSpatialQueryOptions(options?: SpatialQueryOptions | RaycastOptions): {
     mask: number;
     category: number;
     ignoreSensors: boolean;
     ignoreBody: Physics | null;
+    filter: ((body: Physics) => boolean) | null;
   } {
     const f = this.queryFilter;
     f.mask = options?.mask ?? 0xFFFF;
     f.category = options?.category ?? 0xFFFF;
     f.ignoreSensors = options?.ignoreSensors ?? false;
     f.ignoreBody = options?.ignoreBody ?? null;
+    f.filter = options?.filter ?? null;
     return f;
   }
 
@@ -576,7 +586,8 @@ export class Scene {
       body.isActive() &&
       (!f.ignoreSensors || !body.isSensor) &&
       (body.collisionCategory & f.mask) !== 0 &&
-      (body.collisionMask & f.category) !== 0
+      (body.collisionMask & f.category) !== 0 &&
+      (f.filter === null || f.filter(body))
     );
   }
 
@@ -587,22 +598,38 @@ export class Scene {
   ): RaycastHit | null {
     this.parseSpatialQueryOptions(options);
 
-    let closestHit: RaycastHit | null = null;
+    let closestBody: Physics | null = null;
     let minFraction = 1.0;
+    this.rayMin.minVectors(start, end);
+    this.rayMax.maxVectors(start, end);
 
     for (let i = 0; i < this.bodiesLength; i++) {
       const body = this.bodies[i];
       if (!this.passesSpatialFilter(body))
         continue;
+      if (!body.body.overlapsBounds(this.rayMin, this.rayMax))
+        continue;
 
-      const hit = body.raycast(start, end);
+      const hit = body.body.raycast(start, end, Raycast.scratchHit);
       if (hit && hit.fraction <= minFraction) {
         minFraction = hit.fraction;
-        closestHit = hit;
+        closestBody = body;
+        this.bestHitPoint.copy(hit.point);
+        this.bestHitNormal.copy(hit.normal);
+        this.rayMin.minVectors(start, this.bestHitPoint);
+        this.rayMax.maxVectors(start, this.bestHitPoint);
       }
     }
 
-    return closestHit;
+    if (!closestBody)
+      return null;
+
+    return {
+      body: closestBody,
+      point: this.bestHitPoint.clone(),
+      normal: this.bestHitNormal.clone(),
+      fraction: minFraction
+    };
   }
 
   public hasLineOfSight(
@@ -611,10 +638,14 @@ export class Scene {
     options?: RaycastOptions
   ): boolean {
     this.parseSpatialQueryOptions(options);
+    this.rayMin.minVectors(start, end);
+    this.rayMax.maxVectors(start, end);
 
     for (let i = 0; i < this.bodiesLength; i++) {
       const body = this.bodies[i];
       if (!this.passesSpatialFilter(body))
+        continue;
+      if (!body.body.overlapsBounds(this.rayMin, this.rayMax))
         continue;
       if (body.body.raycast(start, end, Raycast.scratchHit))
         return false;
@@ -630,10 +661,14 @@ export class Scene {
   ): RaycastHit[] {
     this.parseSpatialQueryOptions(options);
     const hits: RaycastHit[] = [];
+    this.rayMin.minVectors(start, end);
+    this.rayMax.maxVectors(start, end);
 
     for (let i = 0; i < this.bodiesLength; i++) {
       const body = this.bodies[i];
       if (!this.passesSpatialFilter(body))
+        continue;
+      if (!body.body.overlapsBounds(this.rayMin, this.rayMax))
         continue;
 
       const hit = body.raycast(start, end);
@@ -663,12 +698,16 @@ export class Scene {
 
     let closestHit: RaycastHit | null = null;
     let minFraction = 1.0;
+    this.rayMin.minVectors(start, end).subtract(movingBody.halfSize);
+    this.rayMax.maxVectors(start, end).add(movingBody.halfSize);
 
     for (let i = 0; i < this.bodiesLength; i++) {
       const body = this.bodies[i];
       if (body === movingBody || !this.passesSpatialFilter(body))
         continue;
       if (!movingBody.canCollideWith(body))
+        continue;
+      if (!body.body.overlapsBounds(this.rayMin, this.rayMax))
         continue;
 
       const hit = Raycast.sweepBody(start, end, movingBody, body);
@@ -689,12 +728,16 @@ export class Scene {
   ): RaycastHit[] {
     this.parseSpatialQueryOptions(options);
     const hits: RaycastHit[] = [];
+    this.rayMin.minVectors(start, end).subtract(movingBody.halfSize);
+    this.rayMax.maxVectors(start, end).add(movingBody.halfSize);
 
     for (let i = 0; i < this.bodiesLength; i++) {
       const body = this.bodies[i];
       if (body === movingBody || !this.passesSpatialFilter(body))
         continue;
       if (!movingBody.canCollideWith(body))
+        continue;
+      if (!body.body.overlapsBounds(this.rayMin, this.rayMax))
         continue;
 
       const hit = Raycast.sweepBody(start, end, movingBody, body);

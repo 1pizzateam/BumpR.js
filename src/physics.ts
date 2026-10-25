@@ -424,11 +424,7 @@ export class Physics {
   }
 
   public getSize( target: Vec2 = new Vec2() ): Vec2 {
-    if (this.body.shape === 'circle') {
-      const d = (this.body as Circ).diameter;
-      return target.setScalar( d, d );
-    }
-    return target.copy( (this.body as Rect | RightTriangle).size );
+    return target.scaleVector( this.body.halfSize, 2 );
   }
 
   public get shape(): BodyShape {
@@ -436,11 +432,11 @@ export class Physics {
   }
 
   public get radius(): number {
-    return this.body.shape === 'circle' ? (this.body as Circ).radius : (this.body as Rect | RightTriangle).halfSize.x;
+    return this.body.halfSize.x;
   }
 
   public get halfSize(): Vec2 {
-    return (this.body as Rect | Circ | RightTriangle).halfSize;
+    return this.body.halfSize;
   }
 
   public setRadius( radius: number ): void {

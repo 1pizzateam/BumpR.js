@@ -50,8 +50,7 @@ getPenetration(radiusA: number, delta: Vec2, distSq: number = 0, bhs?: Vec2): Ve
 ### Parameters
 
 - `radiusA` — `number`. Circle radius.
-- `dx` — `number`. Delta X from clamped point (or relative X if inside).
-- `dy` — `number`. Delta Y from clamped point (or relative Y if inside).
+- `delta` — `Vec2`. Delta vector from closest clamped point (or relative offset if inside).
 - `distSq` — `number` (optional, default `0`). Squared distance to clamped point.
 - `bhs` — `Vec2` (optional). AABB half-size vector for internal overlap resolution.
 
@@ -62,5 +61,5 @@ getPenetration(radiusA: number, delta: Vec2, distSq: number = 0, bhs?: Vec2): Ve
 ### Example
 
 ```javascript
-const pen = CircleVSAabb.getPenetration(15, 3, 4, 25);
+const pen = CircleVSAabb.getPenetration(15, new Vec2(3, 4), 25);
 ```

@@ -154,7 +154,7 @@ BumpR provides high-performance ray segment queries for line-of-sight checks, la
 - **`scene.hasLineOfSight(start, end, options)`**: Fast boolean visibility check with zero allocations on hits or misses.
 - **`scene.raycast(start, end, options)`**: Returns the closest intersected obstacle, exact impact coordinates, and the geometric surface normal vector.
 - **`scene.raycastAll(start, end, options)`**: Penetrates through all intersected obstacles along the segment, returning an array of hits sorted by distance from start.
-- **Filter Options (`{ mask, category, ignoreSensors, ignoreBody }`)**: Filter by category bitmasks, ignore specific bodies (such as the shooter), or skip non-solid sensor trigger zones.
+- **Filter Options (`{ mask, category, ignoreSensors, ignoreBody, filter }`)**: Filter by category bitmasks, ignore specific bodies (such as the shooter), skip non-solid sensor trigger zones, or pass a custom predicate function.
 
 <RaycastDemo />
 

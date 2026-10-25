@@ -296,11 +296,19 @@ applyImpulseVector(impulse: Vec2): void
 
 ## Physics.prepareStep()
 
-
+Reset per-step damage and contact state and evaluate automatic idle sleeping before stepping.
 
 ```typescript
 prepareStep(second: number): boolean
 ```
+
+### Parameters
+
+- `second` — `number`. Timestep elapsed in seconds.
+
+### Returns
+
+`boolean` — `true` if the body is active and awake for this step.
 
 ---
 
@@ -318,31 +326,35 @@ updatePosition(second: number): Vec2
 
 ### Returns
 
-`void`
+`Vec2` — Updated position vector.
 
 ---
 
 ## Physics.applyForces()
 
-
+Integrate continuous external forces, gravity, queued impulses, and velocity damping without advancing position.
 
 ```typescript
 applyForces(second: number): void
 ```
 
+### Parameters
+
+- `second` — `number`. Timestep elapsed in seconds.
+
+### Returns
+
+`void`
+
 ---
 
 ## Physics.applyImpulse()
 
-Apply an instantaneous linear velocity impulse vector to the body.
+Apply queued linear velocity impulse vector to the body velocity and clear the impulse accumulator.
 
 ```typescript
 applyImpulse(): void
 ```
-
-### Parameters
-
-- `impulse` — `Vec2`. Impulse vector in px·kg/s.
 
 ### Returns
 
@@ -786,71 +798,111 @@ getSize(target: Vec2 = new Vec2()): Vec2
 
 ## Physics.setRadius()
 
-
+Set the radius of a circular body (updates `Circ` radius and `halfSize`).
 
 ```typescript
 setRadius(radius: number): void
 ```
 
+### Parameters
+
+- `radius` — `number`. Circle radius in pixels.
+
+### Returns
+
+`void`
+
 ---
 
 ## Physics.setGrid()
 
-
+Attach or detach a Spock spatial hash `Grid` on this body and update occupied grid cells.
 
 ```typescript
 setGrid(grid: Grid | null): void
 ```
 
+### Parameters
+
+- `grid` — `Grid | null`. Spatial hash grid or `null`.
+
+### Returns
+
+`void`
+
 ---
 
 ## Physics.getGrid()
 
-
+Get the Spock spatial hash `Grid` currently attached to this body, or `null`.
 
 ```typescript
 getGrid(): Grid | null
 ```
 
+### Returns
+
+`Grid | null`
+
 ---
 
 ## Physics.setDamageDealt()
 
-
+Set the amount of contact damage this body inflicts on other bodies upon collision.
 
 ```typescript
 setDamageDealt(damageDealt: number): void
 ```
 
+### Parameters
+
+- `damageDealt` — `number`. Damage amount.
+
+### Returns
+
+`void`
+
 ---
 
 ## Physics.getDamageDealt()
 
-
+Get the amount of contact damage this body inflicts upon collision.
 
 ```typescript
 getDamageDealt(): number
 ```
 
+### Returns
+
+`number`
+
 ---
 
 ## Physics.getDamageTaken()
 
-
+Get the total contact damage accumulated by this body during the current step.
 
 ```typescript
 getDamageTaken(): number
 ```
 
+### Returns
+
+`number`
+
 ---
 
 ## Physics.applyDamage()
 
-
+Return accumulated contact damage for the current step if positive, or `false` if no damage was taken.
 
 ```typescript
 applyDamage(): number|false
 ```
+
+### Returns
+
+`number | false`
 
 ---
 
@@ -1287,11 +1339,21 @@ const hit = bullet.sweep(startPos, endPos, wall);
 
 ## Physics.collision()
 
-
+Record contact state, accumulate damage from the colliding body, apply normal impulse scaled by inverse mass, and invoke body collision callbacks.
 
 ```typescript
 collision(impulsePerInverseMass: Vec2, object: Physics, normal?: Vec2): void
 ```
+
+### Parameters
+
+- `impulsePerInverseMass` — `Vec2`. Impulse vector per unit inverse mass.
+- `object` — `Physics`. Other colliding body.
+- `normal` — `Vec2` (optional). Contact normal pointing toward this body.
+
+### Returns
+
+`void`
 
 ---
 

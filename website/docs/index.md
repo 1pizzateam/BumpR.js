@@ -19,7 +19,7 @@ features:
     details: Linear momentum, gravity, mass ratios, impulse response, surface friction, velocity damping, and restitution.
   - icon: 🎯
     title: Precise Narrow-Phase
-    details: Exact collision detection for Circle vs Circle, Circle vs AABB (with Voronoi corners), and AABB vs AABB.
+    details: Exact collision detection for Circle vs Circle, Circle vs AABB (with Voronoi corners), Circle vs RightTriangle, AABB vs AABB, and AABB vs RightTriangle.
   - icon: 🛡️
     title: Continuous Collision Detection
     details: Bullet mode with swept Minkowski queries prevents high-speed projectiles from tunneling through thin colliders.

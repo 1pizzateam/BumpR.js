@@ -22,16 +22,6 @@ if (hit) {
 
 ---
 
-## Raycast.getAabbExitNormal()
-
-
-
-```typescript
-getAabbExitNormal(point: Vec2, min: Vec2, max: Vec2, out: Vec2): Vec2
-```
-
----
-
 ## Raycast.raycastCircle()
 
 Cast a segment against a circular boundary and calculate intersection fraction, hit point, and surface normal.
@@ -46,10 +36,11 @@ raycastCircle(start: Vec2, end: Vec2, center: Vec2, radius: number, target?: Ray
 - `end` — `Vec2`. Ending point of the segment.
 - `center` — `Vec2`. Circle center.
 - `radius` — `number`. Circle radius.
+- `target` — `RayHit2D` (optional). Pre-allocated hit target.
 
 ### Returns
 
-`{ fraction: number, point: Vec2, normal: Vec2 } | null`
+`RayHit2D | null`
 
 ---
 
@@ -67,20 +58,34 @@ raycastAabb(start: Vec2, end: Vec2, center: Vec2, halfSize: Vec2, target?: RayHi
 - `end` — `Vec2`. Ending point of the segment.
 - `center` — `Vec2`. AABB center.
 - `halfSize` — `Vec2`. AABB half-size extents.
+- `target` — `RayHit2D` (optional). Pre-allocated hit target.
 
 ### Returns
 
-`{ fraction: number, point: Vec2, normal: Vec2 } | null`
+`RayHit2D | null`
 
 ---
 
 ## Raycast.raycastSegment()
 
-
+Cast a ray segment `[start, end]` against a line segment `[p1, p2]` with a precomputed outward normal vector.
 
 ```typescript
 raycastSegment(start: Vec2, end: Vec2, p1: Vec2, p2: Vec2, outNormal: Vec2, target?: RayHit2D): RayHit2D | null
 ```
+
+### Parameters
+
+- `start` — `Vec2`. Ray segment start point.
+- `end` — `Vec2`. Ray segment end point.
+- `p1` — `Vec2`. Obstacle segment first endpoint.
+- `p2` — `Vec2`. Obstacle segment second endpoint.
+- `outNormal` — `Vec2`. Outward unit normal of the obstacle segment.
+- `target` — `RayHit2D` (optional). Pre-allocated hit target.
+
+### Returns
+
+`RayHit2D | null`
 
 ---
 
@@ -150,11 +155,25 @@ sweepCircleAabb(start: Vec2, end: Vec2, radiusA: number, centerB: Vec2, halfSize
 
 ## Raycast.testOffsetEdge()
 
-
+Test a ray segment `[start, end]` against an edge `[p1, p2]` offset outward along `normal` by `radius`, returning the updated minimum hit fraction.
 
 ```typescript
 testOffsetEdge(start: Vec2, end: Vec2, p1: Vec2, p2: Vec2, normal: Vec2, radius: number, tMin: number): number
 ```
+
+### Parameters
+
+- `start` — `Vec2`. Starting point of moving circle center.
+- `end` — `Vec2`. Target position of moving circle center.
+- `p1` — `Vec2`. Edge first vertex.
+- `p2` — `Vec2`. Edge second vertex.
+- `normal` — `Vec2`. Edge outward unit normal.
+- `radius` — `number`. Offset radius.
+- `tMin` — `number`. Current minimum hit fraction.
+
+### Returns
+
+`number` — Updated minimum hit fraction.
 
 ---
 

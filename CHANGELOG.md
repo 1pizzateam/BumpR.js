@@ -1,3 +1,16 @@
+Version 1.2.0 (October 25th 2026)
+-----------------------------
+ * Update `@1pizzateam/spock` dependency to v4.5.0
+ * Spatial Query & Raycast Predicate Filtering:
+   - Added custom `filter?: (body: Physics) => boolean` predicate option to `SpatialQueryOptions` and `RaycastOptions` for fine-grained filtering across `raycast`, `raycastAll`, `hasLineOfSight`, `sweepBody`, `sweepBodyAll`, `queryPoint`, `queryPointFirst`, `queryCircle`, `queryCircleFirst`, `queryAabb`, and `queryAabbFirst`.
+ * Spock v4.5.0 Geometry, Raycast & Spatial Optimizations:
+   - Added broad-phase AABB bounds pre-filtering (`overlapsBounds`) to `Scene.raycast` (with progressive ray AABB shrinking on closer hits and zero intermediate hit allocations via `Raycast.scratchHit`), `Scene.hasLineOfSight`, `Scene.raycastAll`, `Scene.sweepBody`, `Scene.sweepBodyAll`, `Raycast.sweepCircleTriangle`, and `Raycast.sweepAabbTriangle`.
+   - Delegated corner updates in `Raycast.raycastAabb` to `Rect.setPosition`.
+   - Delegated bounds computation, closest-point clamping, and expanded box raycasting in `Raycast.sweepCircleAabb` to `Rect.getBounds`, `Rect.getClosestPoint`, and `Rect.raycast` (removing duplicate exit normal helpers), and used `Vec2.normalizeVector`.
+   - Reused `Raycast.scratchHit` (`RayHit2D`) and `Raycast.scratchBestNormal` (`Vec2`) in `Raycast.sweepCircleTriangle` and `Raycast.sweepAabbTriangle`, and reused `RayHit2D` instances returned by `Circ.raycast` and `Rect.raycast` in `Raycast.sweepCircleCircle` and `Raycast.sweepAabbAabb`.
+   - Simplified `Physics.getSize`, `Physics.radius`, and `Physics.halfSize` using Spock's unified `halfSize` property across `Circ`, `Rect`, and `RightTriangle` without runtime shape branching.
+   - Replaced magic `-1` cell sentinels in `Scene` with Spock's `GRID_EMPTY_CELL` constant.
+
 Version 1.1.0 (October 20th 2026)
 -----------------------------
  * Update `@1pizzateam/spock` dependency to v4.4.0

@@ -17,6 +17,7 @@ export interface RaycastOptions {
   category?: number;
   ignoreSensors?: boolean;
   ignoreBody?: Physics;
+  filter?: (body: Physics) => boolean;
 }
 
 export const Raycast = {
@@ -38,16 +39,6 @@ export const Raycast = {
   scratchE2: new Vec2(),
   scratchHit: { fraction: 0, point: new Vec2(), normal: new Vec2() } as RayHit2D,
 
-  getAabbExitNormal(point: Vec2, min: Vec2, max: Vec2, out: Vec2): Vec2 {
-    const distToMin = this.scratchDiff.subVectors(point, min);
-    const distToMax = this.scratchClosest.subVectors(max, point);
-    const minDist = this.scratchCorner.minVectors(distToMin, distToMax);
-
-    if (minDist.x <= minDist.y)
-      return out.setScalar(distToMin.x <= distToMax.x ? -1 : 1, 0);
-    return out.setScalar(0, distToMin.y <= distToMax.y ? -1 : 1);
-  },
-
   raycastCircle(
     start: Vec2,
     end: Vec2,
@@ -67,10 +58,8 @@ export const Raycast = {
     halfSize: Vec2,
     target?: RayHit2D
   ): RayHit2D | null {
-    this.scratchRect.position.copy(center);
     this.scratchRect.halfSize.copy(halfSize);
-    this.scratchRect.topLeftCorner.subVectors(center, halfSize);
-    this.scratchRect.bottomRightCorner.addVectors(center, halfSize);
+    this.scratchRect.setPosition(center);
     return this.scratchRect.raycast(start, end, target);
   },
 
@@ -89,7 +78,7 @@ export const Raycast = {
     if (!body.isActive())
       return null;
 
-    const hit = (body.body as Circ | Rect | RightTriangle).raycast(start, end);
+    const hit = body.body.raycast(start, end);
     if (!hit)
       return null;
 
@@ -108,17 +97,12 @@ export const Raycast = {
     centerB: Vec2,
     radiusB: number
   ): { fraction: number; point: Vec2; normal: Vec2 } | null {
-    const totalRadius = radiusA + radiusB;
-    const hit = this.raycastCircle(start, end, centerB, totalRadius);
+    const hit = this.raycastCircle(start, end, centerB, radiusA + radiusB);
     if (!hit)
       return null;
 
-    const point = new Vec2().copy(centerB).addScaledVector(hit.normal, radiusB);
-    return {
-      fraction: hit.fraction,
-      point,
-      normal: hit.normal
-    };
+    hit.point.copy(centerB).addScaledVector(hit.normal, radiusB);
+    return hit;
   },
 
   sweepCircleAabb(
@@ -128,19 +112,24 @@ export const Raycast = {
     centerB: Vec2,
     halfSizeB: Vec2
   ): { fraction: number; point: Vec2; normal: Vec2 } | null {
-    this.scratchMin.subVectors(centerB, halfSizeB);
-    this.scratchMax.addVectors(centerB, halfSizeB);
-
-    this.scratchClosest.clampVectors(start, this.scratchMin, this.scratchMax);
+    this.scratchRect.halfSize.copy(halfSizeB);
+    this.scratchRect.setPosition(centerB);
+    this.scratchRect.getBounds(this.scratchMin, this.scratchMax);
+    this.scratchRect.getClosestPoint(start, this.scratchClosest);
     this.scratchDiff.subVectors(start, this.scratchClosest);
     const distSq = this.scratchDiff.getMagnitude(true);
 
     if (distSq <= radiusA * radiusA) {
       const normal = new Vec2();
       if (distSq > 0)
-        normal.copy(this.scratchDiff).normalize();
-      else
-        this.getAabbExitNormal(start, this.scratchMin, this.scratchMax, normal);
+        normal.normalizeVector(this.scratchDiff);
+      else {
+        const insideHit = this.scratchRect.raycast(start, end, this.scratchHit);
+        if (insideHit)
+          normal.copy(insideHit.normal);
+        else
+          normal.setScalar(0, -1);
+      }
       return {
         fraction: 0,
         point: start.clone(),
@@ -216,12 +205,17 @@ export const Raycast = {
     radiusA: number,
     tri: RightTriangle
   ): { fraction: number; point: Vec2; normal: Vec2 } | null {
+    this.scratchMin.minVectors(start, end).subtractScalar(radiusA);
+    this.scratchMax.maxVectors(start, end).addScalar(radiusA);
+    if (!tri.overlapsBounds(this.scratchMin, this.scratchMax))
+      return null;
+
     const pen = CircleVSTriangle.detect(start, radiusA, tri);
     if (!pen.isOrigin())
       return {
         fraction: 0,
         point: start.clone(),
-        normal: pen.clone().normalize()
+        normal: new Vec2().normalizeVector(pen)
       };
 
     tri.getVertices(this.scratchS, this.scratchA, this.scratchB);
@@ -264,13 +258,8 @@ export const Raycast = {
 
     this.scratchMin.subVectors(centerB, halfSizeB);
     this.scratchMax.addVectors(centerB, halfSizeB);
-    const point = new Vec2().clampVectors(hit.point, this.scratchMin, this.scratchMax);
-
-    return {
-      fraction: hit.fraction,
-      point,
-      normal: hit.normal
-    };
+    hit.point.clamp(this.scratchMin, this.scratchMax);
+    return hit;
   },
 
   sweepAabbCircle(
@@ -293,15 +282,21 @@ export const Raycast = {
     halfSizeA: Vec2,
     tri: RightTriangle
   ): { fraction: number; point: Vec2; normal: Vec2 } | null {
+    this.scratchMin.minVectors(start, end).subtract(halfSizeA);
+    this.scratchMax.maxVectors(start, end).add(halfSizeA);
+    if (!tri.overlapsBounds(this.scratchMin, this.scratchMax))
+      return null;
+
     const pen = AabbVSTriangle.detect(start, halfSizeA, tri);
     if (!pen.isOrigin())
       return {
         fraction: 0,
         point: start.clone(),
-        normal: pen.clone().normalize()
+        normal: new Vec2().normalizeVector(pen)
       };
 
-    const hitAabb = this.sweepAabbAabb(start, end, halfSizeA, tri.position, tri.halfSize);
+    this.scratchExpandedHalfSize.addVectors(tri.halfSize, halfSizeA);
+    const hitAabb = this.raycastAabb(start, end, tri.position, this.scratchExpandedHalfSize, this.scratchHit);
     if (!hitAabb)
       return null;
 
@@ -313,12 +308,12 @@ export const Raycast = {
       return null;
 
     let tEntry = hitAabb.fraction;
-    let normal = hitAabb.normal;
+    this.scratchBestNormal.copy(hitAabb.normal);
     if (d0 > 0 && d1 <= 0) {
       const tHyp = d0 / (d0 - d1);
       if (tHyp > tEntry) {
         tEntry = tHyp;
-        normal = tri.hypNormal.clone();
+        this.scratchBestNormal.copy(tri.hypNormal);
       }
     }
 
@@ -335,7 +330,7 @@ export const Raycast = {
     return {
       fraction: tEntry,
       point: this.scratchBestPoint.clone(),
-      normal
+      normal: this.scratchBestNormal.clone()
     };
   },
 

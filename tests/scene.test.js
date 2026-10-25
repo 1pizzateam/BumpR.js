@@ -2102,6 +2102,22 @@ describe('Scene Management & Lifecycle', () => {
       touchingScene.addBody(touchingWall);
       touchingScene.step(1 / 60);
     });
+
+    test('spatial queries and raycast support custom filter callback', () => {
+      const scene = new Scene();
+      const b1 = new Physics(new Vec2(50, 0), new Vec2(), new Vec2(20, 20), 0, 1, 0, 'circle');
+      const b2 = new Physics(new Vec2(100, 0), new Vec2(), new Vec2(20, 20), 0, 1, 0, 'circle');
+      scene.addBody(b1);
+      scene.addBody(b2);
+
+      const hits = scene.queryCircle(new Vec2(75, 0), 50, { filter: (b) => b === b2 });
+      expect(hits).toEqual([b2]);
+
+      const rayHit = scene.raycast(new Vec2(0, 0), new Vec2(150, 0), { filter: (b) => b !== b1 });
+      expect(rayHit.body).toBe(b2);
+
+      expect(scene.hasLineOfSight(new Vec2(0, 0), new Vec2(75, 0), { filter: (b) => b !== b1 })).toBe(true);
+    });
   });
 });
 

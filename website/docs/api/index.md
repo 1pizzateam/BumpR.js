@@ -40,8 +40,9 @@ import {
 ### Primitives from Spock.js
 BumpR is built on top of mathematical and spatial primitives from [`@1pizzateam/spock`](https://1pizzateam.github.io/Spock.js/):
 - `Vec2`: 2D vector mathematics with chained operations.
-- `Grid`: Spatial hash grid partitioning space for $O(\text{activeCells})$ broad-phase culling.
-- `Circ`: Circle geometry shape (`position`, `radius`, `gridCells`).
+- `Grid`: Spatial hash grid partitioning space for $O(\text{activeCells})$ broad-phase culling (`GRID_EMPTY_CELL`).
+- `Circ`: Circle geometry shape (`position`, `radius`, `halfSize`, `gridCells`).
 - `Rect`: Axis-aligned rectangle shape (`position`, `size`, `halfSize`, `corners`, `gridCells`).
-- `RightTriangle`: Axis-aligned right triangle shape (`'nw' | 'ne' | 'sw' | 'se'`, `hypNormal`, `hypTangent`, `gridCells`).
-- `Utils`: Numeric utility functions including `clamp`.
+- `RightTriangle`: Axis-aligned right triangle shape (`'nw' | 'ne' | 'sw' | 'se'`, `halfSize`, `hypNormal`, `hypTangent`, `gridCells`).
+- `Accumulator`: Deterministic fixed-timestep accumulator with alpha interpolation.
+- `Utils`: Numeric utility functions including `clamp` and `clampToExtent`.

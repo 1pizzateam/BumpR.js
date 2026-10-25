@@ -1,6 +1,6 @@
 {
   "name": "@1pizzateam/bumpr",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "2D physics engine written in TypeScript",
   "keywords": [
     "physics",
@@ -9,6 +9,10 @@
     "collision-detection",
     "aabb",
     "circle-collision",
+    "triangle-collision",
+    "raycast",
+    "ccd",
+    "spatial-grid",
     "typescript"
   ],
   "homepage": "https://github.com/1pizzateam/BumpR.js",
@@ -51,7 +55,7 @@
     "node": ">= 22"
   },
   "dependencies": {
-    "@1pizzateam/spock": "4.4.0"
+    "@1pizzateam/spock": "4.5.0"
   },
   "devDependencies": {
     "@types/jest": "29.5.14",

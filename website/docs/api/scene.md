@@ -509,11 +509,22 @@ clearCollisionListeners(): void
 
 ## Scene.dispatchCollision()
 
-
+Dispatch collision event to the registered scene callback and any additional scene collision listeners.
 
 ```typescript
 dispatchCollision(a: Physics, b: Physics, normal: Vec2, impulse: Vec2): void
 ```
+
+### Parameters
+
+- `a` — `Physics`. First colliding body.
+- `b` — `Physics`. Second colliding body.
+- `normal` — `Vec2`. Outward contact normal vector.
+- `impulse` — `Vec2`. Applied collision impulse vector.
+
+### Returns
+
+`void`
 
 ---
 
@@ -581,31 +592,47 @@ getPositionCorrection(): number
 
 ## Scene.setDeduplicationMode()
 
-
+Configure broad-phase candidate pair deduplication strategy (`auto`, `cell`, or `pair`).
 
 ```typescript
 setDeduplicationMode(mode: DeduplicationMode): void
 ```
 
+### Parameters
+
+- `mode` — `DeduplicationMode`. Deduplication mode (`'auto' | 'cell' | 'pair'`).
+
+### Returns
+
+`void`
+
 ---
 
 ## Scene.getDeduplicationMode()
 
-
+Get configured broad-phase candidate pair deduplication strategy.
 
 ```typescript
 getDeduplicationMode(): DeduplicationMode
 ```
 
+### Returns
+
+`DeduplicationMode`
+
 ---
 
 ## Scene.getActiveDeduplicationMode()
 
-
+Get the currently active broad-phase deduplication mode (`cell` or `pair`) resolved for the scene.
 
 ```typescript
 getActiveDeduplicationMode(): 'cell' | 'pair'
 ```
+
+### Returns
+
+`'cell' | 'pair'`
 
 ---
 
@@ -798,7 +825,7 @@ raycast(start: Vec2, end: Vec2, options?: RaycastOptions): RaycastHit | null
 
 - `start` — `Vec2`. Starting point of the segment.
 - `end` — `Vec2`. Ending point of the segment.
-- `options` — `RaycastOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.
+- `options` — `RaycastOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody, filter }` filter options.
 
 ### Returns
 
@@ -827,7 +854,7 @@ hasLineOfSight(start: Vec2, end: Vec2, options?: RaycastOptions): boolean
 
 - `start` — `Vec2`. Starting point of the segment.
 - `end` — `Vec2`. Ending point of the segment.
-- `options` — `RaycastOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.
+- `options` — `RaycastOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody, filter }` filter options.
 
 ### Returns
 
@@ -853,7 +880,7 @@ raycastAll(start: Vec2, end: Vec2, options?: RaycastOptions): RaycastHit[]
 
 - `start` — `Vec2`. Starting point of the segment.
 - `end` — `Vec2`. Ending point of the segment.
-- `options` — `RaycastOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.
+- `options` — `RaycastOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody, filter }` filter options.
 
 ### Returns
 
@@ -918,7 +945,7 @@ sweepBody(start: Vec2, end: Vec2, movingBody: Physics, options?: RaycastOptions)
 - `start` — `Vec2`. Starting position.
 - `end` — `Vec2`. Target position.
 - `movingBody` — `Physics`. Body being swept.
-- `options` — `RaycastOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.
+- `options` — `RaycastOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody, filter }` filter options.
 
 ### Returns
 
@@ -945,7 +972,7 @@ sweepBodyAll(start: Vec2, end: Vec2, movingBody: Physics, options?: RaycastOptio
 - `start` — `Vec2`. Starting position.
 - `end` — `Vec2`. Target position.
 - `movingBody` — `Physics`. Body being swept.
-- `options` — `RaycastOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.
+- `options` — `RaycastOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody, filter }` filter options.
 
 ### Returns
 
@@ -970,7 +997,7 @@ queryPoint(point: Vec2, options?: SpatialQueryOptions): Physics[]
 ### Parameters
 
 - `point` — `Vec2`. Query point in world coordinates.
-- `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.
+- `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody, filter }` filter options.
 
 ### Returns
 
@@ -995,7 +1022,7 @@ queryPointFirst(point: Vec2, options?: SpatialQueryOptions): Physics | null
 ### Parameters
 
 - `point` — `Vec2`. Query point in world coordinates.
-- `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.
+- `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody, filter }` filter options.
 
 ### Returns
 
@@ -1021,7 +1048,7 @@ queryCircle(center: Vec2, radius: number, options?: SpatialQueryOptions): Physic
 
 - `center` — `Vec2`. Circle center in world coordinates.
 - `radius` — `number`. Circle radius.
-- `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.
+- `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody, filter }` filter options.
 
 ### Returns
 
@@ -1047,7 +1074,7 @@ queryCircleFirst(center: Vec2, radius: number, options?: SpatialQueryOptions): P
 
 - `center` — `Vec2`. Circle center in world coordinates.
 - `radius` — `number`. Circle radius.
-- `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.
+- `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody, filter }` filter options.
 
 ### Returns
 
@@ -1073,7 +1100,7 @@ queryAabb(min: Vec2, max: Vec2, options?: SpatialQueryOptions): Physics[]
 
 - `min` — `Vec2`. Minimum corner (or first corner).
 - `max` — `Vec2`. Maximum corner (or second corner).
-- `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.
+- `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody, filter }` filter options.
 
 ### Returns
 
@@ -1099,7 +1126,7 @@ queryAabbFirst(min: Vec2, max: Vec2, options?: SpatialQueryOptions): Physics | n
 
 - `min` — `Vec2`. Minimum corner (or first corner).
 - `max` — `Vec2`. Maximum corner (or second corner).
-- `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody }` filter options.
+- `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody, filter }` filter options.
 
 ### Returns
 
