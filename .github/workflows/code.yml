@@ -1,0 +1,30 @@
+name: Implement Plan and Open PR
+
+on:
+  workflow_run:
+    workflows: ["Plan from Think Spec"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number to implement from plan.md'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  actions: write
+
+jobs:
+  code:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    uses: 1pizzateam/coding-pal/.github/workflows/pipeline-code.yml@main
+    with:
+      issue_number: ${{ inputs.issue_number || '' }}
+      workflow_run_id: ${{ github.event.workflow_run.id || '' }}
+      project_title: BumpR
+    secrets: inherit

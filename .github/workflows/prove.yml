@@ -1,0 +1,36 @@
+name: Prove and Validate PR
+
+on:
+  workflow_run:
+    workflows: ["Implement Plan and Open PR"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Pull request number to validate (optional)'
+        required: false
+        type: string
+      issue_number:
+        description: 'Issue number whose open PR should be validated (optional)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  actions: write
+
+jobs:
+  prove:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    uses: 1pizzateam/coding-pal/.github/workflows/pipeline-prove.yml@main
+    with:
+      pr_number: ${{ inputs.pr_number || '' }}
+      issue_number: ${{ inputs.issue_number || '' }}
+      workflow_run_id: ${{ github.event.workflow_run.id || '' }}
+      project_title: BumpR
+      auto_release_npm: true
+    secrets: inherit

@@ -1,0 +1,31 @@
+name: Think from Ready Issue
+
+on:
+  issues:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number to analyze with the Think agent'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  issues: write
+  actions: write
+
+jobs:
+  think:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issues' &&
+       github.event.issue.state == 'open' &&
+       github.event.label.name != '' &&
+       (github.event.label.name == 'ready' ||
+        github.event.label.name == 'Ready'))
+    uses: 1pizzateam/coding-pal/.github/workflows/pipeline-think.yml@main
+    with:
+      issue_number: ${{ inputs.issue_number || github.event.issue.number }}
+      project_title: BumpR
+    secrets: inherit

@@ -1,0 +1,29 @@
+name: Plan from Think Spec
+
+on:
+  workflow_run:
+    workflows: ["Think from Ready Issue"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number to plan (must already have think.md)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  issues: write
+  actions: write
+
+jobs:
+  plan:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    uses: 1pizzateam/coding-pal/.github/workflows/pipeline-plan.yml@main
+    with:
+      issue_number: ${{ inputs.issue_number || '' }}
+      workflow_run_id: ${{ github.event.workflow_run.id || '' }}
+      project_title: BumpR
+    secrets: inherit

@@ -1,0 +1,74 @@
+name: Copilot Audits
+
+on:
+  workflow_dispatch:
+    inputs:
+      audit:
+        description: 'Audit to run'
+        type: choice
+        required: true
+        default: dependency-audit
+        options:
+          - dependency-audit
+          - vector-first-audit
+          - perf-audit
+          - dead-code-audit
+          - test-gap-audit
+          - docs-sync-audit
+      scope:
+        description: 'Path to audit (e.g. src/)'
+        type: string
+        default: 'src/'
+      dependency:
+        description: 'Dependency filter for Dependency Audit (or "all")'
+        type: string
+        default: 'all'
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  dependency-audit:
+    if: inputs.audit == 'dependency-audit'
+    uses: 1pizzateam/coding-pal/.github/workflows/dependency-audit.yml@main
+    with:
+      scope: ${{ inputs.scope }}
+      dependency: ${{ inputs.dependency }}
+    secrets: inherit
+
+  vector-first-audit:
+    if: inputs.audit == 'vector-first-audit'
+    uses: 1pizzateam/coding-pal/.github/workflows/vector-first-audit.yml@main
+    with:
+      scope: ${{ inputs.scope }}
+    secrets: inherit
+
+  perf-audit:
+    if: inputs.audit == 'perf-audit'
+    uses: 1pizzateam/coding-pal/.github/workflows/perf-audit.yml@main
+    with:
+      scope: ${{ inputs.scope }}
+    secrets: inherit
+
+  dead-code-audit:
+    if: inputs.audit == 'dead-code-audit'
+    uses: 1pizzateam/coding-pal/.github/workflows/dead-code-audit.yml@main
+    with:
+      scope: ${{ inputs.scope }}
+    secrets: inherit
+
+  test-gap-audit:
+    if: inputs.audit == 'test-gap-audit'
+    uses: 1pizzateam/coding-pal/.github/workflows/test-gap-audit.yml@main
+    with:
+      scope: ${{ inputs.scope }}
+    secrets: inherit
+
+  docs-sync-audit:
+    if: inputs.audit == 'docs-sync-audit'
+    uses: 1pizzateam/coding-pal/.github/workflows/docs-sync-audit.yml@main
+    with:
+      scope: ${{ inputs.scope }}
+    secrets: inherit

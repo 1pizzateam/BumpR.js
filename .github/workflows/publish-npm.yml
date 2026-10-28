@@ -62,3 +62,21 @@ jobs:
 
       - name: Publish package to npm
         run: npm publish --access public --provenance
+
+      - name: Notify downstream consumers of new npm release
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+          UPSTREAM_REPO: ${{ github.repository }}
+        run: |
+          if [ -z "${GH_TOKEN:-}" ]; then exit 0; fi
+          PACKAGE=$(node -p "require('./package.json').name")
+          VERSION=$(node -p "require('./package.json').version")
+          for CONSUMER in "1pizzateam/DoomR.js"; do
+            gh api "repos/${CONSUMER}/dispatches" \
+              --method POST \
+              -f event_type="upstream-library-released" \
+              -f "client_payload[package]=${PACKAGE}" \
+              -f "client_payload[version]=${VERSION}" \
+              -f "client_payload[upstream_repo]=${UPSTREAM_REPO}" || true
+          done
