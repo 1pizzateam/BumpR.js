@@ -1,0 +1,35 @@
+name: Resume Blocked Issues on Upstream Library Release
+
+on:
+  repository_dispatch:
+    types: [upstream-library-released]
+  workflow_dispatch:
+    inputs:
+      package:
+        description: 'Published npm package name (e.g. @1pizzateam/spock)'
+        required: true
+        type: string
+      version:
+        description: 'Published npm package version (e.g. 4.6.0)'
+        required: true
+        type: string
+      upstream_repo:
+        description: 'Upstream GitHub repository (e.g. 1pizzateam/Spock.js)'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+  issues: write
+  actions: write
+  pull-requests: read
+
+jobs:
+  resume:
+    uses: 1pizzateam/coding-pal/.github/workflows/pipeline-upstream-resume.yml@main
+    with:
+      package: ${{ inputs.package || '' }}
+      version: ${{ inputs.version || '' }}
+      upstream_repo: ${{ inputs.upstream_repo || '' }}
+    secrets: inherit

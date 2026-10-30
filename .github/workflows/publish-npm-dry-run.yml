@@ -8,36 +8,7 @@ permissions:
 
 jobs:
   dry-run:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          registry-url: 'https://registry.npmjs.org'
-          cache: 'npm'
-
-      - name: Upgrade npm
-        run: npm install -g npm@latest
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build library
-        run: npm run build:lib
-
-      - name: Run library tests
-        run: npm run test
-
-      - name: Verify release readiness (docs, CHANGELOG.md, package.json, tarball)
-        run: |
-          git clone --depth 1 https://github.com/1pizzateam/coding-pal.git /tmp/coding-pal
-          node /tmp/coding-pal/skills/release-readiness/scripts/verify-release-readiness.mjs --mode release --require-dist --build-docs
-          rm -rf /tmp/coding-pal
-
-      - name: Verify package publish (dry run)
-        run: npm publish --dry-run --access public
+    uses: 1pizzateam/coding-pal/.github/workflows/pipeline-publish-npm.yml@main
+    with:
+      dry_run: true
+    secrets: inherit
