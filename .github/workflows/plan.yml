@@ -2,7 +2,7 @@ name: Plan from Think Spec
 
 on:
   workflow_run:
-    workflows: ["Think from Ready Issue"]
+    workflows: ["Think from Issue Label"]
     types: [completed]
   workflow_dispatch:
     inputs:

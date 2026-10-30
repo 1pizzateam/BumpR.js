@@ -1,4 +1,4 @@
-name: Think from Ready Issue
+name: Think from Issue Label
 
 on:
   issues:
@@ -23,10 +23,10 @@ jobs:
       (github.event_name == 'issues' &&
        github.event.issue.state == 'open' &&
        github.event.label.name != '' &&
-       (github.event.label.name == 'ready' ||
-        github.event.label.name == 'Ready' ||
-        github.event.label.name == 'ready:think' ||
-        github.event.label.name == 'ready:plan'))
+       (github.event.label.name == 'think' ||
+        github.event.label.name == 'plan' ||
+        github.event.label.name == 'code' ||
+        github.event.label.name == 'release'))
     uses: 1pizzateam/coding-pal/.github/workflows/pipeline-think.yml@main
     with:
       issue_number: ${{ inputs.issue_number || github.event.issue.number }}
