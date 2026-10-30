@@ -1,4 +1,4 @@
-name: Code Plan and Open PR
+name: Code and Open PR
 
 on:
   workflow_run:
