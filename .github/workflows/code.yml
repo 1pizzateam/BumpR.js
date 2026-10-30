@@ -1,4 +1,4 @@
-name: Implement Plan and Open PR
+name: Code Plan and Open PR
 
 on:
   workflow_run:

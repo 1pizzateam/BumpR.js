@@ -55,10 +55,14 @@ jobs:
       - name: Run library tests
         run: npm run test
 
-      - name: Verify package contents (dry run)
+      - name: Verify release readiness (docs, CHANGELOG.md, package.json, tarball)
         run: |
-          npm publish --dry-run --access public
-          npm pack --dry-run --json | node .github/scripts/check-package-files.mjs
+          git clone --depth 1 https://github.com/1pizzateam/coding-pal.git /tmp/coding-pal
+          node /tmp/coding-pal/skills/release-readiness/scripts/verify-release-readiness.mjs --mode release --require-dist --build-docs
+          rm -rf /tmp/coding-pal
+
+      - name: Verify package publish (dry run)
+        run: npm publish --dry-run --access public
 
       - name: Publish package to npm
         run: npm publish --access public --provenance

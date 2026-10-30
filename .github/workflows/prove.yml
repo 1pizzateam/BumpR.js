@@ -2,7 +2,7 @@ name: Prove and Validate PR
 
 on:
   workflow_run:
-    workflows: ["Implement Plan and Open PR"]
+    workflows: ["Code Plan and Open PR"]
     types: [completed]
   workflow_dispatch:
     inputs:

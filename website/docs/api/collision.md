@@ -131,3 +131,22 @@ applyContactImpulse(a: Physics, b: Physics, normal: Vec2, sceneCallback?: (a: Ph
 ### Returns
 
 `void`
+
+---
+
+## Shape & isTriangleShape()
+
+`Shape` enumerates the supported collider shape identifiers (`'circle'`, `'aabb'`, `'triangle-nw'`, `'triangle-ne'`, `'triangle-sw'`, `'triangle-se'`), and `isTriangleShape(shape)` tests whether a shape string is one of the four axis-aligned right-triangle variants.
+
+```typescript
+enum Shape {
+  circle = 'circle',
+  aabb = 'aabb',
+  triangleNW = 'triangle-nw',
+  triangleNE = 'triangle-ne',
+  triangleSW = 'triangle-sw',
+  triangleSE = 'triangle-se'
+}
+
+function isTriangleShape(shape: string): boolean
+```
