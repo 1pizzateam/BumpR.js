@@ -1,8 +1,8 @@
-name: Code and Open PR
+name: Pipeline - Code
 
 on:
   workflow_run:
-    workflows: ["Plan from Think Spec"]
+    workflows: ["Pipeline - Plan"]
     types: [completed]
   workflow_dispatch:
     inputs:

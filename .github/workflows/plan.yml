@@ -1,8 +1,8 @@
-name: Plan from Think Spec
+name: Pipeline - Plan
 
 on:
   workflow_run:
-    workflows: ["Think from Issue Label"]
+    workflows: ["Pipeline - Think"]
     types: [completed]
   workflow_dispatch:
     inputs:

@@ -1,4 +1,4 @@
-name: Copilot Audits
+name: Audit - Run audit
 
 on:
   workflow_dispatch:
@@ -20,7 +20,7 @@ on:
         type: string
         default: 'src/'
       dependency:
-        description: 'Dependency filter for Dependency Audit (or "all")'
+        description: 'Dependency filter for Audit - Dependencies (or "all")'
         type: string
         default: 'all'
 
@@ -32,7 +32,7 @@ permissions:
 jobs:
   dependency-audit:
     if: inputs.audit == 'dependency-audit'
-    uses: 1pizzateam/coding-pal/.github/workflows/dependency-audit.yml@main
+    uses: 1pizzateam/coding-pal/.github/workflows/audit-dependency.yml@main
     with:
       scope: ${{ inputs.scope }}
       dependency: ${{ inputs.dependency }}
@@ -40,35 +40,35 @@ jobs:
 
   vector-first-audit:
     if: inputs.audit == 'vector-first-audit'
-    uses: 1pizzateam/coding-pal/.github/workflows/vector-first-audit.yml@main
+    uses: 1pizzateam/coding-pal/.github/workflows/audit-vector-first.yml@main
     with:
       scope: ${{ inputs.scope }}
     secrets: inherit
 
   perf-audit:
     if: inputs.audit == 'perf-audit'
-    uses: 1pizzateam/coding-pal/.github/workflows/perf-audit.yml@main
+    uses: 1pizzateam/coding-pal/.github/workflows/audit-perf.yml@main
     with:
       scope: ${{ inputs.scope }}
     secrets: inherit
 
   dead-code-audit:
     if: inputs.audit == 'dead-code-audit'
-    uses: 1pizzateam/coding-pal/.github/workflows/dead-code-audit.yml@main
+    uses: 1pizzateam/coding-pal/.github/workflows/audit-dead-code.yml@main
     with:
       scope: ${{ inputs.scope }}
     secrets: inherit
 
   test-gap-audit:
     if: inputs.audit == 'test-gap-audit'
-    uses: 1pizzateam/coding-pal/.github/workflows/test-gap-audit.yml@main
+    uses: 1pizzateam/coding-pal/.github/workflows/audit-test-gap.yml@main
     with:
       scope: ${{ inputs.scope }}
     secrets: inherit
 
   docs-sync-audit:
     if: inputs.audit == 'docs-sync-audit'
-    uses: 1pizzateam/coding-pal/.github/workflows/docs-sync-audit.yml@main
+    uses: 1pizzateam/coding-pal/.github/workflows/audit-docs-sync.yml@main
     with:
       scope: ${{ inputs.scope }}
     secrets: inherit

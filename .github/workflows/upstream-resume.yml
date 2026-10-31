@@ -1,4 +1,4 @@
-name: Resume Blocked Issues on Upstream Library Release
+name: Pipeline - Resume upstream
 
 on:
   repository_dispatch:

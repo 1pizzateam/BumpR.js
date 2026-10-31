@@ -1,8 +1,8 @@
-name: Prove and Validate PR
+name: Pipeline - Prove
 
 on:
   workflow_run:
-    workflows: ["Code and Open PR"]
+    workflows: ["Pipeline - Code"]
     types: [completed]
   workflow_dispatch:
     inputs:

@@ -1,4 +1,4 @@
-name: Think from Issue Label
+name: Pipeline - Think
 
 on:
   issues:

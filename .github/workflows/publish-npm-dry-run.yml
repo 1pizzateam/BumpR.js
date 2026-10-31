@@ -1,4 +1,4 @@
-name: Publish to npm (dry run)
+name: Release - Publish npm (dry run)
 
 on:
   workflow_dispatch:
