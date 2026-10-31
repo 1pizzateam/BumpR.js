@@ -23,10 +23,10 @@ jobs:
       (github.event_name == 'issues' &&
        github.event.issue.state == 'open' &&
        github.event.label.name != '' &&
-       (github.event.label.name == 'think' ||
-        github.event.label.name == 'plan' ||
-        github.event.label.name == 'code' ||
-        github.event.label.name == 'release'))
+       (github.event.label.name == '1-think' ||
+        github.event.label.name == '2-plan' ||
+        github.event.label.name == '3-code' ||
+        github.event.label.name == '4-release'))
     uses: 1pizzateam/coding-pal/.github/workflows/pipeline-think.yml@main
     with:
       issue_number: ${{ inputs.issue_number || github.event.issue.number }}
