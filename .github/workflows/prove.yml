@@ -35,5 +35,10 @@ jobs:
       issue_number: ${{ inputs.issue_number || '' }}
       workflow_run_id: ${{ inputs.workflow_run_id || '' }}
       project_title: BumpR
+      deployment_workflow: deploy-docs.yml
+      deployment_paths: |
+        website/
+        src/
+        .github/workflows/deploy-docs.yml
       auto_release_npm: true
     secrets: inherit
