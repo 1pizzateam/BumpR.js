@@ -1,14 +1,15 @@
 name: Pipeline - Plan
 
 on:
-  workflow_run:
-    workflows: ["Pipeline - Think"]
-    types: [completed]
   workflow_dispatch:
     inputs:
+      workflow_run_id:
+        description: 'Upstream run containing the specification artifact (pipeline handoff)'
+        required: false
+        type: string
       issue_number:
         description: 'Issue number to plan (must already have think.md)'
-        required: true
+        required: false
         type: string
 
 permissions:
@@ -18,12 +19,9 @@ permissions:
 
 jobs:
   plan:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      github.event.workflow_run.conclusion == 'success'
     uses: 1pizzateam/coding-pal/.github/workflows/pipeline-plan.yml@main
     with:
       issue_number: ${{ inputs.issue_number || '' }}
-      workflow_run_id: ${{ github.event.workflow_run.id || '' }}
+      workflow_run_id: ${{ inputs.workflow_run_id || '' }}
       project_title: BumpR
     secrets: inherit

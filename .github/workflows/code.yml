@@ -1,14 +1,15 @@
 name: Pipeline - Code
 
 on:
-  workflow_run:
-    workflows: ["Pipeline - Plan"]
-    types: [completed]
   workflow_dispatch:
     inputs:
+      workflow_run_id:
+        description: 'Upstream run containing the specification artifact (pipeline handoff)'
+        required: false
+        type: string
       issue_number:
         description: 'Issue number to implement from plan.md'
-        required: true
+        required: false
         type: string
 
 permissions:
@@ -17,14 +18,25 @@ permissions:
   issues: write
   actions: write
 
+concurrency:
+  group: delivery-${{ github.repository }}
+  cancel-in-progress: false
+  queue: max
+
 jobs:
   code:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      github.event.workflow_run.conclusion == 'success'
     uses: 1pizzateam/coding-pal/.github/workflows/pipeline-code.yml@main
     with:
       issue_number: ${{ inputs.issue_number || '' }}
-      workflow_run_id: ${{ github.event.workflow_run.id || '' }}
+      workflow_run_id: ${{ inputs.workflow_run_id || '' }}
+      project_title: BumpR
+    secrets: inherit
+
+  prove:
+    needs: code
+    if: needs.code.outputs.continue_to_prove == 'true'
+    uses: 1pizzateam/coding-pal/.github/workflows/pipeline-prove.yml@main
+    with:
+      workflow_run_id: ${{ github.run_id }}
       project_title: BumpR
     secrets: inherit

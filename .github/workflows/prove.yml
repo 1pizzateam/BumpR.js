@@ -1,11 +1,12 @@
 name: Pipeline - Prove
 
 on:
-  workflow_run:
-    workflows: ["Pipeline - Code"]
-    types: [completed]
   workflow_dispatch:
     inputs:
+      workflow_run_id:
+        description: 'Upstream run containing the specification artifact (pipeline handoff)'
+        required: false
+        type: string
       pr_number:
         description: 'Pull request number to validate (optional)'
         required: false
@@ -21,16 +22,18 @@ permissions:
   issues: write
   actions: write
 
+concurrency:
+  group: delivery-${{ github.repository }}
+  cancel-in-progress: false
+  queue: max
+
 jobs:
   prove:
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     uses: 1pizzateam/coding-pal/.github/workflows/pipeline-prove.yml@main
     with:
       pr_number: ${{ inputs.pr_number || '' }}
       issue_number: ${{ inputs.issue_number || '' }}
-      workflow_run_id: ${{ github.event.workflow_run.id || '' }}
+      workflow_run_id: ${{ inputs.workflow_run_id || '' }}
       project_title: BumpR
       auto_release_npm: true
     secrets: inherit
