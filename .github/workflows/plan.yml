@@ -1,6 +1,8 @@
 name: Pipeline - Plan
 
 on:
+  issues:
+    types: [labeled]
   workflow_dispatch:
     inputs:
       workflow_run_id:
@@ -19,9 +21,14 @@ permissions:
 
 jobs:
   plan:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issues' &&
+       github.event.issue.state == 'open' &&
+       github.event.label.name == '2-plan')
     uses: 1pizzateam/coding-pal/.github/workflows/pipeline-plan.yml@main
     with:
-      issue_number: ${{ inputs.issue_number || '' }}
+      issue_number: ${{ inputs.issue_number || github.event.issue.number || '' }}
       workflow_run_id: ${{ inputs.workflow_run_id || '' }}
       project_title: BumpR
     secrets: inherit

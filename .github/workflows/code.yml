@@ -1,6 +1,8 @@
 name: Pipeline - Code
 
 on:
+  issues:
+    types: [labeled]
   workflow_dispatch:
     inputs:
       workflow_run_id:
@@ -25,9 +27,15 @@ concurrency:
 
 jobs:
   code:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issues' &&
+       github.event.issue.state == 'open' &&
+       (github.event.label.name == '3-code' ||
+        github.event.label.name == '4-release'))
     uses: 1pizzateam/coding-pal/.github/workflows/pipeline-code.yml@main
     with:
-      issue_number: ${{ inputs.issue_number || '' }}
+      issue_number: ${{ inputs.issue_number || github.event.issue.number || '' }}
       workflow_run_id: ${{ inputs.workflow_run_id || '' }}
       project_title: BumpR
     secrets: inherit
