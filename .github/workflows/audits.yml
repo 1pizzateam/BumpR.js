@@ -1,14 +1,19 @@
 name: Audit - Run audit
 
 on:
+  schedule:
+    - cron: '0 6 * * 1'
+    - cron: '0 6 * * 3'
+    - cron: '0 6 * * 5'
   workflow_dispatch:
     inputs:
       audit:
         description: 'Audit to run'
         type: choice
         required: true
-        default: dependency-audit
+        default: all
         options:
+          - all
           - dependency-audit
           - vector-first-audit
           - perf-audit
@@ -25,50 +30,49 @@ on:
         default: 'all'
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
   issues: write
 
 jobs:
   dependency-audit:
-    if: inputs.audit == 'dependency-audit'
+    if: (github.event_name == 'workflow_dispatch' && (inputs.audit == 'all' || inputs.audit == 'dependency-audit')) || (github.event_name == 'schedule' && !github.event.repository.private && github.event.schedule == '0 6 * * 1')
     uses: 1pizzateam/coding-pal/.github/workflows/audit-dependency.yml@main
     with:
-      scope: ${{ inputs.scope }}
-      dependency: ${{ inputs.dependency }}
+      scope: ${{ inputs.scope || 'src/' }}
+      dependency: ${{ inputs.dependency || 'all' }}
     secrets: inherit
 
   vector-first-audit:
-    if: inputs.audit == 'vector-first-audit'
+    if: (github.event_name == 'workflow_dispatch' && (inputs.audit == 'all' || inputs.audit == 'vector-first-audit')) || (github.event_name == 'schedule' && !github.event.repository.private && github.event.schedule == '0 6 * * 3')
     uses: 1pizzateam/coding-pal/.github/workflows/audit-vector-first.yml@main
     with:
-      scope: ${{ inputs.scope }}
+      scope: ${{ inputs.scope || 'src/' }}
     secrets: inherit
 
   perf-audit:
-    if: inputs.audit == 'perf-audit'
+    if: (github.event_name == 'workflow_dispatch' && (inputs.audit == 'all' || inputs.audit == 'perf-audit')) || (github.event_name == 'schedule' && !github.event.repository.private && github.event.schedule == '0 6 * * 3')
     uses: 1pizzateam/coding-pal/.github/workflows/audit-perf.yml@main
     with:
-      scope: ${{ inputs.scope }}
+      scope: ${{ inputs.scope || 'src/' }}
     secrets: inherit
 
   dead-code-audit:
-    if: inputs.audit == 'dead-code-audit'
+    if: (github.event_name == 'workflow_dispatch' && (inputs.audit == 'all' || inputs.audit == 'dead-code-audit')) || (github.event_name == 'schedule' && !github.event.repository.private && github.event.schedule == '0 6 * * 1')
     uses: 1pizzateam/coding-pal/.github/workflows/audit-dead-code.yml@main
     with:
-      scope: ${{ inputs.scope }}
+      scope: ${{ inputs.scope || 'src/' }}
     secrets: inherit
 
   test-gap-audit:
-    if: inputs.audit == 'test-gap-audit'
+    if: (github.event_name == 'workflow_dispatch' && (inputs.audit == 'all' || inputs.audit == 'test-gap-audit')) || (github.event_name == 'schedule' && !github.event.repository.private && github.event.schedule == '0 6 * * 5')
     uses: 1pizzateam/coding-pal/.github/workflows/audit-test-gap.yml@main
     with:
-      scope: ${{ inputs.scope }}
+      scope: ${{ inputs.scope || 'src/' }}
     secrets: inherit
 
   docs-sync-audit:
-    if: inputs.audit == 'docs-sync-audit'
+    if: (github.event_name == 'workflow_dispatch' && (inputs.audit == 'all' || inputs.audit == 'docs-sync-audit')) || (github.event_name == 'schedule' && !github.event.repository.private && github.event.schedule == '0 6 * * 5')
     uses: 1pizzateam/coding-pal/.github/workflows/audit-docs-sync.yml@main
     with:
-      scope: ${{ inputs.scope }}
+      scope: ${{ inputs.scope || 'src/' }}
     secrets: inherit
