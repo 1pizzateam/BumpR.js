@@ -3,6 +3,25 @@ import { Physics } from '../build/es6/physics.js';
 import { Scene } from '../build/es6/scene.js';
 import { DistanceConstraint } from '../build/es6/constraint.js';
 
+// Compiles the current src/ tree so these tests exercise the sources, not a stale build/.
+const loadSrcModule = async (name, tag) => {
+  const { readdirSync, readFileSync, writeFileSync, mkdirSync } = await import('node:fs');
+  const { join, dirname } = await import('node:path');
+  const { pathToFileURL } = await import('node:url');
+  const ts = (await import('typescript')).default;
+  const srcDir = join(process.cwd(), 'src');
+  const outDir = join(process.cwd(), 'build', 'src-probe', tag);
+  const walk = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(join(dir, e.name)) : e.name.endsWith('.ts') ? [join(dir, e.name)] : []);
+  for (const file of walk(srcDir)) {
+    const rel = file.slice(srcDir.length + 1).replace(/\.ts$/, '.js');
+    const out = ts.transpileModule(readFileSync(file, 'utf-8'), { compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2022 } }).outputText
+      .replace(/(from\s+['"])(\.{1,2}\/[^'"]*?)(?<!\.js)(['"])/g, '$1$2.js$3');
+    mkdirSync(dirname(join(outDir, rel)), { recursive: true });
+    writeFileSync(join(outDir, rel), out);
+  }
+  return import(pathToFileURL(join(outDir, `${name}.js`)).href);
+};
+
 describe('Scene Management & Lifecycle', () => {
   test('addBody adds body, sets collisionSceneId, and propagates gravity', () => {
     const scene = new Scene();
@@ -2120,6 +2139,11 @@ describe('Scene Management & Lifecycle', () => {
     });
   });
   describe('Scene spatial query target buffers', () => {
+    let Physics, Scene;
+    beforeAll(async () => {
+      ({ Physics } = await loadSrcModule('physics', 'scene'));
+      ({ Scene } = await loadSrcModule('scene', 'scene'));
+    });
     let scene;
     let bCirc1, bCirc2, bAabb1, bSensor;
 

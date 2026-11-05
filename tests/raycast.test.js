@@ -1,6 +1,25 @@
 import { Raycast, Scene, Physics } from '../build/es6/bumpr.js';
 import { RightTriangle, Vec2 } from '@1pizzateam/spock';
 
+// Compiles the current src/ tree so these tests exercise the sources, not a stale build/.
+const loadSrcModule = async (name, tag) => {
+  const { readdirSync, readFileSync, writeFileSync, mkdirSync } = await import('node:fs');
+  const { join, dirname } = await import('node:path');
+  const { pathToFileURL } = await import('node:url');
+  const ts = (await import('typescript')).default;
+  const srcDir = join(process.cwd(), 'src');
+  const outDir = join(process.cwd(), 'build', 'src-probe', tag);
+  const walk = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(join(dir, e.name)) : e.name.endsWith('.ts') ? [join(dir, e.name)] : []);
+  for (const file of walk(srcDir)) {
+    const rel = file.slice(srcDir.length + 1).replace(/\.ts$/, '.js');
+    const out = ts.transpileModule(readFileSync(file, 'utf-8'), { compilerOptions: { module: ts.ModuleKind.ES2022, target: ts.ScriptTarget.ES2022 } }).outputText
+      .replace(/(from\s+['"])(\.{1,2}\/[^'"]*?)(?<!\.js)(['"])/g, '$1$2.js$3');
+    mkdirSync(dirname(join(outDir, rel)), { recursive: true });
+    writeFileSync(join(outDir, rel), out);
+  }
+  return import(pathToFileURL(join(outDir, `${name}.js`)).href);
+};
+
 describe('Raycasting and Segment Queries', () => {
 
   describe('Raycast.raycastCircle', () => {
@@ -665,6 +684,10 @@ describe('Raycasting and Segment Queries', () => {
     });
 
     describe('Raycast sweep target buffers', () => {
+      let Raycast;
+      beforeAll(async () => {
+        ({ Raycast } = await loadSrcModule('raycast', 'raycast'));
+      });
       const tri = new RightTriangle(new Vec2(64, 64), new Vec2(32, 32), 'nw');
       const makeTarget = () => ({ fraction: -1, point: new Vec2(), normal: new Vec2() });
 
