@@ -1,3 +1,11 @@
+Version 1.3.0 (November 5th 2026)
+-----------------------------
+ * Add target buffer parameter to Scene spatial queries
+ * Add target hit parameter to Raycast sweep methods
+ * Add Scene query target tests
+ * Add Raycast sweep target tests
+ * Document the new optional target parameters
+
 Version 1.2.0 (October 25th 2026)
 -----------------------------
  * Update `@1pizzateam/spock` dependency to v4.5.0
