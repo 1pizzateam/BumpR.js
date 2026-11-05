@@ -2119,6 +2119,81 @@ describe('Scene Management & Lifecycle', () => {
       expect(scene.hasLineOfSight(new Vec2(0, 0), new Vec2(75, 0), { filter: (b) => b !== b1 })).toBe(true);
     });
   });
+  describe('Scene spatial query target buffers', () => {
+    let scene;
+    let bCirc1, bCirc2, bAabb1, bSensor;
+
+    beforeEach(() => {
+      scene = new Scene();
+      scene.setGravity(new Vec2(0, 0));
+      bCirc1 = new Physics(new Vec2(100, 100), new Vec2(), new Vec2(40, 40), 1, 1, 0, 'circle', 0, false, 0x0001);
+      bCirc2 = new Physics(new Vec2(200, 100), new Vec2(), new Vec2(40, 40), 1, 1, 0, 'circle', 0, false, 0x0002);
+      bAabb1 = new Physics(new Vec2(100, 100), new Vec2(), new Vec2(40, 40), 1, 1, 0, 'aabb', 0, false, 0x0004);
+      bSensor = new Physics(new Vec2(100, 100), new Vec2(), new Vec2(60, 60), 1, 1, 0, 'circle', 0, true, 0x0001);
+      scene.addBody(bCirc1);
+      scene.addBody(bCirc2);
+      scene.addBody(bAabb1);
+      scene.addBody(bSensor);
+    });
+
+    test('AC-1 queryCircle populates and returns the provided target, clearing stale entries', () => {
+      const target = [bCirc2, bCirc2, bCirc2, bCirc2, bCirc2];
+      const result = scene.queryCircle(new Vec2(100, 100), 10, undefined, target);
+      expect(result).toBe(target);
+      expect(target).toEqual([bCirc1, bAabb1, bSensor]);
+
+      scene.queryCircle(new Vec2(200, 100), 10, undefined, target);
+      expect(target).toEqual([bCirc2]);
+
+      scene.queryCircle(new Vec2(500, 500), 10, undefined, target);
+      expect(target).toHaveLength(0);
+    });
+
+    test('AC-2 queryAabb and queryPoint populate and return the provided target', () => {
+      const target = [bCirc2];
+      expect(scene.queryAabb(new Vec2(70, 70), new Vec2(130, 130), undefined, target)).toBe(target);
+      expect(target).toEqual([bCirc1, bAabb1, bSensor]);
+
+      scene.queryAabb(new Vec2(70, 70), new Vec2(130, 130), { ignoreSensors: true, mask: 0x0001 }, target);
+      expect(target).toEqual([bCirc1]);
+
+      scene.queryAabb(new Vec2(500, 500), new Vec2(550, 550), undefined, target);
+      expect(target).toHaveLength(0);
+
+      expect(scene.queryPoint(new Vec2(100, 100), undefined, target)).toBe(target);
+      expect(target).toEqual([bCirc1, bAabb1, bSensor]);
+
+      scene.queryPoint(new Vec2(100, 100), { mask: 0x0004 }, target);
+      expect(target).toEqual([bAabb1]);
+
+      scene.queryPoint(new Vec2(100, 100), { ignoreSensors: true }, target);
+      expect(target).toEqual([bCirc1, bAabb1]);
+
+      scene.queryPoint(new Vec2(500, 500), undefined, target);
+      expect(target).toHaveLength(0);
+    });
+
+    test('AC-4 spatial queries without target still return fresh arrays', () => {
+      const target = [];
+      const center = new Vec2(100, 100);
+      const a = scene.queryCircle(center, 10);
+      const b = scene.queryCircle(center, 10);
+      expect(a).not.toBe(b);
+      expect(a).toEqual(scene.queryCircle(center, 10, undefined, target));
+
+      const pa = scene.queryPoint(center);
+      expect(pa).not.toBe(scene.queryPoint(center));
+      expect(pa).toEqual(scene.queryPoint(center, undefined, target));
+
+      const min = new Vec2(70, 70);
+      const max = new Vec2(130, 130);
+      const aa = scene.queryAabb(min, max);
+      expect(aa).not.toBe(scene.queryAabb(min, max));
+      expect(aa).toEqual(scene.queryAabb(min, max, undefined, target));
+
+      expect(scene.queryCircle(new Vec2(500, 500), 10)).toEqual([]);
+      expect(scene.queryPoint(new Vec2(500, 500))).toEqual([]);
+      expect(scene.queryAabb(new Vec2(500, 500), new Vec2(550, 550))).toEqual([]);
+    });
+  });
 });
-
-

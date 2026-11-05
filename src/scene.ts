@@ -753,11 +753,13 @@ export class Scene {
    * Find all active bodies in the scene containing a point.
    * @param point - Query point in world coordinates.
    * @param options - Optional spatial query options.
-   * @returns Array of matching bodies.
+   * @param target - Optional reusable output array; truncated with `length = 0` and returned to avoid per-call allocation.
+   * @returns Array of matching bodies (the `target` array when provided).
    */
-  public queryPoint(point: Vec2, options?: SpatialQueryOptions): Physics[] {
+  public queryPoint(point: Vec2, options?: SpatialQueryOptions, target?: Physics[]): Physics[] {
     this.parseSpatialQueryOptions(options);
-    const results: Physics[] = [];
+    const results = target ?? new Array<Physics>();
+    results.length = 0;
     for (let i = 0; i < this.bodiesLength; i++) {
       const body = this.bodies[i];
       if (!this.passesSpatialFilter(body))
@@ -791,11 +793,13 @@ export class Scene {
    * @param center - Circle center in world coordinates.
    * @param radius - Circle radius.
    * @param options - Optional spatial query options.
-   * @returns Array of matching bodies.
+   * @param target - Optional reusable output array; truncated with `length = 0` and returned to avoid per-call allocation.
+   * @returns Array of matching bodies (the `target` array when provided).
    */
-  public queryCircle(center: Vec2, radius: number, options?: SpatialQueryOptions): Physics[] {
+  public queryCircle(center: Vec2, radius: number, options?: SpatialQueryOptions, target?: Physics[]): Physics[] {
     this.parseSpatialQueryOptions(options);
-    const results: Physics[] = [];
+    const results = target ?? new Array<Physics>();
+    results.length = 0;
     for (let i = 0; i < this.bodiesLength; i++) {
       const body = this.bodies[i];
       if (!this.passesSpatialFilter(body))
@@ -830,11 +834,13 @@ export class Scene {
    * @param min - Minimum corner (or first corner).
    * @param max - Maximum corner (or second corner).
    * @param options - Optional spatial query options.
-   * @returns Array of matching bodies.
+   * @param target - Optional reusable output array; truncated with `length = 0` and returned to avoid per-call allocation.
+   * @returns Array of matching bodies (the `target` array when provided).
    */
-  public queryAabb(min: Vec2, max: Vec2, options?: SpatialQueryOptions): Physics[] {
+  public queryAabb(min: Vec2, max: Vec2, options?: SpatialQueryOptions, target?: Physics[]): Physics[] {
     this.parseSpatialQueryOptions(options);
-    const results: Physics[] = [];
+    const results = target ?? new Array<Physics>();
+    results.length = 0;
     for (let i = 0; i < this.bodiesLength; i++) {
       const body = this.bodies[i];
       if (!this.passesSpatialFilter(body))

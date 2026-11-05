@@ -1,5 +1,5 @@
 import { Raycast, Scene, Physics } from '../build/es6/bumpr.js';
-import { Vec2 } from '@1pizzateam/spock';
+import { RightTriangle, Vec2 } from '@1pizzateam/spock';
 
 describe('Raycasting and Segment Queries', () => {
 
@@ -661,6 +661,79 @@ describe('Raycasting and Segment Queries', () => {
         expect(hits.length).toBe(2);
         expect(hits[0].body).toBe(wall1);
         expect(hits[1].body).toBe(wall2);
+      });
+    });
+
+    describe('Raycast sweep target buffers', () => {
+      const tri = new RightTriangle(new Vec2(64, 64), new Vec2(32, 32), 'nw');
+      const makeTarget = () => ({ fraction: -1, point: new Vec2(), normal: new Vec2() });
+
+      const cases = [
+        ['sweepCircleCircle', t => Raycast.sweepCircleCircle(new Vec2(0, 0), new Vec2(100, 0), 5, new Vec2(50, 0), 10, t), t => Raycast.sweepCircleCircle(new Vec2(0, 50), new Vec2(100, 50), 5, new Vec2(50, 0), 10, t)],
+        ['sweepCircleAabb', t => Raycast.sweepCircleAabb(new Vec2(0, 0), new Vec2(100, 0), 5, new Vec2(50, 0), new Vec2(10, 10), t), t => Raycast.sweepCircleAabb(new Vec2(0, 50), new Vec2(100, 50), 5, new Vec2(50, 0), new Vec2(10, 10), t)],
+        ['sweepCircleAabb overlap', t => Raycast.sweepCircleAabb(new Vec2(40, 0), new Vec2(100, 0), 5, new Vec2(50, 0), new Vec2(10, 10), t), null],
+        ['sweepCircleAabb inside', t => Raycast.sweepCircleAabb(new Vec2(50, 0), new Vec2(100, 0), 5, new Vec2(50, 0), new Vec2(10, 10), t), null],
+        ['sweepCircleTriangle', t => Raycast.sweepCircleTriangle(new Vec2(-30, 20), new Vec2(10, 20), 10, tri, t), t => Raycast.sweepCircleTriangle(new Vec2(-30, 90), new Vec2(10, 90), 10, tri, t)],
+        ['sweepCircleTriangle vertex', t => Raycast.sweepCircleTriangle(new Vec2(-20, -20), new Vec2(0, 0), 10, tri, t), null],
+        ['sweepCircleTriangle overlap', t => Raycast.sweepCircleTriangle(new Vec2(35, 35), new Vec2(10, 10), 14, tri, t), null],
+        ['sweepAabbAabb', t => Raycast.sweepAabbAabb(new Vec2(0, 0), new Vec2(100, 0), new Vec2(5, 5), new Vec2(50, 0), new Vec2(10, 10), t), t => Raycast.sweepAabbAabb(new Vec2(0, 50), new Vec2(100, 50), new Vec2(5, 5), new Vec2(50, 0), new Vec2(10, 10), t)],
+        ['sweepAabbCircle', t => Raycast.sweepAabbCircle(new Vec2(0, 0), new Vec2(100, 0), new Vec2(5, 5), new Vec2(50, 0), 10, t), t => Raycast.sweepAabbCircle(new Vec2(0, 50), new Vec2(100, 50), new Vec2(5, 5), new Vec2(50, 0), 10, t)],
+        ['sweepAabbTriangle', t => Raycast.sweepAabbTriangle(new Vec2(-30, 20), new Vec2(10, 20), new Vec2(10, 10), tri, t), t => Raycast.sweepAabbTriangle(new Vec2(-30, 90), new Vec2(10, 90), new Vec2(10, 10), tri, t)],
+        ['sweepAabbTriangle overlap', t => Raycast.sweepAabbTriangle(new Vec2(36, 36), new Vec2(10, 10), new Vec2(10, 10), tri, t), null]
+      ];
+
+      test.each(cases)('AC-3 sweep methods mutate the provided target in place: %s', (name, hitFn) => {
+        const expected = hitFn();
+        expect(expected).not.toBeNull();
+        const target = makeTarget();
+        const point = target.point;
+        const normal = target.normal;
+
+        const result = hitFn(target);
+        expect(result).toBe(target);
+        expect(target.point).toBe(point);
+        expect(target.normal).toBe(normal);
+        expect(target.fraction).toBeCloseTo(expected.fraction, 6);
+        expect(target.point.x).toBeCloseTo(expected.point.x, 6);
+        expect(target.point.y).toBeCloseTo(expected.point.y, 6);
+        expect(target.normal.x).toBeCloseTo(expected.normal.x, 6);
+        expect(target.normal.y).toBeCloseTo(expected.normal.y, 6);
+      });
+
+      test.each(cases)('AC-4 sweep methods without target return equal fresh results and null on miss: %s', (name, hitFn, missFn) => {
+        const a = hitFn();
+        const b = hitFn();
+        expect(a).not.toBe(b);
+        expect(a.point).not.toBe(b.point);
+        expect(a.normal).not.toBe(b.normal);
+        expect(a.fraction).toBeCloseTo(b.fraction, 6);
+        expect(a.point.x).toBeCloseTo(b.point.x, 6);
+        expect(a.normal.y).toBeCloseTo(b.normal.y, 6);
+        if (missFn)
+          expect(missFn()).toBeNull();
+      });
+
+      test.each(cases.filter(c => c[2]))('AC-5 sweep miss leaves target untouched and later hit overwrites it: %s', (name, hitFn, missFn) => {
+        const target = makeTarget();
+        expect(hitFn(target)).toBe(target);
+        const snapshot = { fraction: target.fraction, px: target.point.x, py: target.point.y, nx: target.normal.x, ny: target.normal.y };
+
+        expect(missFn(target)).toBeNull();
+        expect(target.fraction).toBe(snapshot.fraction);
+        expect(target.point.x).toBe(snapshot.px);
+        expect(target.point.y).toBe(snapshot.py);
+        expect(target.normal.x).toBe(snapshot.nx);
+        expect(target.normal.y).toBe(snapshot.ny);
+
+        target.fraction = -5;
+        target.point.setScalar(999, 999);
+        target.normal.setScalar(999, 999);
+        expect(hitFn(target)).toBe(target);
+        expect(target.fraction).toBeCloseTo(snapshot.fraction, 6);
+        expect(target.point.x).toBeCloseTo(snapshot.px, 6);
+        expect(target.point.y).toBeCloseTo(snapshot.py, 6);
+        expect(target.normal.x).toBeCloseTo(snapshot.nx, 6);
+        expect(target.normal.y).toBeCloseTo(snapshot.ny, 6);
       });
     });
   });
