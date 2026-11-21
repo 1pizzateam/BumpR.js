@@ -53,6 +53,11 @@ on:
         required: false
         type: string
         default: ''
+      batch_issues:
+        description: 'Space-separated numbers of other merged issues released together in the same milestone train'
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -75,4 +80,5 @@ jobs:
       project_title: ${{ inputs.project_title || 'BumpR' }}
       deployment_workflow: ${{ inputs.deployment_workflow || '' }}
       deployment_paths: ${{ inputs.deployment_paths || '' }}
+      batch_issues: ${{ inputs.batch_issues || '' }}
     secrets: inherit
