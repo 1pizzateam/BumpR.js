@@ -991,22 +991,30 @@ const hits = scene.sweepBodyAll(startPos, endPos, bullet);
 Find all active bodies in the scene containing a point in world coordinates.
 
 ```typescript
-queryPoint(point: Vec2, options?: SpatialQueryOptions): Physics[]
+queryPoint(point: Vec2, options?: SpatialQueryOptions, target?: Physics[]): Physics[]
 ```
 
 ### Parameters
 
 - `point` — `Vec2`. Query point in world coordinates.
 - `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody, filter }` filter options.
+- `target` — `Physics[]` (optional). Reusable output array; truncated with `length = 0`, filled with the matches, and returned to avoid per-call allocation.
 
 ### Returns
 
-`Physics[]` — Array of matching bodies containing the point.
+`Physics[]` — Array of matching bodies containing the point. When `target` is provided, the same array is returned.
 
 ### Example
 
 ```javascript
 const clickedBodies = scene.queryPoint(mouseWorldPos);
+```
+
+Reusing a module-level buffer to avoid per-frame allocations:
+
+```javascript
+const buffer = [];
+scene.queryPoint(/* ... */, undefined, buffer);
 ```
 
 ---
@@ -1041,7 +1049,7 @@ const hoveredBody = scene.queryPointFirst(mouseWorldPos);
 Find all active bodies in the scene overlapping a circle (e.g. area-of-effect blast or proximity check).
 
 ```typescript
-queryCircle(center: Vec2, radius: number, options?: SpatialQueryOptions): Physics[]
+queryCircle(center: Vec2, radius: number, options?: SpatialQueryOptions, target?: Physics[]): Physics[]
 ```
 
 ### Parameters
@@ -1049,15 +1057,23 @@ queryCircle(center: Vec2, radius: number, options?: SpatialQueryOptions): Physic
 - `center` — `Vec2`. Circle center in world coordinates.
 - `radius` — `number`. Circle radius.
 - `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody, filter }` filter options.
+- `target` — `Physics[]` (optional). Reusable output array; truncated with `length = 0`, filled with the matches, and returned to avoid per-call allocation.
 
 ### Returns
 
-`Physics[]` — Array of matching bodies overlapping the circle.
+`Physics[]` — Array of matching bodies overlapping the circle. When `target` is provided, the same array is returned.
 
 ### Example
 
 ```javascript
 const blastedEnemies = scene.queryCircle(explosionPos, 150, { mask: ENEMY_CATEGORY });
+```
+
+Reusing a module-level buffer to avoid per-frame allocations:
+
+```javascript
+const buffer = [];
+scene.queryCircle(/* ... */, undefined, buffer);
 ```
 
 ---
@@ -1093,7 +1109,7 @@ const blocked = scene.queryCircleFirst(padPos, 24, { mask: CAT_ENEMY, ignoreBody
 Find all active bodies in the scene overlapping an Axis-Aligned Bounding Box (AABB) (e.g. selection marquee or camera frustum).
 
 ```typescript
-queryAabb(min: Vec2, max: Vec2, options?: SpatialQueryOptions): Physics[]
+queryAabb(min: Vec2, max: Vec2, options?: SpatialQueryOptions, target?: Physics[]): Physics[]
 ```
 
 ### Parameters
@@ -1101,15 +1117,23 @@ queryAabb(min: Vec2, max: Vec2, options?: SpatialQueryOptions): Physics[]
 - `min` — `Vec2`. Minimum corner (or first corner).
 - `max` — `Vec2`. Maximum corner (or second corner).
 - `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody, filter }` filter options.
+- `target` — `Physics[]` (optional). Reusable output array; truncated with `length = 0`, filled with the matches, and returned to avoid per-call allocation.
 
 ### Returns
 
-`Physics[]` — Array of matching bodies overlapping the AABB.
+`Physics[]` — Array of matching bodies overlapping the AABB. When `target` is provided, the same array is returned.
 
 ### Example
 
 ```javascript
 const selectedUnits = scene.queryAabb(dragStart, dragEnd);
+```
+
+Reusing a module-level buffer to avoid per-frame allocations:
+
+```javascript
+const buffer = [];
+scene.queryAabb(/* ... */, undefined, buffer);
 ```
 
 ---

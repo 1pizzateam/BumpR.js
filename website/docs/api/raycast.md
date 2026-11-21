@@ -114,7 +114,7 @@ raycastBody(start: Vec2, end: Vec2, body: Physics): RaycastHit | null
 Sweep a moving circle along a line segment against a stationary circle using Minkowski sum expansion.
 
 ```typescript
-sweepCircleCircle(start: Vec2, end: Vec2, radiusA: number, centerB: Vec2, radiusB: number): { fraction: number; point: Vec2; normal: Vec2 } | null
+sweepCircleCircle(start: Vec2, end: Vec2, radiusA: number, centerB: Vec2, radiusB: number, target?: { fraction: number; point: Vec2; normal: Vec2 }): { fraction: number; point: Vec2; normal: Vec2 } | null
 ```
 
 ### Parameters
@@ -124,10 +124,13 @@ sweepCircleCircle(start: Vec2, end: Vec2, radiusA: number, centerB: Vec2, radius
 - `radiusA` — `number`. Radius of moving circle A.
 - `centerB` — `Vec2`. Center of target circle B.
 - `radiusB` — `number`. Radius of target circle B.
+- `target` — `{ fraction, point, normal }` (optional). Reusable hit object; its `point` and `normal` are mutated in place and no new `Vec2` or hit objects are allocated.
 
 ### Returns
 
 `{ fraction: number, point: Vec2, normal: Vec2 } | null`
+
+When `target` is provided, the same object is returned on hit; on a miss `null` is returned and `target` is left unchanged.
 
 ---
 
@@ -136,7 +139,7 @@ sweepCircleCircle(start: Vec2, end: Vec2, radiusA: number, centerB: Vec2, radius
 Sweep a moving circle along a line segment against an Axis-Aligned Bounding Box (AABB) using rounded rectangle Minkowski expansion.
 
 ```typescript
-sweepCircleAabb(start: Vec2, end: Vec2, radiusA: number, centerB: Vec2, halfSizeB: Vec2): { fraction: number; point: Vec2; normal: Vec2 } | null
+sweepCircleAabb(start: Vec2, end: Vec2, radiusA: number, centerB: Vec2, halfSizeB: Vec2, target?: { fraction: number; point: Vec2; normal: Vec2 }): { fraction: number; point: Vec2; normal: Vec2 } | null
 ```
 
 ### Parameters
@@ -146,10 +149,13 @@ sweepCircleAabb(start: Vec2, end: Vec2, radiusA: number, centerB: Vec2, halfSize
 - `radiusA` — `number`. Radius of moving circle A.
 - `centerB` — `Vec2`. Center of target AABB B.
 - `halfSizeB` — `Vec2`. Half-extents of target AABB B.
+- `target` — `{ fraction, point, normal }` (optional). Reusable hit object; its `point` and `normal` are mutated in place and no new `Vec2` or hit objects are allocated.
 
 ### Returns
 
 `{ fraction: number, point: Vec2, normal: Vec2 } | null`
+
+When `target` is provided, the same object is returned on hit; on a miss `null` is returned and `target` is left unchanged.
 
 ---
 
@@ -182,7 +188,7 @@ testOffsetEdge(start: Vec2, end: Vec2, p1: Vec2, p2: Vec2, normal: Vec2, radius:
 Sweep a moving circle along a line segment against a `RightTriangle` using offset edges and rounded vertices.
 
 ```typescript
-sweepCircleTriangle(start: Vec2, end: Vec2, radiusA: number, tri: RightTriangle): { fraction: number; point: Vec2; normal: Vec2 } | null
+sweepCircleTriangle(start: Vec2, end: Vec2, radiusA: number, tri: RightTriangle, target?: { fraction: number; point: Vec2; normal: Vec2 }): { fraction: number; point: Vec2; normal: Vec2 } | null
 ```
 
 ### Parameters
@@ -191,10 +197,13 @@ sweepCircleTriangle(start: Vec2, end: Vec2, radiusA: number, tri: RightTriangle)
 - `end` — `Vec2`. Target position of moving circle center.
 - `radiusA` — `number`. Radius of moving circle A.
 - `tri` — `RightTriangle`. Target right triangle.
+- `target` — `{ fraction, point, normal }` (optional). Reusable hit object; its `point` and `normal` are mutated in place and no new `Vec2` or hit objects are allocated.
 
 ### Returns
 
 `{ fraction: number, point: Vec2, normal: Vec2 } | null`
+
+When `target` is provided, the same object is returned on hit; on a miss `null` is returned and `target` is left unchanged.
 
 ---
 
@@ -203,7 +212,7 @@ sweepCircleTriangle(start: Vec2, end: Vec2, radiusA: number, tri: RightTriangle)
 Sweep a moving AABB along a line segment against a stationary AABB using expanded box raycasting.
 
 ```typescript
-sweepAabbAabb(start: Vec2, end: Vec2, halfSizeA: Vec2, centerB: Vec2, halfSizeB: Vec2): { fraction: number; point: Vec2; normal: Vec2 } | null
+sweepAabbAabb(start: Vec2, end: Vec2, halfSizeA: Vec2, centerB: Vec2, halfSizeB: Vec2, target?: { fraction: number; point: Vec2; normal: Vec2 }): { fraction: number; point: Vec2; normal: Vec2 } | null
 ```
 
 ### Parameters
@@ -213,10 +222,13 @@ sweepAabbAabb(start: Vec2, end: Vec2, halfSizeA: Vec2, centerB: Vec2, halfSizeB:
 - `halfSizeA` — `Vec2`. Half-extents of moving AABB A.
 - `centerB` — `Vec2`. Center of target AABB B.
 - `halfSizeB` — `Vec2`. Half-extents of target AABB B.
+- `target` — `{ fraction, point, normal }` (optional). Reusable hit object; its `point` and `normal` are mutated in place and no new `Vec2` or hit objects are allocated.
 
 ### Returns
 
 `{ fraction: number, point: Vec2, normal: Vec2 } | null`
+
+When `target` is provided, the same object is returned on hit; on a miss `null` is returned and `target` is left unchanged.
 
 ---
 
@@ -225,7 +237,7 @@ sweepAabbAabb(start: Vec2, end: Vec2, halfSizeA: Vec2, centerB: Vec2, halfSizeB:
 Sweep a moving AABB along a line segment against a stationary circle.
 
 ```typescript
-sweepAabbCircle(start: Vec2, end: Vec2, halfSizeA: Vec2, centerB: Vec2, radiusB: number): { fraction: number; point: Vec2; normal: Vec2 } | null
+sweepAabbCircle(start: Vec2, end: Vec2, halfSizeA: Vec2, centerB: Vec2, radiusB: number, target?: { fraction: number; point: Vec2; normal: Vec2 }): { fraction: number; point: Vec2; normal: Vec2 } | null
 ```
 
 ### Parameters
@@ -235,10 +247,13 @@ sweepAabbCircle(start: Vec2, end: Vec2, halfSizeA: Vec2, centerB: Vec2, radiusB:
 - `halfSizeA` — `Vec2`. Half-extents of moving AABB A.
 - `centerB` — `Vec2`. Center of target circle B.
 - `radiusB` — `number`. Radius of target circle B.
+- `target` — `{ fraction, point, normal }` (optional). Reusable hit object; its `point` and `normal` are mutated in place and no new `Vec2` or hit objects are allocated.
 
 ### Returns
 
 `{ fraction: number, point: Vec2, normal: Vec2 } | null`
+
+When `target` is provided, the same object is returned on hit; on a miss `null` is returned and `target` is left unchanged.
 
 ---
 
@@ -247,7 +262,7 @@ sweepAabbCircle(start: Vec2, end: Vec2, halfSizeA: Vec2, centerB: Vec2, radiusB:
 Sweep a moving AABB along a line segment against a `RightTriangle`.
 
 ```typescript
-sweepAabbTriangle(start: Vec2, end: Vec2, halfSizeA: Vec2, tri: RightTriangle): { fraction: number; point: Vec2; normal: Vec2 } | null
+sweepAabbTriangle(start: Vec2, end: Vec2, halfSizeA: Vec2, tri: RightTriangle, target?: { fraction: number; point: Vec2; normal: Vec2 }): { fraction: number; point: Vec2; normal: Vec2 } | null
 ```
 
 ### Parameters
@@ -256,10 +271,13 @@ sweepAabbTriangle(start: Vec2, end: Vec2, halfSizeA: Vec2, tri: RightTriangle): 
 - `end` — `Vec2`. Target position of moving AABB center.
 - `halfSizeA` — `Vec2`. Half-extents of moving AABB A.
 - `tri` — `RightTriangle`. Target right triangle.
+- `target` — `{ fraction, point, normal }` (optional). Reusable hit object; its `point` and `normal` are mutated in place and no new `Vec2` or hit objects are allocated.
 
 ### Returns
 
 `{ fraction: number, point: Vec2, normal: Vec2 } | null`
+
+When `target` is provided, the same object is returned on hit; on a miss `null` is returned and `target` is left unchanged.
 
 ---
 
