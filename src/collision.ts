@@ -32,6 +32,8 @@ export const CollisionDetection = {
   correction             : new Vec2(),
   impulsePerInverseMass  : new Vec2(),
   zeroImpulse            : new Vec2(),
+  callbackNormal         : new Vec2(),
+  callbackImpulse        : new Vec2(),
 
   totalInverseMass       : 0,
   impulse                : 0,
@@ -58,8 +60,11 @@ export const CollisionDetection = {
       this.contactNormal.normalizeVector(this.penetration);
       this.zeroImpulse.origin();
       a.collision( this.zeroImpulse, b, this.contactNormal );
-      if (sceneCallback)
-        sceneCallback( a, b, this.contactNormal.clone(), this.zeroImpulse.clone() );
+      if (sceneCallback) {
+        this.callbackNormal.copy(this.contactNormal);
+        this.callbackImpulse.copy(this.zeroImpulse);
+        sceneCallback( a, b, this.callbackNormal, this.callbackImpulse );
+      }
       this.contactNormal.opposite();
       b.collision( this.zeroImpulse, a, this.contactNormal );
       this.contactNormal.opposite();
@@ -159,8 +164,11 @@ export const CollisionDetection = {
     }
 
     a.collision( this.impulsePerInverseMass, b, this.contactNormal );
-    if (sceneCallback)
-      sceneCallback( a, b, this.contactNormal.clone(), this.impulsePerInverseMass.clone() );
+    if (sceneCallback) {
+      this.callbackNormal.copy(this.contactNormal);
+      this.callbackImpulse.copy(this.impulsePerInverseMass);
+      sceneCallback( a, b, this.callbackNormal, this.callbackImpulse );
+    }
 
     this.impulsePerInverseMass.opposite();
     this.contactNormal.opposite();
