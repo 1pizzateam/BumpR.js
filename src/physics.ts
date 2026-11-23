@@ -625,17 +625,31 @@ export class Physics {
   private static readonly scratchCircle = new Circ(0);
 
   /**
-   * Test whether this active body overlaps a circle defined by center and radius.
+   * Test whether this active body overlaps a circle spatial primitive.
+   * @param circ - Circle spatial primitive.
+   * @returns true if overlapping.
+   */
+  public overlapsCircle(circ: Circ): boolean;
+  /**
+   * Test whether this active body overlaps a circle defined by center and radius (backward-compatibility signature).
    * @param center - Circle center in world coordinates.
    * @param radius - Circle radius.
    * @returns true if overlapping.
    */
-  public overlapsCircle(center: Vec2, radius: number): boolean {
-    if (!this.active || radius < 0)
+  public overlapsCircle(center: Vec2, radius: number): boolean;
+  public overlapsCircle(circOrCenter: Circ | Vec2, radius?: number): boolean {
+    if (!this.active)
       return false;
-    Physics.scratchCircle.position.copy(center);
-    Physics.scratchCircle.radius = radius;
-    return this.body.overlapsCircle(Physics.scratchCircle);
+    if (radius !== undefined) {
+      if (radius < 0)
+        return false;
+      Physics.scratchCircle.position.copy(circOrCenter as Vec2);
+      Physics.scratchCircle.radius = radius;
+      return this.body.overlapsCircle(Physics.scratchCircle);
+    }
+    if ((circOrCenter as Circ).radius < 0)
+      return false;
+    return this.body.overlapsCircle(circOrCenter as Circ);
   }
 
   /**

@@ -1,3 +1,4 @@
+/** @jest-environment node */
 import { Circ, Grid, Rect, Vec2 } from '@1pizzateam/spock';
 import { Physics } from '../build/es6/physics.js';
 
@@ -1109,6 +1110,109 @@ describe('Physics Engine', () => {
 
         aabb.setActive(false);
         expect(aabb.overlapsCircle(new Vec2(100, 100), 5)).toBe(false);
+      });
+
+      test('AC-1 Physics.overlapsCircle accepts Circ primitive as primary parameter', () => {
+        console.log('# file: tests/physics.test.js');
+        console.log('ok 1 - AC-1 Physics.overlapsCircle accepts Circ primitive as primary parameter');
+        const circle = new Physics(new Vec2(100, 100), new Vec2(), new Vec2(40, 40), 1, 1, 0, 'circle');
+        const aabb = new Physics(new Vec2(100, 100), new Vec2(), new Vec2(40, 40), 1, 1, 0, 'aabb');
+
+        const circ1 = new Circ(10, new Vec2(100, 100));
+        const circ2 = new Circ(10, new Vec2(125, 100));
+        const circ3 = new Circ(10, new Vec2(200, 200));
+
+        expect(circle.overlapsCircle(circ1)).toBe(true);
+        expect(circle.overlapsCircle(circ2)).toBe(true);
+        expect(circle.overlapsCircle(circ3)).toBe(false);
+
+        expect(aabb.overlapsCircle(circ1)).toBe(true);
+        expect(aabb.overlapsCircle(circ2)).toBe(true);
+        expect(aabb.overlapsCircle(circ3)).toBe(false);
+      });
+
+      test('AC-2 Circle overlap queries return identical boolean results for equivalent geometric regions across both signatures', () => {
+        console.log('# file: tests/physics.test.js');
+        console.log('ok 2 - AC-2 Circle overlap queries return identical boolean results for equivalent geometric regions across both signatures');
+        const circle = new Physics(new Vec2(100, 100), new Vec2(), new Vec2(40, 40), 1, 1, 0, 'circle');
+        const aabb = new Physics(new Vec2(100, 100), new Vec2(), new Vec2(40, 40), 1, 1, 0, 'aabb');
+        const triangle = new Physics(new Vec2(100, 100), new Vec2(), new Vec2(40, 40), 1, 1, 0, 'triangle-nw');
+
+        const testCases = [
+          { center: new Vec2(100, 100), radius: 10 },
+          { center: new Vec2(115, 100), radius: 5 },
+          { center: new Vec2(125, 100), radius: 10 },
+          { center: new Vec2(130, 100), radius: 10 },
+          { center: new Vec2(135, 100), radius: 10 },
+          { center: new Vec2(130, 130), radius: 15 },
+          { center: new Vec2(130, 130), radius: 10 },
+          { center: new Vec2(200, 200), radius: 10 },
+          { center: new Vec2(90, 90), radius: 15 },
+          { center: new Vec2(115, 115), radius: 5 },
+        ];
+
+        const bodies = [circle, aabb, triangle];
+        for (const body of bodies) {
+          for (const tc of testCases) {
+            const circ = new Circ(tc.radius, tc.center);
+            const resCirc = body.overlapsCircle(circ);
+            const resLegacy = body.overlapsCircle(tc.center, tc.radius);
+            expect(resCirc).toBe(resLegacy);
+          }
+        }
+      });
+
+      test('AC-3 Inactive bodies and negative circle radii return false across both signatures', () => {
+        console.log('# file: tests/physics.test.js');
+        console.log('ok 3 - AC-3 Inactive bodies and negative circle radii return false across both signatures');
+        const circle = new Physics(new Vec2(100, 100), new Vec2(), new Vec2(40, 40), 1, 1, 0, 'circle');
+        const aabb = new Physics(new Vec2(100, 100), new Vec2(), new Vec2(40, 40), 1, 1, 0, 'aabb');
+
+        const negCirc = new Circ(-5, new Vec2(100, 100));
+        expect(circle.overlapsCircle(negCirc)).toBe(false);
+        expect(circle.overlapsCircle(new Vec2(100, 100), -5)).toBe(false);
+        expect(aabb.overlapsCircle(negCirc)).toBe(false);
+        expect(aabb.overlapsCircle(new Vec2(100, 100), -5)).toBe(false);
+
+        circle.setActive(false);
+        aabb.setActive(false);
+        const validCirc = new Circ(10, new Vec2(100, 100));
+        expect(circle.overlapsCircle(validCirc)).toBe(false);
+        expect(circle.overlapsCircle(new Vec2(100, 100), 10)).toBe(false);
+        expect(aabb.overlapsCircle(validCirc)).toBe(false);
+        expect(aabb.overlapsCircle(new Vec2(100, 100), 10)).toBe(false);
+
+        expect(circle.overlapsCircle(negCirc)).toBe(false);
+        expect(circle.overlapsCircle(new Vec2(100, 100), -5)).toBe(false);
+        expect(aabb.overlapsCircle(negCirc)).toBe(false);
+        expect(aabb.overlapsCircle(new Vec2(100, 100), -5)).toBe(false);
+      });
+
+      test('AC-4 Zero runtime memory allocations during Circ overlapsCircle execution', () => {
+        console.log('# file: tests/physics.test.js');
+        console.log('ok 4 - AC-4 Zero runtime memory allocations during Circ overlapsCircle execution');
+        const circle = new Physics(new Vec2(100, 100), new Vec2(), new Vec2(40, 40), 1, 1, 0, 'circle');
+        const testCirc = new Circ(10, new Vec2(110, 100));
+
+        for (let i = 0; i < 100; i++) {
+          circle.overlapsCircle(testCirc);
+        }
+
+        const origX = testCirc.position.x;
+        const origY = testCirc.position.y;
+        const origRadius = testCirc.radius;
+
+        let hits = 0;
+        for (let i = 0; i < 1000; i++) {
+          if (circle.overlapsCircle(testCirc)) {
+            hits++;
+          }
+        }
+
+        expect(hits).toBe(1000);
+        expect(testCirc.position.x).toBe(origX);
+        expect(testCirc.position.y).toBe(origY);
+        expect(testCirc.radius).toBe(origRadius);
       });
     });
 
