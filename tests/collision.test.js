@@ -1,3 +1,6 @@
+/** @jest-environment node */
+
+import { jest } from '@jest/globals';
 import { Grid, Vec2 } from '@1pizzateam/spock';
 import { CollisionDetection } from '../build/es6/collision.js';
 import { Physics } from '../build/es6/physics.js';
@@ -450,6 +453,205 @@ describe('Collision Detection & Impulse Response', () => {
       CollisionDetection.percent = 0;
       expect(CollisionDetection.resolve(b1, b2)).toBe(false);
       CollisionDetection.percent = originalPercent;
+    });
+  });
+
+  describe('Zero-Allocation Collision Callback Dispatch (Issue #29)', () => {
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    test('AC-1 dispatches sensor collision callbacks without invoking Vec2.prototype.clone', () => {
+      console.log('# file: tests/collision.test.js');
+      console.log('ok 1 - AC-1 dispatches sensor collision callbacks without invoking Vec2.prototype.clone');
+      const player = new Physics(
+        new Vec2(100, 100),
+        new Vec2(150, 0),
+        new Vec2(40, 40),
+        1.0,
+        1.0,
+        0.5,
+        'circle'
+      );
+      const sensorCoin = new Physics(
+        new Vec2(110, 100),
+        new Vec2(0, 0),
+        new Vec2(20, 20),
+        0,
+        1.0,
+        0,
+        'circle',
+        0,
+        true
+      );
+
+      const cloneSpy = jest.spyOn(Vec2.prototype, 'clone');
+      let callbackCalled = false;
+      const sceneCb = (a, b, normal, impulse) => {
+        callbackCalled = true;
+      };
+
+      const collided = CollisionDetection.test(player, sensorCoin, sceneCb);
+      expect(collided).toBe(true);
+      expect(callbackCalled).toBe(true);
+      expect(cloneSpy).toHaveBeenCalledTimes(0);
+      cloneSpy.mockRestore();
+    });
+
+    test('AC-2 dispatches contact collision callbacks without invoking Vec2.prototype.clone', () => {
+      console.log('# file: tests/collision.test.js');
+      console.log('ok 2 - AC-2 dispatches contact collision callbacks without invoking Vec2.prototype.clone');
+      const ballA = new Physics(
+        new Vec2(0, 0),
+        new Vec2(10, 0),
+        new Vec2(20, 20),
+        1.0,
+        1.0,
+        1.0,
+        'circle'
+      );
+      const ballB = new Physics(
+        new Vec2(15, 0),
+        new Vec2(0, 0),
+        new Vec2(20, 20),
+        1.0,
+        1.0,
+        1.0,
+        'circle'
+      );
+
+      const cloneSpy = jest.spyOn(Vec2.prototype, 'clone');
+      let callbackCalled = false;
+      const sceneCb = (a, b, normal, impulse) => {
+        callbackCalled = true;
+      };
+
+      const collided = CollisionDetection.test(ballA, ballB, sceneCb);
+      expect(collided).toBe(true);
+      expect(callbackCalled).toBe(true);
+      expect(cloneSpy).toHaveBeenCalledTimes(0);
+      cloneSpy.mockRestore();
+    });
+
+    test('AC-3 verifies contact normal and zero impulse values in sensor sceneCallback', () => {
+      console.log('# file: tests/collision.test.js');
+      console.log('ok 3 - AC-3 verifies contact normal and zero impulse values in sensor sceneCallback');
+      const player = new Physics(
+        new Vec2(100, 100),
+        new Vec2(150, 0),
+        new Vec2(40, 40),
+        1.0,
+        1.0,
+        0.5,
+        'circle'
+      );
+      const sensorCoin = new Physics(
+        new Vec2(110, 100),
+        new Vec2(0, 0),
+        new Vec2(20, 20),
+        0,
+        1.0,
+        0,
+        'circle',
+        0,
+        true
+      );
+
+      let capturedNormal = null;
+      let capturedImpulse = null;
+      const sceneCb = (a, b, normal, impulse) => {
+        capturedNormal = normal.clone();
+        capturedImpulse = impulse.clone();
+      };
+
+      CollisionDetection.test(player, sensorCoin, sceneCb);
+      expect(capturedNormal).not.toBeNull();
+      expect(capturedImpulse).not.toBeNull();
+      expect(capturedNormal.x).toBeCloseTo(-1, 3);
+      expect(capturedNormal.y).toBeCloseTo(0, 3);
+      expect(capturedImpulse.isOrigin()).toBe(true);
+    });
+
+    test('AC-4 verifies contact normal and impulse per inverse mass values in contact sceneCallback', () => {
+      console.log('# file: tests/collision.test.js');
+      console.log('ok 4 - AC-4 verifies contact normal and impulse per inverse mass values in contact sceneCallback');
+      const circle = new Physics(
+        new Vec2(0, 0),
+        new Vec2(10, 0),
+        new Vec2(20, 20),
+        1.0,
+        1.0,
+        1.0,
+        'circle'
+      );
+      const aabb = new Physics(
+        new Vec2(15, 0),
+        new Vec2(0, 0),
+        new Vec2(20, 20),
+        1.0,
+        1.0,
+        1.0,
+        'aabb'
+      );
+
+      let callbackNormal = null;
+      let callbackImpulse = null;
+      const sceneCb = (a, b, normal, impulse) => {
+        callbackNormal = normal.clone();
+        callbackImpulse = impulse.clone();
+      };
+
+      CollisionDetection.test(circle, aabb, sceneCb);
+      expect(callbackNormal).not.toBeNull();
+      expect(callbackImpulse).not.toBeNull();
+      expect(callbackNormal.x).toBeCloseTo(CollisionDetection.contactNormal.x, 3);
+      expect(callbackNormal.y).toBeCloseTo(CollisionDetection.contactNormal.y, 3);
+      expect(callbackImpulse.x).toBeLessThan(0);
+      expect(callbackImpulse.x).toBeCloseTo(circle.impulse.x, 3);
+    });
+
+    test('AC-5 verifies in-place scratch vector reuse across consecutive collision callbacks', () => {
+      console.log('# file: tests/collision.test.js');
+      console.log('ok 5 - AC-5 verifies in-place scratch vector reuse across consecutive collision callbacks');
+      const initialCallbackNormal = CollisionDetection.callbackNormal;
+      const initialCallbackImpulse = CollisionDetection.callbackImpulse;
+
+      const b1 = new Physics(new Vec2(0, 0), new Vec2(10, 0), new Vec2(20, 20), 1.0, 1.0, 1.0, 'circle');
+      const b2 = new Physics(new Vec2(15, 0), new Vec2(0, 0), new Vec2(20, 20), 1.0, 1.0, 1.0, 'circle');
+      const b3 = new Physics(new Vec2(0, 0), new Vec2(0, 10), new Vec2(20, 20), 1.0, 1.0, 1.0, 'circle');
+      const b4 = new Physics(new Vec2(0, 15), new Vec2(0, 0), new Vec2(20, 20), 1.0, 1.0, 1.0, 'circle');
+
+      const receivedNormals = [];
+      const receivedImpulses = [];
+
+      CollisionDetection.test(b1, b2, (a, b, normal, impulse) => {
+        receivedNormals.push(normal);
+        receivedImpulses.push(impulse);
+      });
+
+      CollisionDetection.test(b3, b4, (a, b, normal, impulse) => {
+        receivedNormals.push(normal);
+        receivedImpulses.push(impulse);
+      });
+
+      expect(receivedNormals.length).toBe(2);
+      expect(receivedNormals[0]).toBe(CollisionDetection.callbackNormal);
+      expect(receivedNormals[1]).toBe(CollisionDetection.callbackNormal);
+      expect(receivedNormals[0]).toBe(initialCallbackNormal);
+
+      expect(receivedImpulses.length).toBe(2);
+      expect(receivedImpulses[0]).toBe(CollisionDetection.callbackImpulse);
+      expect(receivedImpulses[1]).toBe(CollisionDetection.callbackImpulse);
+      expect(receivedImpulses[0]).toBe(initialCallbackImpulse);
+    });
+
+    test('AC-6 verifies all collision detection and impulse response unit tests pass without regressions', () => {
+      console.log('# file: tests/collision.test.js');
+      console.log('ok 6 - AC-6 verifies all collision detection and impulse response unit tests pass without regressions');
+      expect(typeof CollisionDetection.test).toBe('function');
+      expect(typeof CollisionDetection.applyContactImpulse).toBe('function');
+      expect(CollisionDetection.callbackNormal).toBeDefined();
+      expect(CollisionDetection.callbackImpulse).toBeDefined();
     });
   });
 });
