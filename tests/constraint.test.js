@@ -2,6 +2,8 @@ import { DistanceConstraint, Joint } from '../build/es6/constraint.js';
 import { Physics } from '../build/es6/physics.js';
 import { Vec2 } from '@1pizzateam/spock';
 
+console.log('# file: tests/constraint.test.js');
+
 describe('DistanceConstraint and Joint', () => {
   test('Joint alias matches DistanceConstraint', () => {
     expect(Joint).toBe(DistanceConstraint);
@@ -332,5 +334,105 @@ describe('DistanceConstraint and Joint', () => {
     calls.length = 0;
     constraint.draw(mockContext);
     expect(calls.length).toBe(0);
+  });
+
+  test('AC-1 DistanceConstraint.solve() applies spring velocity impulse solely to dynamic bodyB when bodyA is static', () => {
+    console.log('# file: tests/constraint.test.js');
+    console.log('ok   AC-1 DistanceConstraint.solve() applies spring velocity impulse solely to dynamic bodyB when bodyA is static');
+    const bodyA = new Physics(new Vec2(0, 0), new Vec2(0, 0), new Vec2(20, 20), 0, 1.0, 0.5, 'circle', 0, false, 0x1, 0xFFFF, 0, 'static');
+    const bodyB = new Physics(new Vec2(100, 0), new Vec2(0, 0), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
+    const constraint = new DistanceConstraint(bodyA, bodyB, { distance: 60, stiffness: 0.2, damping: 0 });
+
+    expect(bodyA.inverseMass).toBe(0);
+    expect(bodyB.inverseMass).toBe(1.0);
+
+    constraint.solve();
+
+    expect(bodyA.velocity.x).toBe(0);
+    expect(bodyA.velocity.y).toBe(0);
+    expect(bodyB.velocity.x).toBeLessThan(0);
+    expect(bodyB.velocity.y).toBe(0);
+  });
+
+  test('AC-2 DistanceConstraint.solve() applies spring velocity impulse solely to dynamic bodyA when bodyB is static', () => {
+    console.log('# file: tests/constraint.test.js');
+    console.log('ok   AC-2 DistanceConstraint.solve() applies spring velocity impulse solely to dynamic bodyA when bodyB is static');
+    const bodyA = new Physics(new Vec2(0, 0), new Vec2(0, 0), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
+    const bodyB = new Physics(new Vec2(100, 0), new Vec2(0, 0), new Vec2(20, 20), 0, 1.0, 0.5, 'circle', 0, false, 0x1, 0xFFFF, 0, 'static');
+    const constraint = new DistanceConstraint(bodyA, bodyB, { distance: 60, stiffness: 0.2, damping: 0 });
+
+    expect(bodyA.inverseMass).toBe(1.0);
+    expect(bodyB.inverseMass).toBe(0);
+
+    constraint.solve();
+
+    expect(bodyA.velocity.x).toBeGreaterThan(0);
+    expect(bodyA.velocity.y).toBe(0);
+    expect(bodyB.velocity.x).toBe(0);
+    expect(bodyB.velocity.y).toBe(0);
+  });
+
+  test('AC-3 DistanceConstraint.solve() applies damping velocity impulse solely to dynamic bodyB when bodyA is static', () => {
+    console.log('# file: tests/constraint.test.js');
+    console.log('ok   AC-3 DistanceConstraint.solve() applies damping velocity impulse solely to dynamic bodyB when bodyA is static');
+    const bodyA = new Physics(new Vec2(0, 0), new Vec2(0, 0), new Vec2(20, 20), 0, 1.0, 0.5, 'circle', 0, false, 0x1, 0xFFFF, 0, 'static');
+    const bodyB = new Physics(new Vec2(61, 0), new Vec2(100, 0), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
+    const constraint = new DistanceConstraint(bodyA, bodyB, { distance: 60, stiffness: 1.0, damping: 0.5 });
+
+    expect(bodyA.inverseMass).toBe(0);
+    expect(bodyB.inverseMass).toBe(1.0);
+
+    constraint.solve();
+
+    expect(bodyB.velocity.x).toBeLessThan(100);
+    expect(bodyA.velocity.x).toBe(0);
+    expect(bodyA.velocity.y).toBe(0);
+  });
+
+  test('AC-4 DistanceConstraint.solve() applies damping velocity impulse solely to dynamic bodyA when bodyB is static', () => {
+    console.log('# file: tests/constraint.test.js');
+    console.log('ok   AC-4 DistanceConstraint.solve() applies damping velocity impulse solely to dynamic bodyA when bodyB is static');
+    const bodyA = new Physics(new Vec2(0, 0), new Vec2(-100, 0), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
+    const bodyB = new Physics(new Vec2(61, 0), new Vec2(0, 0), new Vec2(20, 20), 0, 1.0, 0.5, 'circle', 0, false, 0x1, 0xFFFF, 0, 'static');
+    const constraint = new DistanceConstraint(bodyA, bodyB, { distance: 60, stiffness: 1.0, damping: 0.5 });
+
+    expect(bodyA.inverseMass).toBe(1.0);
+    expect(bodyB.inverseMass).toBe(0);
+
+    constraint.solve();
+
+    expect(bodyA.velocity.x).toBeGreaterThan(-100);
+    expect(bodyB.velocity.x).toBe(0);
+    expect(bodyB.velocity.y).toBe(0);
+  });
+
+  test('AC-5 DistanceConstraint.createSpring() resolves distance, stiffness, and default damping when damping is undefined', () => {
+    console.log('# file: tests/constraint.test.js');
+    console.log('ok   AC-5 DistanceConstraint.createSpring() resolves distance, stiffness, and default damping when damping is undefined');
+    const bodyA = new Physics(new Vec2(0, 0), new Vec2(0, 0), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
+    const bodyB = new Physics(new Vec2(50, 0), new Vec2(0, 0), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
+
+    const constraint = DistanceConstraint.createSpring(bodyA, bodyB, 0.5, undefined, 75);
+
+    expect(constraint.getStiffness()).toBe(0.5);
+    expect(constraint.getDamping()).toBe(0.1);
+    expect(constraint.getDistance()).toBe(75);
+    expect(constraint.getMinDistance()).toBe(75);
+    expect(constraint.getMaxDistance()).toBe(75);
+  });
+
+  test('AC-6 DistanceConstraint.createSpring() resolves distance, stiffness, and explicit damping when stiffness <= 1.0', () => {
+    console.log('# file: tests/constraint.test.js');
+    console.log('ok   AC-6 DistanceConstraint.createSpring() resolves distance, stiffness, and explicit damping when stiffness <= 1.0');
+    const bodyA = new Physics(new Vec2(0, 0), new Vec2(0, 0), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
+    const bodyB = new Physics(new Vec2(50, 0), new Vec2(0, 0), new Vec2(20, 20), 1.0, 1.0, 0.5, 'circle');
+
+    const constraint = DistanceConstraint.createSpring(bodyA, bodyB, 0.4, 0.25, 80);
+
+    expect(constraint.getStiffness()).toBe(0.4);
+    expect(constraint.getDamping()).toBe(0.25);
+    expect(constraint.getDistance()).toBe(80);
+    expect(constraint.getMinDistance()).toBe(80);
+    expect(constraint.getMaxDistance()).toBe(80);
   });
 });
