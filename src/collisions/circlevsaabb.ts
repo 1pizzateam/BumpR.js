@@ -1,15 +1,6 @@
 import { Vec2 } from '@1pizzateam/spock';
 
-export interface ICircleVSAabb {
-  pen: Vec2;
-  rel: Vec2;
-  clamped: Vec2;
-  diff: Vec2;
-  detect(apos: Vec2, radiusA: number, bpos: Vec2, bhs: Vec2): Vec2;
-  getPenetration(radiusA: number, delta: Vec2, distSq?: number, bhs?: Vec2): Vec2;
-}
-
-export const CircleVSAabb: ICircleVSAabb = {
+export const CircleVSAabb = {
 
   pen       : new Vec2(),
   rel       : new Vec2(),

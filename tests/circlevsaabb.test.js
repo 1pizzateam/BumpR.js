@@ -1,7 +1,32 @@
+/** @jest-environment node */
+import { readFileSync } from 'node:fs';
 import { Vec2 } from '@1pizzateam/spock';
 import { CircleVSAabb } from '../build/es6/collisions/circlevsaabb.js';
 
+console.log('# file: tests/circlevsaabb.test.js');
+
 describe('CircleVSAabb Collisions', () => {
+  test('AC-1: omits the unused interface declaration and annotation', () => {
+    const source = readFileSync(new URL('../src/collisions/circlevsaabb.ts', import.meta.url), 'utf8');
+
+    expect(source).not.toMatch(/export interface ICircleVSAabb|CircleVSAabb:\s*ICircleVSAabb/);
+    console.log('ok   AC-1 omits unused interface declaration and annotation');
+  });
+
+  test('AC-2: exports detect and getPenetration with callable inferred members', () => {
+    expect(typeof CircleVSAabb.detect).toBe('function');
+    expect(typeof CircleVSAabb.getPenetration).toBe('function');
+    console.log('ok   AC-2 exports callable inferred members');
+  });
+
+  test('AC-3: preserves collision detection behavior', () => {
+    const pen = CircleVSAabb.detect(new Vec2(13, 0), 6, new Vec2(0, 0), new Vec2(10, 10));
+
+    expect(pen.x).toBe(3);
+    expect(pen.y).toBe(0);
+    console.log('ok   AC-3 preserves collision detection behavior');
+  });
+
   const boxPos = new Vec2(0, 0);
   const boxHalfSize = new Vec2(10, 10);
   const circleRadius = 6;
