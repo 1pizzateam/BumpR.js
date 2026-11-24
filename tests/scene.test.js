@@ -1,4 +1,4 @@
-import { Grid, Vec2 } from '@1pizzateam/spock';
+import { Circ, Grid, Ray2, Rect, Vec2 } from '@1pizzateam/spock';
 import { Physics } from '../build/es6/physics.js';
 import { Scene } from '../build/es6/scene.js';
 import { DistanceConstraint } from '../build/es6/constraint.js';
@@ -1987,45 +1987,45 @@ describe('Scene Management & Lifecycle', () => {
       expect(miss).toBeNull();
     });
 
-    test('queryCircle finds all bodies overlapping circle with filters', () => {
+    test('AC-5 migrated existing query tests still pass: queryCircle finds all bodies overlapping circle with filters', () => {
       // Query circle at (150, 100) with radius 60: overlaps bCirc1 (dist 50 <= 80) and bCirc2 (dist 50 <= 80)
-      const hitBoth = scene.queryCircle(new Vec2(150, 100), 60, { ignoreSensors: true });
+      const hitBoth = scene.queryCircle(new Circ(60, new Vec2(150, 100)), { ignoreSensors: true });
       expect(hitBoth).toContain(bCirc1);
       expect(hitBoth).toContain(bCirc2);
       expect(hitBoth).toContain(bAabb1);
 
       // Query circle overlapping only bCirc2
-      const hitOnlyCirc2 = scene.queryCircle(new Vec2(225, 100), 10);
+      const hitOnlyCirc2 = scene.queryCircle(new Circ(10, new Vec2(225, 100)));
       expect(hitOnlyCirc2).toHaveLength(1);
       expect(hitOnlyCirc2[0]).toBe(bCirc2);
     });
 
     test('queryCircleFirst returns first matching body or null', () => {
-      const first = scene.queryCircleFirst(new Vec2(150, 100), 60, { ignoreSensors: true });
+      const first = scene.queryCircleFirst(new Circ(60, new Vec2(150, 100)), { ignoreSensors: true });
       expect(first).not.toBeNull();
       expect([bCirc1, bCirc2, bAabb1]).toContain(first);
 
-      const miss = scene.queryCircleFirst(new Vec2(500, 500), 10);
+      const miss = scene.queryCircleFirst(new Circ(10, new Vec2(500, 500)));
       expect(miss).toBeNull();
     });
 
     test('queryAabb finds all bodies overlapping AABB with filters', () => {
       // Bounding box [180, 80] to [220, 120] covering only bCirc2
-      const hitCirc2 = scene.queryAabb(new Vec2(180, 80), new Vec2(220, 120));
+      const hitCirc2 = scene.queryAabb(new Rect(new Vec2(40, 40), new Vec2(200, 100)));
       expect(hitCirc2).toHaveLength(1);
       expect(hitCirc2[0]).toBe(bCirc2);
 
       // Bounding box [70, 70] to [130, 130] covering bCirc1, bAabb1, bSensor
-      const hitLeft = scene.queryAabb(new Vec2(70, 70), new Vec2(130, 130), { ignoreSensors: true, mask: 0x0001 });
+      const hitLeft = scene.queryAabb(new Rect(new Vec2(60, 60), new Vec2(100, 100)), { ignoreSensors: true, mask: 0x0001 });
       expect(hitLeft).toHaveLength(1);
       expect(hitLeft[0]).toBe(bCirc1);
     });
 
     test('queryAabbFirst returns first matching body or null', () => {
-      const first = scene.queryAabbFirst(new Vec2(180, 80), new Vec2(220, 120));
+      const first = scene.queryAabbFirst(new Rect(new Vec2(40, 40), new Vec2(200, 100)));
       expect(first).toBe(bCirc2);
 
-      const miss = scene.queryAabbFirst(new Vec2(500, 500), new Vec2(550, 550));
+      const miss = scene.queryAabbFirst(new Rect(new Vec2(50, 50), new Vec2(525, 525)));
       expect(miss).toBeNull();
     });
   });
@@ -2129,7 +2129,7 @@ describe('Scene Management & Lifecycle', () => {
       scene.addBody(b1);
       scene.addBody(b2);
 
-      const hits = scene.queryCircle(new Vec2(75, 0), 50, { filter: (b) => b === b2 });
+      const hits = scene.queryCircle(new Circ(50, new Vec2(75, 0)), { filter: (b) => b === b2 });
       expect(hits).toEqual([b2]);
 
       const rayHit = scene.raycast(new Vec2(0, 0), new Vec2(150, 0), { filter: (b) => b !== b1 });
@@ -2162,26 +2162,26 @@ describe('Scene Management & Lifecycle', () => {
 
     test('AC-1 queryCircle populates and returns the provided target, clearing stale entries', () => {
       const target = [bCirc2, bCirc2, bCirc2, bCirc2, bCirc2];
-      const result = scene.queryCircle(new Vec2(100, 100), 10, undefined, target);
+      const result = scene.queryCircle(new Circ(10, new Vec2(100, 100)), undefined, target);
       expect(result).toBe(target);
       expect(target).toEqual([bCirc1, bAabb1, bSensor]);
 
-      scene.queryCircle(new Vec2(200, 100), 10, undefined, target);
+      scene.queryCircle(new Circ(10, new Vec2(200, 100)), undefined, target);
       expect(target).toEqual([bCirc2]);
 
-      scene.queryCircle(new Vec2(500, 500), 10, undefined, target);
+      scene.queryCircle(new Circ(10, new Vec2(500, 500)), undefined, target);
       expect(target).toHaveLength(0);
     });
 
     test('AC-2 queryAabb and queryPoint populate and return the provided target', () => {
       const target = [bCirc2];
-      expect(scene.queryAabb(new Vec2(70, 70), new Vec2(130, 130), undefined, target)).toBe(target);
+      expect(scene.queryAabb(new Rect(new Vec2(60, 60), new Vec2(100, 100)), undefined, target)).toBe(target);
       expect(target).toEqual([bCirc1, bAabb1, bSensor]);
 
-      scene.queryAabb(new Vec2(70, 70), new Vec2(130, 130), { ignoreSensors: true, mask: 0x0001 }, target);
+      scene.queryAabb(new Rect(new Vec2(60, 60), new Vec2(100, 100)), { ignoreSensors: true, mask: 0x0001 }, target);
       expect(target).toEqual([bCirc1]);
 
-      scene.queryAabb(new Vec2(500, 500), new Vec2(550, 550), undefined, target);
+      scene.queryAabb(new Rect(new Vec2(50, 50), new Vec2(525, 525)), undefined, target);
       expect(target).toHaveLength(0);
 
       expect(scene.queryPoint(new Vec2(100, 100), undefined, target)).toBe(target);
@@ -2200,24 +2200,128 @@ describe('Scene Management & Lifecycle', () => {
     test('AC-4 spatial queries without target still return fresh arrays', () => {
       const target = [];
       const center = new Vec2(100, 100);
-      const a = scene.queryCircle(center, 10);
-      const b = scene.queryCircle(center, 10);
+      const circ = new Circ(10, center);
+      const a = scene.queryCircle(circ);
+      const b = scene.queryCircle(circ);
       expect(a).not.toBe(b);
-      expect(a).toEqual(scene.queryCircle(center, 10, undefined, target));
+      expect(a).toEqual(scene.queryCircle(circ, undefined, target));
 
       const pa = scene.queryPoint(center);
       expect(pa).not.toBe(scene.queryPoint(center));
       expect(pa).toEqual(scene.queryPoint(center, undefined, target));
 
-      const min = new Vec2(70, 70);
-      const max = new Vec2(130, 130);
-      const aa = scene.queryAabb(min, max);
-      expect(aa).not.toBe(scene.queryAabb(min, max));
-      expect(aa).toEqual(scene.queryAabb(min, max, undefined, target));
+      const rect = new Rect(new Vec2(60, 60), new Vec2(100, 100));
+      const aa = scene.queryAabb(rect);
+      expect(aa).not.toBe(scene.queryAabb(rect));
+      expect(aa).toEqual(scene.queryAabb(rect, undefined, target));
 
-      expect(scene.queryCircle(new Vec2(500, 500), 10)).toEqual([]);
+      expect(scene.queryCircle(new Circ(10, new Vec2(500, 500)))).toEqual([]);
       expect(scene.queryPoint(new Vec2(500, 500))).toEqual([]);
-      expect(scene.queryAabb(new Vec2(500, 500), new Vec2(550, 550))).toEqual([]);
+      expect(scene.queryAabb(new Rect(new Vec2(50, 50), new Vec2(525, 525)))).toEqual([]);
     });
+  });
+});
+
+describe('Issue 37: Circ, Rect and Ray2 scene queries', () => {
+  let scene;
+  let circBody;
+  let boxBody;
+  let sensor;
+
+  beforeEach(() => {
+    scene = new Scene();
+    scene.setGravity(new Vec2(0, 0));
+    circBody = new Physics(new Vec2(100, 0), new Vec2(0, 0), new Vec2(40, 40), 0, 1, 0, 'circle');
+    boxBody = new Physics(new Vec2(200, 0), new Vec2(0, 0), new Vec2(40, 40), 0, 1, 0, 'aabb');
+    sensor = new Physics(new Vec2(300, 0), new Vec2(0, 0), new Vec2(40, 40), 0, 1, 0, 'aabb', 0, true);
+    scene.addBody(circBody);
+    scene.addBody(boxBody);
+    scene.addBody(sensor);
+  });
+
+  test('AC-1 queryCircle and queryCircleFirst accept a Circ primitive', () => {
+    const circ = new Circ(100, new Vec2(150, 0));
+    const target = [boxBody, boxBody, boxBody, boxBody];
+    expect(scene.queryCircle(circ, undefined, target)).toBe(target);
+    expect(target).toEqual([circBody, boxBody]);
+    expect(scene.queryCircle(new Circ(250, new Vec2(250, 0)), { ignoreSensors: true })).toEqual([circBody, boxBody]);
+    expect(scene.queryCircle(new Circ(250, new Vec2(250, 0)), { mask: 0 })).toEqual([]);
+    expect(scene.queryCircle(circ, { filter: (b) => b === boxBody })).toEqual([boxBody]);
+    expect(scene.queryCircleFirst(circ)).toBe(circBody);
+    expect(scene.queryCircleFirst(new Circ(10, new Vec2(0, 500)))).toBeNull();
+  });
+
+  test('AC-2 queryAabb and queryAabbFirst accept a Rect primitive', () => {
+    const near = new Rect(new Vec2(100, 100), new Vec2(100, 0));
+    expect(scene.queryAabb(near)).toEqual([circBody]);
+    const reach = new Rect(new Vec2(80, 100), new Vec2(130, 0));
+    expect(scene.queryAabb(reach)).toEqual([circBody]);
+    const wide = new Rect(new Vec2(400, 100), new Vec2(200, 0));
+    expect(scene.queryAabb(wide, { ignoreSensors: true })).toEqual([circBody, boxBody]);
+    expect(scene.queryAabb(wide, { filter: (b) => b === boxBody })).toEqual([boxBody]);
+    expect(scene.queryAabbFirst(wide)).toBe(circBody);
+    expect(scene.queryAabbFirst(new Rect(new Vec2(10, 10), new Vec2(0, 500)))).toBeNull();
+  });
+
+  test('AC-3 raycast, raycastAll and hasLineOfSight accept a Ray2 and match the start/end form', () => {
+    const origin = new Vec2(0, 0);
+    const direction = new Vec2(1, 0);
+    const ray = new Ray2(origin, direction);
+    const maxDistance = 250;
+    const end = new Vec2(250, 0);
+
+    const a = scene.raycast(ray, maxDistance);
+    const b = scene.raycast(origin, end);
+    expect(a).not.toBeNull();
+    expect(a.body).toBe(b.body);
+    expect(a.body).toBe(circBody);
+    expect(a.point.x).toBeCloseTo(b.point.x);
+    expect(a.point.y).toBeCloseTo(b.point.y);
+    expect(a.normal.x).toBeCloseTo(b.normal.x);
+    expect(a.normal.y).toBeCloseTo(b.normal.y);
+    expect(a.fraction).toBeCloseTo(b.fraction);
+
+    const allA = scene.raycastAll(ray, maxDistance);
+    const allB = scene.raycastAll(origin, end);
+    expect(allA.length).toBe(2);
+    expect(allA.map((h) => h.body)).toEqual(allB.map((h) => h.body));
+    expect(allA.map((h) => h.fraction)).toEqual(allB.map((h) => h.fraction));
+    expect(allA[0].body).toBe(circBody);
+
+    expect(scene.hasLineOfSight(ray, maxDistance)).toBe(false);
+    expect(scene.hasLineOfSight(origin, end)).toBe(false);
+    expect(scene.hasLineOfSight(ray, 50)).toBe(true);
+    expect(scene.hasLineOfSight(ray, maxDistance, { filter: () => false })).toBe(true);
+  });
+
+  test('AC-4 reusable target arrays are returned and primitives are not mutated', () => {
+    const circ = new Circ(150, new Vec2(150, 0));
+    const rect = new Rect(new Vec2(400, 100), new Vec2(200, 0));
+    const target = [];
+    for (let i = 0; i < 3; i++) {
+      expect(scene.queryCircle(circ, undefined, target)).toBe(target);
+      expect(target).toEqual(scene.queryCircle(circ));
+      expect(scene.queryAabb(rect, undefined, target)).toBe(target);
+      expect(target).toEqual(scene.queryAabb(rect));
+    }
+    expect(circ.position.x).toBe(150);
+    expect(circ.radius).toBe(150);
+    expect(rect.position.x).toBe(200);
+    expect(rect.size.x).toBe(400);
+  });
+
+  test('AC-6 Ray2 misses, short rays and zero maxDistance yield no hits', () => {
+    const away = new Ray2(new Vec2(0, 0), new Vec2(-1, 0));
+    expect(scene.raycast(away, 500)).toBeNull();
+    expect(scene.raycastAll(away, 500)).toEqual([]);
+    expect(scene.hasLineOfSight(away, 500)).toBe(true);
+
+    const forward = new Ray2(new Vec2(0, 0), new Vec2(1, 0));
+    expect(scene.raycast(forward, 50)).toBeNull();
+    expect(scene.raycastAll(forward, 50)).toEqual([]);
+
+    expect(scene.raycast(forward, 0)).toBeNull();
+    expect(scene.raycastAll(forward, 0)).toEqual([]);
+    expect(scene.hasLineOfSight(forward, 0)).toBe(true);
   });
 });

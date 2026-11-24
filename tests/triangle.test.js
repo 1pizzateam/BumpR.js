@@ -259,9 +259,9 @@ describe('RightTriangle Collider & Collisions', () => {
     scene.setPositionCorrection(1);
     expect(scene.getPositionCorrection()).toBe(1);
 
-    const found = scene.queryCircle(new Vec2(100, 50), 30, { mask: 4, category: 1, ignoreBody: wall });
+    const found = scene.queryCircle(new Circ(30, new Vec2(100, 50)), { mask: 4, category: 1, ignoreBody: wall });
     expect(found).toContain(enemy);
-    expect(scene.queryCircleFirst(new Vec2(100, 50), 30, { mask: 4, ignoreBody: enemy })).toBeNull();
+    expect(scene.queryCircleFirst(new Circ(30, new Vec2(100, 50)), { mask: 4, ignoreBody: enemy })).toBeNull();
 
     // Symmetric ignoreCollisionWith
     const shot = new Physics(new Vec2(100, 50), new Vec2(), new Vec2(10, 10), 1, 1, 0, 'circle');
