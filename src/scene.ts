@@ -1,5 +1,5 @@
 import type { Grid } from '@1pizzateam/spock';
-import { Accumulator, GRID_EMPTY_CELL, Utils, Vec2 } from '@1pizzateam/spock';
+import { Accumulator, Circ, GRID_EMPTY_CELL, Rect, Ray2, Utils, Vec2 } from '@1pizzateam/spock';
 import { CollisionDetection } from './collision';
 import type { Physics } from './physics';
 import { Raycast, type RaycastHit, type RaycastOptions } from './raycast';
@@ -560,6 +560,10 @@ export class Scene {
   };
   private rayMin: Vec2 = new Vec2();
   private rayMax: Vec2 = new Vec2();
+  private rayStart: Vec2 = new Vec2();
+  private rayEnd: Vec2 = new Vec2();
+  private queryMin: Vec2 = new Vec2();
+  private queryMax: Vec2 = new Vec2();
   private bestHitPoint: Vec2 = new Vec2();
   private bestHitNormal: Vec2 = new Vec2();
 
@@ -591,12 +595,27 @@ export class Scene {
     );
   }
 
+  private resolveRay(startOrRay: Vec2 | Ray2, endOrMaxDistance?: Vec2 | number): void {
+    if (startOrRay instanceof Ray2) {
+      this.rayStart.copy(startOrRay.origin);
+      startOrRay.at((endOrMaxDistance as number | undefined) ?? 1, this.rayEnd);
+      return;
+    }
+    this.rayStart.copy(startOrRay);
+    this.rayEnd.copy(endOrMaxDistance as Vec2);
+  }
+
+  public raycast(ray: Ray2, maxDistance?: number, options?: RaycastOptions): RaycastHit | null;
+  public raycast(start: Vec2, end: Vec2, options?: RaycastOptions): RaycastHit | null;
   public raycast(
-    start: Vec2,
-    end: Vec2,
+    startOrRay: Vec2 | Ray2,
+    endOrMaxDistance?: Vec2 | number,
     options?: RaycastOptions
   ): RaycastHit | null {
     this.parseSpatialQueryOptions(options);
+    this.resolveRay(startOrRay, endOrMaxDistance);
+    const start = this.rayStart;
+    const end = this.rayEnd;
 
     let closestBody: Physics | null = null;
     let minFraction = 1.0;
@@ -632,12 +651,17 @@ export class Scene {
     };
   }
 
+  public hasLineOfSight(ray: Ray2, maxDistance?: number, options?: RaycastOptions): boolean;
+  public hasLineOfSight(start: Vec2, end: Vec2, options?: RaycastOptions): boolean;
   public hasLineOfSight(
-    start: Vec2,
-    end: Vec2,
+    startOrRay: Vec2 | Ray2,
+    endOrMaxDistance?: Vec2 | number,
     options?: RaycastOptions
   ): boolean {
     this.parseSpatialQueryOptions(options);
+    this.resolveRay(startOrRay, endOrMaxDistance);
+    const start = this.rayStart;
+    const end = this.rayEnd;
     this.rayMin.minVectors(start, end);
     this.rayMax.maxVectors(start, end);
 
@@ -654,12 +678,17 @@ export class Scene {
     return true;
   }
 
+  public raycastAll(ray: Ray2, maxDistance?: number, options?: RaycastOptions): RaycastHit[];
+  public raycastAll(start: Vec2, end: Vec2, options?: RaycastOptions): RaycastHit[];
   public raycastAll(
-    start: Vec2,
-    end: Vec2,
+    startOrRay: Vec2 | Ray2,
+    endOrMaxDistance?: Vec2 | number,
     options?: RaycastOptions
   ): RaycastHit[] {
     this.parseSpatialQueryOptions(options);
+    this.resolveRay(startOrRay, endOrMaxDistance);
+    const start = this.rayStart;
+    const end = this.rayEnd;
     const hits: RaycastHit[] = [];
     this.rayMin.minVectors(start, end);
     this.rayMax.maxVectors(start, end);
@@ -790,13 +819,12 @@ export class Scene {
 
   /**
    * Find all active bodies in the scene overlapping a circle.
-   * @param center - Circle center in world coordinates.
-   * @param radius - Circle radius.
+   * @param circ - Circle primitive (position and radius) in world coordinates.
    * @param options - Optional spatial query options.
    * @param target - Optional reusable output array; truncated with `length = 0` and returned to avoid per-call allocation.
    * @returns Array of matching bodies (the `target` array when provided).
    */
-  public queryCircle(center: Vec2, radius: number, options?: SpatialQueryOptions, target?: Physics[]): Physics[] {
+  public queryCircle(circ: Circ, options?: SpatialQueryOptions, target?: Physics[]): Physics[] {
     this.parseSpatialQueryOptions(options);
     const results = target ?? new Array<Physics>();
     results.length = 0;
@@ -804,7 +832,7 @@ export class Scene {
       const body = this.bodies[i];
       if (!this.passesSpatialFilter(body))
         continue;
-      if (body.overlapsCircle(center, radius))
+      if (body.overlapsCircle(circ))
         results.push(body);
     }
     return results;
@@ -812,18 +840,17 @@ export class Scene {
 
   /**
    * Find the first active body in the scene overlapping a circle.
-   * @param center - Circle center in world coordinates.
-   * @param radius - Circle radius.
+   * @param circ - Circle primitive (position and radius) in world coordinates.
    * @param options - Optional spatial query options.
    * @returns The first matching body, or null if none found.
    */
-  public queryCircleFirst(center: Vec2, radius: number, options?: SpatialQueryOptions): Physics | null {
+  public queryCircleFirst(circ: Circ, options?: SpatialQueryOptions): Physics | null {
     this.parseSpatialQueryOptions(options);
     for (let i = 0; i < this.bodiesLength; i++) {
       const body = this.bodies[i];
       if (!this.passesSpatialFilter(body))
         continue;
-      if (body.overlapsCircle(center, radius))
+      if (body.overlapsCircle(circ))
         return body;
     }
     return null;
@@ -831,21 +858,21 @@ export class Scene {
 
   /**
    * Find all active bodies in the scene overlapping an Axis-Aligned Bounding Box (AABB).
-   * @param min - Minimum corner (or first corner).
-   * @param max - Maximum corner (or second corner).
+   * @param rect - Rect primitive; `position` is its center and `size` its full extents.
    * @param options - Optional spatial query options.
    * @param target - Optional reusable output array; truncated with `length = 0` and returned to avoid per-call allocation.
    * @returns Array of matching bodies (the `target` array when provided).
    */
-  public queryAabb(min: Vec2, max: Vec2, options?: SpatialQueryOptions, target?: Physics[]): Physics[] {
+  public queryAabb(rect: Rect, options?: SpatialQueryOptions, target?: Physics[]): Physics[] {
     this.parseSpatialQueryOptions(options);
+    rect.getBounds(this.queryMin, this.queryMax);
     const results = target ?? new Array<Physics>();
     results.length = 0;
     for (let i = 0; i < this.bodiesLength; i++) {
       const body = this.bodies[i];
       if (!this.passesSpatialFilter(body))
         continue;
-      if (body.overlapsAabb(min, max))
+      if (body.overlapsAabb(this.queryMin, this.queryMax))
         results.push(body);
     }
     return results;
@@ -853,18 +880,18 @@ export class Scene {
 
   /**
    * Find the first active body in the scene overlapping an Axis-Aligned Bounding Box (AABB).
-   * @param min - Minimum corner (or first corner).
-   * @param max - Maximum corner (or second corner).
+   * @param rect - Rect primitive; `position` is its center and `size` its full extents.
    * @param options - Optional spatial query options.
    * @returns The first matching body, or null if none found.
    */
-  public queryAabbFirst(min: Vec2, max: Vec2, options?: SpatialQueryOptions): Physics | null {
+  public queryAabbFirst(rect: Rect, options?: SpatialQueryOptions): Physics | null {
     this.parseSpatialQueryOptions(options);
+    rect.getBounds(this.queryMin, this.queryMax);
     for (let i = 0; i < this.bodiesLength; i++) {
       const body = this.bodies[i];
       if (!this.passesSpatialFilter(body))
         continue;
-      if (body.overlapsAabb(min, max))
+      if (body.overlapsAabb(this.queryMin, this.queryMax))
         return body;
     }
     return null;

@@ -819,12 +819,15 @@ Cast a segment from start to end through the scene and return the closest hit, o
 
 ```typescript
 raycast(start: Vec2, end: Vec2, options?: RaycastOptions): RaycastHit | null
+raycast(ray: Ray2, maxDistance?: number, options?: RaycastOptions): RaycastHit | null
 ```
 
 ### Parameters
 
 - `start` — `Vec2`. Starting point of the segment.
 - `end` — `Vec2`. Ending point of the segment.
+- `ray` — `Ray2`. Spock ray primitive; the segment ends at `origin + direction * maxDistance`.
+- `maxDistance` — `number` (optional). Ray length multiplier, default `1`.
 - `options` — `RaycastOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody, filter }` filter options.
 
 ### Returns
@@ -834,7 +837,10 @@ raycast(start: Vec2, end: Vec2, options?: RaycastOptions): RaycastHit | null
 ### Example
 
 ```javascript
+import { Ray2 } from '@1pizzateam/spock';
+
 const hit = scene.raycast(muzzlePos, targetPos, { mask: 0x0004 });
+const rayHit = scene.raycast(new Ray2(muzzlePos, aimDir), 800, { mask: 0x0004 });
 if (hit) {
   console.log('Struck', hit.body, 'at', hit.point, 'normal', hit.normal);
 }
@@ -848,12 +854,15 @@ Test whether a segment from start to end has an unobstructed line of sight, earl
 
 ```typescript
 hasLineOfSight(start: Vec2, end: Vec2, options?: RaycastOptions): boolean
+hasLineOfSight(ray: Ray2, maxDistance?: number, options?: RaycastOptions): boolean
 ```
 
 ### Parameters
 
 - `start` — `Vec2`. Starting point of the segment.
 - `end` — `Vec2`. Ending point of the segment.
+- `ray` — `Ray2`. Spock ray primitive; the segment ends at `origin + direction * maxDistance`.
+- `maxDistance` — `number` (optional). Ray length multiplier, default `1`.
 - `options` — `RaycastOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody, filter }` filter options.
 
 ### Returns
@@ -864,6 +873,7 @@ hasLineOfSight(start: Vec2, end: Vec2, options?: RaycastOptions): boolean
 
 ```javascript
 const visible = scene.hasLineOfSight(enemyPos, playerPos, { mask: CAT_WALL });
+const visibleByRay = scene.hasLineOfSight(new Ray2(enemyPos, aimDir), 300, { mask: CAT_WALL });
 ```
 
 ---
@@ -874,12 +884,15 @@ Cast a segment from start to end and return all intersected bodies, sorted by fr
 
 ```typescript
 raycastAll(start: Vec2, end: Vec2, options?: RaycastOptions): RaycastHit[]
+raycastAll(ray: Ray2, maxDistance?: number, options?: RaycastOptions): RaycastHit[]
 ```
 
 ### Parameters
 
 - `start` — `Vec2`. Starting point of the segment.
 - `end` — `Vec2`. Ending point of the segment.
+- `ray` — `Ray2`. Spock ray primitive; the segment ends at `origin + direction * maxDistance`.
+- `maxDistance` — `number` (optional). Ray length multiplier, default `1`.
 - `options` — `RaycastOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody, filter }` filter options.
 
 ### Returns
@@ -890,6 +903,7 @@ raycastAll(start: Vec2, end: Vec2, options?: RaycastOptions): RaycastHit[]
 
 ```javascript
 const hits = scene.raycastAll(start, end, { ignoreSensors: true });
+const rayHits = scene.raycastAll(new Ray2(origin, direction), 500, { ignoreSensors: true });
 ```
 
 ---
@@ -1049,13 +1063,12 @@ const hoveredBody = scene.queryPointFirst(mouseWorldPos);
 Find all active bodies in the scene overlapping a circle (e.g. area-of-effect blast or proximity check).
 
 ```typescript
-queryCircle(center: Vec2, radius: number, options?: SpatialQueryOptions, target?: Physics[]): Physics[]
+queryCircle(circ: Circ, options?: SpatialQueryOptions, target?: Physics[]): Physics[]
 ```
 
 ### Parameters
 
-- `center` — `Vec2`. Circle center in world coordinates.
-- `radius` — `number`. Circle radius.
+- `circ` — `Circ`. Spock circle primitive (position and radius) in world coordinates.
 - `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody, filter }` filter options.
 - `target` — `Physics[]` (optional). Reusable output array; truncated with `length = 0`, filled with the matches, and returned to avoid per-call allocation.
 
@@ -1066,7 +1079,9 @@ queryCircle(center: Vec2, radius: number, options?: SpatialQueryOptions, target?
 ### Example
 
 ```javascript
-const blastedEnemies = scene.queryCircle(explosionPos, 150, { mask: ENEMY_CATEGORY });
+import { Circ } from '@1pizzateam/spock';
+
+const blastedEnemies = scene.queryCircle(new Circ(150, explosionPos), { mask: ENEMY_CATEGORY });
 ```
 
 Reusing a module-level buffer to avoid per-frame allocations:
@@ -1083,13 +1098,12 @@ scene.queryCircle(/* ... */, undefined, buffer);
 Find the first active body in the scene overlapping a circle.
 
 ```typescript
-queryCircleFirst(center: Vec2, radius: number, options?: SpatialQueryOptions): Physics | null
+queryCircleFirst(circ: Circ, options?: SpatialQueryOptions): Physics | null
 ```
 
 ### Parameters
 
-- `center` — `Vec2`. Circle center in world coordinates.
-- `radius` — `number`. Circle radius.
+- `circ` — `Circ`. Spock circle primitive (position and radius) in world coordinates.
 - `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody, filter }` filter options.
 
 ### Returns
@@ -1099,7 +1113,7 @@ queryCircleFirst(center: Vec2, radius: number, options?: SpatialQueryOptions): P
 ### Example
 
 ```javascript
-const blocked = scene.queryCircleFirst(padPos, 24, { mask: CAT_ENEMY, ignoreBody: selfBody });
+const blocked = scene.queryCircleFirst(new Circ(24, padPos), { mask: CAT_ENEMY, ignoreBody: selfBody });
 ```
 
 ---
@@ -1109,13 +1123,12 @@ const blocked = scene.queryCircleFirst(padPos, 24, { mask: CAT_ENEMY, ignoreBody
 Find all active bodies in the scene overlapping an Axis-Aligned Bounding Box (AABB) (e.g. selection marquee or camera frustum).
 
 ```typescript
-queryAabb(min: Vec2, max: Vec2, options?: SpatialQueryOptions, target?: Physics[]): Physics[]
+queryAabb(rect: Rect, options?: SpatialQueryOptions, target?: Physics[]): Physics[]
 ```
 
 ### Parameters
 
-- `min` — `Vec2`. Minimum corner (or first corner).
-- `max` — `Vec2`. Maximum corner (or second corner).
+- `rect` — `Rect`. Spock rectangle primitive; `position` is its center and `size` its full extents.
 - `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody, filter }` filter options.
 - `target` — `Physics[]` (optional). Reusable output array; truncated with `length = 0`, filled with the matches, and returned to avoid per-call allocation.
 
@@ -1126,7 +1139,10 @@ queryAabb(min: Vec2, max: Vec2, options?: SpatialQueryOptions, target?: Physics[
 ### Example
 
 ```javascript
-const selectedUnits = scene.queryAabb(dragStart, dragEnd);
+import { Rect, Vec2 } from '@1pizzateam/spock';
+
+const marquee = new Rect(new Vec2(200, 100), new Vec2(400, 300)); // size, center position
+const selectedUnits = scene.queryAabb(marquee);
 ```
 
 Reusing a module-level buffer to avoid per-frame allocations:
@@ -1143,13 +1159,12 @@ scene.queryAabb(/* ... */, undefined, buffer);
 Find the first active body in the scene overlapping an Axis-Aligned Bounding Box (AABB).
 
 ```typescript
-queryAabbFirst(min: Vec2, max: Vec2, options?: SpatialQueryOptions): Physics | null
+queryAabbFirst(rect: Rect, options?: SpatialQueryOptions): Physics | null
 ```
 
 ### Parameters
 
-- `min` — `Vec2`. Minimum corner (or first corner).
-- `max` — `Vec2`. Maximum corner (or second corner).
+- `rect` — `Rect`. Spock rectangle primitive; `position` is its center and `size` its full extents.
 - `options` — `SpatialQueryOptions` (optional). `{ mask, category, ignoreSensors, ignoreBody, filter }` filter options.
 
 ### Returns
